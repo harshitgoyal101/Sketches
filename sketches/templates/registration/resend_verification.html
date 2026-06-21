@@ -1,0 +1,25 @@
+{% extends "sketches/base.html" %}
+{% load static %}
+
+{% block title %}Resend verification — sketches101{% endblock %}
+
+{% block content %}
+<section class="auth-card">
+  <h1>Resend verification</h1>
+  <p class="auth-lead">Enter your email and we'll send a new verification link.</p>
+
+  <form method="post" class="themed-form auth-form" novalidate>
+    {% csrf_token %}
+    {% include "sketches/partials/form_field.html" with field=form.email %}
+    <button type="submit" class="btn btn-primary btn-full">Send link</button>
+  </form>
+
+  <p class="auth-switch">
+    <a href="{% url 'login' %}">Back to log in</a>
+  </p>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'sketches/js/forms.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<body style="font-family: sans-serif; line-height: 1.5; color: #1e3a52;">
+  <p>Hi {{ user.username }},</p>
+  <p>Thanks for signing up for <strong>{{ site_name }}</strong>.</p>
+  <p>
+    <a href="{{ verify_url }}" style="display:inline-block;padding:0.75rem 1.25rem;background:#2b7fd4;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:600;">
+      Verify email address
+    </a>
+  </p>
+  <p style="font-size:0.9rem;color:#5a7a94;">Or copy this link:<br>{{ verify_url }}</p>
+  <p style="font-size:0.9rem;color:#5a7a94;">If you did not create this account, you can ignore this message.</p>
+</body>
+</html>

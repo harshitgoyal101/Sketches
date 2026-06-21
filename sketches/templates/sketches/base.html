@@ -1,0 +1,47 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}sketches101{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{% static 'sketches/img/favicon_appicon.png' %}" sizes="512x512">
+  {% block meta_tags %}
+  <meta name="description" content="Interactive p5.js and Processing sketches with live previews and source code.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{% block og_title %}sketches101{% endblock %}">
+  <meta property="og:description" content="Interactive p5.js and Processing sketches with live previews and source code.">
+  {% endblock %}
+  <link rel="canonical" href="{{ request.build_absolute_uri }}">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'sketches/css/style.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body{% if body_class %} class="{{ body_class }}"{% endif %}>
+  {% block background %}{% endblock %}
+  {% include "sketches/partials/navbar.html" %}
+
+  {% if messages %}
+  <div class="container site-messages" role="status">
+    {% for message in messages %}
+    <div class="site-message site-message-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <main>
+    <div class="container">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+    </div>
+  </footer>
+
+  <script src="{% static 'sketches/js/nav.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

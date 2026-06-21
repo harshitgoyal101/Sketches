@@ -1,0 +1,82 @@
+{% extends "sketches/base.html" %}
+{% load static %}
+
+{% block title %}{{ sketch.title }} — sketches101{% endblock %}
+
+{% block meta_tags %}
+<meta name="description" content="{{ meta_description|striptags|truncatechars:160 }}">
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ sketch.title }}">
+<meta property="og:description" content="{{ meta_description|striptags|truncatechars:160 }}">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+{% if sketch.thumbnail %}
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ sketch.thumbnail.url }}">
+{% endif %}
+<meta name="twitter:card" content="{% if sketch.thumbnail %}summary_large_image{% else %}summary{% endif %}">
+<meta name="twitter:title" content="{{ sketch.title }}">
+<meta name="twitter:description" content="{{ meta_description|striptags|truncatechars:160 }}">
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+{% if can_edit and sketch.status == "draft" %}
+<div class="sketch-draft-banner" role="status">
+  This sketch is a draft — only you can see it until you publish.
+</div>
+{% endif %}
+
+<header class="sketch-header">
+  <div class="sketch-header-top">
+    <h1>{{ sketch.title }}</h1>
+    {% if can_edit %}
+    <div class="sketch-edit-actions">
+      {% if sketch.status == "draft" %}
+      {% include "sketches/partials/sketch_publish_form.html" with sketch=sketch %}
+      {% endif %}
+      <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-secondary btn-sm">Edit</a>
+    </div>
+    {% endif %}
+  </div>
+  <div class="sketch-meta">
+    {% include "sketches/partials/sketch_status_badges.html" with sketch=sketch show_published_status=False %}
+    {% if sketch.author %}
+      <span>by {{ sketch.author.get_username }}</span>
+    {% endif %}
+    {% if sketch.published_at %}
+      <span>{{ sketch.published_at|date:"F j, Y" }}</span>
+    {% endif %}
+    {% for tag in sketch.tags.all %}
+      <a href="{% url 'tag_detail' tag.slug %}" class="tag">{{ tag.name }}</a>
+    {% endfor %}
+  </div>
+</header>
+
+<div class="sketch-layout">
+  {% include "sketches/partials/sketch_preview.html" %}
+
+  <div class="description-panel">
+    <h2>Description</h2>
+    {% if description_html %}
+    <div class="markdown-body">{{ description_html|safe }}</div>
+    {% else %}
+    <p class="description-empty">No description provided.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% include "sketches/partials/sketch_source_view.html" %}
+{% endblock %}
+
+{% block extra_js %}
+{% if sketch.is_interactive %}
+<script src="{% static 'sketches/js/preview-controls.js' %}"></script>
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/acorn@8.14.0/dist/acorn.min.js"></script>
+<script src="{% static 'sketches/js/code-editor-syntax.js' %}"></script>
+<script src="{% static 'sketches/js/embed-builder.js' %}"></script>
+<script>window.SketchEmbedBase = "{% static 'sketches/embed/' %}";</script>
+<script src="{% static 'sketches/js/preview-iframe.js' %}"></script>
+<script src="{% static 'sketches/js/code-editor-ui.js' %}"></script>
+<script src="{% static 'sketches/js/sketch-live-editor.js' %}"></script>
+<script src="{% static 'sketches/js/copy-code.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "sketches/base.html" %}
+
+{% block title %}Invalid link — sketches101{% endblock %}
+
+{% block content %}
+<section class="auth-card">
+  <h1>Invalid or expired link</h1>
+  <p class="auth-lead">
+    This verification link is no longer valid. Request a new one to activate your account.
+  </p>
+  <p class="auth-switch">
+    <a href="{% url 'resend_verification' %}">Resend verification email</a>
+  </p>
+</section>
+{% endblock %}

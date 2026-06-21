@@ -1,0 +1,58 @@
+{% extends "sketches/base.html" %}
+
+{% block title %}My account — sketches101{% endblock %}
+
+{% block content %}
+<section class="hero account-hero">
+  <h1>Hello, {{ user.username }}</h1>
+  <p>
+    {{ published_count }} published · {{ draft_count }} draft{{ draft_count|pluralize }}
+  </p>
+  <p class="account-actions account-create-actions">
+    <a href="{% url 'sketch_create' %}?type=p5js" class="btn btn-primary">New p5.js sketch</a>
+    <a href="{% url 'sketch_create' %}?type=processing" class="btn btn-secondary">New Processing sketch</a>
+  </p>
+</section>
+
+{% if sketches %}
+<section>
+  <h2 class="section-title">Your sketches</h2>
+  <div class="account-sketch-list">
+    {% for sketch in sketches %}
+    <article class="account-sketch-row">
+      <div class="account-sketch-info">
+        <h3>
+          {% if sketch.status == "published" %}
+          <a href="{% url 'sketch_detail' sketch.slug %}">{{ sketch.title }}</a>
+          {% else %}
+          <a href="{% url 'sketch_edit' sketch.slug %}">{{ sketch.title }}</a>
+          {% endif %}
+        </h3>
+        <div class="sketch-card-meta">
+          {% include "sketches/partials/sketch_status_badges.html" with sketch=sketch %}
+          <span>Updated {{ sketch.updated_at|date:"M j, Y" }}</span>
+        </div>
+      </div>
+      <div class="account-sketch-actions">
+        {% if sketch.status != "published" %}
+        {% include "sketches/partials/sketch_publish_form.html" with sketch=sketch %}
+        {% else %}
+        <a href="{% url 'sketch_detail' sketch.slug %}" class="btn btn-secondary btn-sm">View</a>
+        {% endif %}
+        <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-secondary btn-sm">Edit</a>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% else %}
+<div class="empty-state">
+  <h2>No sketches yet</h2>
+  <p>
+    <a href="{% url 'sketch_create' %}?type=p5js">Create your first p5.js sketch</a>
+    or
+    <a href="{% url 'sketch_create' %}?type=processing">Processing sketch</a>.
+  </p>
+</div>
+{% endif %}
+{% endblock %}

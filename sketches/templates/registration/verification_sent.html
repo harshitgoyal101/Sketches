@@ -1,0 +1,16 @@
+{% extends "sketches/base.html" %}
+
+{% block title %}Check your email — sketches101{% endblock %}
+
+{% block content %}
+<section class="auth-card">
+  <h1>Check your email</h1>
+  <p class="auth-lead">
+    We sent a verification link to your inbox. Open it to activate your account before logging in.
+  </p>
+  <p class="auth-switch">
+    Didn't get it?
+    <a href="{% url 'resend_verification' %}">Resend verification email</a>
+  </p>
+</section>
+{% endblock %}

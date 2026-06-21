@@ -1,0 +1,44 @@
+<div class="form-field{% if field.field.widget.input_type == 'password' or show_toggle %} password-field{% endif %}{% if field.field.widget.input_type == 'checkbox' and not field.field.widget.allow_multiple_selected %} form-field-check{% endif %}">
+  {% if field.field.widget.input_type == 'checkbox' and not field.field.widget.allow_multiple_selected %}
+  <label class="form-check" for="{{ field.id_for_label }}">
+    {{ field }}
+    <span class="form-check-label">{{ field.label }}</span>
+  </label>
+  {% elif field.field.widget.input_type == 'checkbox' and field.field.widget.allow_multiple_selected %}
+  <span class="form-label" id="{{ field.auto_id }}-label">{{ field.label }}</span>
+  <div class="form-check-group" aria-labelledby="{{ field.auto_id }}-label">
+    {% for checkbox in field %}
+    <label class="form-check form-check-inline" for="{{ checkbox.id_for_label }}">
+      {{ checkbox.tag }}
+      <span class="form-check-label">{{ checkbox.choice_label }}</span>
+    </label>
+    {% endfor %}
+  </div>
+  {% elif field.field.widget.input_type == 'file' %}
+  <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {{ field }}
+  {% else %}
+  <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {% if field.field.widget.input_type == 'password' or show_toggle %}
+  <div class="password-input-wrap">
+    {{ field }}
+    <button
+      type="button"
+      class="password-toggle"
+      data-target="{{ field.id_for_label }}"
+      aria-label="Show password"
+      aria-pressed="false"
+    >Show</button>
+  </div>
+  {% else %}
+  {{ field }}
+  {% endif %}
+  {% endif %}
+
+  {% if field.help_text %}
+  <span class="field-help">{{ field.help_text|safe }}</span>
+  {% endif %}
+  {% if field.errors %}
+  <span class="field-error">{{ field.errors|join:", " }}</span>
+  {% endif %}
+</div>

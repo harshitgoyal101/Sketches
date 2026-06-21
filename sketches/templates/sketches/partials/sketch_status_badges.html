@@ -1,0 +1,12 @@
+{% if sketch.sketch_type == "p5js" %}
+  <span class="badge badge-p5js">p5.js</span>
+{% else %}
+  <span class="badge badge-processing">Processing</span>
+{% endif %}
+{% if sketch.status == "published" %}
+  {% if show_published_status|default:True %}
+  <span class="badge badge-published">Published</span>
+  {% endif %}
+{% else %}
+  <span class="badge badge-draft">Draft</span>
+{% endif %}

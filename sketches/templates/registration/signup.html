@@ -1,0 +1,56 @@
+{% extends "sketches/base.html" %}
+{% load static %}
+
+{% block title %}Sign up — sketches101{% endblock %}
+
+{% block content %}
+<section class="auth-card">
+  <h1>Create account</h1>
+  <p class="auth-lead">Join the gallery to publish and manage your sketches.</p>
+
+  <form method="post" class="themed-form auth-form" id="signup-form" novalidate>
+    {% csrf_token %}
+    {% include "sketches/partials/form_non_field_errors.html" with form=form %}
+
+    {% include "sketches/partials/form_field.html" with field=form.username %}
+    {% include "sketches/partials/form_field.html" with field=form.email %}
+
+    <div class="form-field password-field">
+      <label class="form-label" for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
+      <div class="password-input-wrap">
+        {{ form.password1 }}
+        <button
+          type="button"
+          class="password-toggle"
+          data-target="{{ form.password1.id_for_label }}"
+          aria-label="Show password"
+          aria-pressed="false"
+        >Show</button>
+      </div>
+      <ul class="password-requirements" id="password-requirements" aria-live="polite">
+        <li class="password-requirement" data-rule="length">At least 8 characters</li>
+        <li class="password-requirement" data-rule="numeric">Not entirely numeric</li>
+        <li class="password-requirement" data-rule="common">Not a commonly used password</li>
+        <li class="password-requirement" data-rule="similar">Not too similar to your username</li>
+        <li class="password-requirement" data-rule="match">Passwords match</li>
+      </ul>
+      {% if form.password1.errors %}
+      <span class="field-error">{{ form.password1.errors|join:", " }}</span>
+      {% endif %}
+    </div>
+
+    {% include "sketches/partials/form_field.html" with field=form.password2 show_toggle=True %}
+
+    <button type="submit" class="btn btn-primary btn-full">Sign up</button>
+  </form>
+
+  <p class="auth-switch">
+    Already have an account? <a href="{% url 'login' %}">Log in</a>
+  </p>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'sketches/js/forms.js' %}"></script>
+<script src="{% static 'sketches/js/signup.js' %}"></script>
+{% endblock %}

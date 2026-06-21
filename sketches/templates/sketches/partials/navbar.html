@@ -1,0 +1,77 @@
+{% load static %}
+<header class="site-header" id="site-header">
+  <div class="container navbar">
+    <a href="{% url 'home' %}" class="navbar-brand">
+      <img
+        src="{% static 'sketches/img/full_logo.png' %}"
+        alt="sketches101"
+        width="220"
+      >
+    </a>
+
+    <button
+      type="button"
+      class="navbar-toggle"
+      id="nav-toggle"
+      aria-expanded="false"
+      aria-controls="site-nav"
+      aria-label="Open menu"
+    >
+      <span class="navbar-toggle-bar"></span>
+      <span class="navbar-toggle-bar"></span>
+      <span class="navbar-toggle-bar"></span>
+    </button>
+
+    <div class="navbar-menu" id="site-nav">
+      <nav class="navbar-links" aria-label="Main navigation">
+        <a
+          href="{% url 'home' %}"
+          class="navbar-link{% if request.resolver_match.url_name == 'home' %} is-active{% endif %}"
+        >Home</a>
+        <a
+          href="{% url 'sketch_list' %}"
+          class="navbar-link{% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'sketch_detail' or request.resolver_match.url_name == 'tag_detail' %} is-active{% endif %}"
+        >Sketches</a>
+        {% if user.is_authenticated %}
+        <a
+          href="{% url 'account' %}"
+          class="navbar-link{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' %} is-active{% endif %}"
+        >Account</a>
+        {% endif %}
+      </nav>
+
+      <div class="navbar-actions">
+        <a href="{% url 'sketch_list' %}" class="navbar-cta navbar-cta-mobile">Explore sketches</a>
+        {% if user.is_authenticated %}
+        <div class="navbar-user-row">
+          <span class="navbar-user">{{ user.username }}</span>
+          <form method="post" action="{% url 'logout' %}" class="navbar-logout-form">
+            {% csrf_token %}
+            <button type="submit" class="navbar-link navbar-link-button">Log out</button>
+          </form>
+        </div>
+        {% else %}
+        <div class="navbar-auth-row">
+          <a
+            href="{% url 'login' %}"
+            class="navbar-link{% if request.resolver_match.url_name == 'login' %} is-active{% endif %}"
+          >Log in</a>
+          <a
+            href="{% url 'signup' %}"
+            class="navbar-link navbar-link-accent{% if request.resolver_match.url_name == 'signup' %} is-active{% endif %}"
+          >Sign up</a>
+        </div>
+        {% endif %}
+        <a href="{% url 'sketch_list' %}" class="navbar-cta navbar-cta-desktop">Explore</a>
+      </div>
+    </div>
+  </div>
+
+  <button
+    type="button"
+    class="navbar-backdrop"
+    id="nav-backdrop"
+    aria-hidden="true"
+    tabindex="-1"
+  ></button>
+</header>

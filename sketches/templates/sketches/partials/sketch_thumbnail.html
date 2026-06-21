@@ -1,0 +1,7 @@
+<div class="sketch-thumbnail{% if extra_class %} {{ extra_class }}{% endif %}">
+  {% if sketch.thumbnail %}
+    <img src="{{ sketch.thumbnail.url }}" alt="{{ sketch.title }} thumbnail" loading="lazy">
+  {% else %}
+    <span class="sketch-thumbnail-placeholder" aria-hidden="true">◌</span>
+  {% endif %}
+</div>

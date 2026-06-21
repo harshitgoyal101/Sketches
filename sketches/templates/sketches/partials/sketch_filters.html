@@ -1,0 +1,46 @@
+<form class="sketch-filters themed-form" method="get" action="{{ filter_action|default:'' }}">
+  <div class="sketch-filters-search">
+    <label class="visually-hidden" for="sketch-search">Search sketches</label>
+    <input
+      type="search"
+      id="sketch-search"
+      name="q"
+      value="{{ query }}"
+      placeholder="Search by title, tag, or description…"
+      class="form-input sketch-search-input"
+    >
+    <button type="submit" class="btn btn-primary btn-filter">Search</button>
+  </div>
+
+  {% if tags %}
+  <div class="sketch-filters-tags" aria-label="Filter by tag">
+    <a
+      href="{% url 'sketch_list' %}{% if query %}?q={{ query|urlencode }}{% endif %}"
+      class="filter-tag{% if not active_tag and not tag_slug %} is-active{% endif %}"
+    >All</a>
+    {% for tag in tags %}
+    <a
+      href="{% url 'tag_detail' tag.slug %}{% if query %}?q={{ query|urlencode }}{% endif %}"
+      class="filter-tag{% if tag_slug == tag.slug %} is-active{% endif %}"
+    >{{ tag.name }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if query or tag_slug or active_tag %}
+  <p class="sketch-filters-status">
+    {% if active_tag %}
+      Showing <strong>{{ active_tag.name }}</strong> sketches
+    {% elif tag_slug %}
+      Filtered by tag
+    {% endif %}
+    {% if query %}
+      {% if active_tag or tag_slug %} matching {% else %}Showing results for {% endif %}
+      <strong>"{{ query }}"</strong>
+    {% endif %}
+    {% if filter_querystring %}
+      · <a href="{% url 'sketch_list' %}">Clear filters</a>
+    {% endif %}
+  </p>
+  {% endif %}
+</form>

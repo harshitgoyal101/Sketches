@@ -1,0 +1,42 @@
+{% extends "sketches/base.html" %}
+
+{% block title %}{{ active_tag.name }} — sketches101{% endblock %}
+
+{% block meta_tags %}
+<meta name="description" content="Sketches tagged {{ active_tag.name }} on sketches101.">
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>{{ active_tag.name }}</h1>
+  <p>{{ page_obj.paginator.count }} sketch{{ page_obj.paginator.count|pluralize }}</p>
+</section>
+
+{% include "sketches/partials/sketch_filters.html" %}
+
+{% if page_obj.object_list %}
+<div class="sketch-grid">
+  {% for sketch in page_obj %}
+    {% include "sketches/partials/sketch_card.html" %}
+  {% endfor %}
+</div>
+
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if filter_querystring %}&amp;{{ filter_querystring }}{% endif %}">← Previous</a>
+  {% endif %}
+  <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if filter_querystring %}&amp;{{ filter_querystring }}{% endif %}">Next →</a>
+  {% endif %}
+</nav>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+  <h2>No sketches found</h2>
+  <p>Try a different search or <a href="{% url 'sketch_list' %}">browse all sketches</a>.</p>
+</div>
+{% endif %}
+{% endblock %}

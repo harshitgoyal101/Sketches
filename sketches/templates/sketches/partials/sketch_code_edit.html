@@ -1,0 +1,144 @@
+  <section
+    id="source-code"
+    class="code-section code-section-edit code-ide"
+    data-editor-tabs
+    data-formset-prefix="{{ formset.prefix }}"
+    data-sketch-type="{% if is_create %}{{ form.sketch_type.value|default:'p5js' }}{% else %}{{ sketch.sketch_type }}{% endif %}"
+    {% if is_create %}data-preview-url="{% url 'sketch_preview_cache' %}"{% endif %}
+    data-theme="dark"
+  >
+    <div class="code-ide-titlebar">
+      <div class="code-ide-traffic" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <span class="code-ide-title">Source code</span>
+      <div class="code-ide-titlebar-actions">
+        {% include "sketches/partials/code_ide_footer_controls.html" %}
+      </div>
+    </div>
+
+    <div class="code-ide-tabs" role="tablist" aria-label="Source files">
+      <button
+        type="button"
+        class="code-ide-tab code-ide-tab--main is-active"
+        role="tab"
+        aria-selected="true"
+        data-panel="main"
+        id="code-ide-tab-main"
+      >{% if is_create %}<span class="code-ide-tab-label">{{ form.entry_filename.value|default:"sketch.js" }}</span>{% else %}<span class="code-ide-tab-label">{{ form.entry_filename.value|default:sketch.default_entry_filename }}</span>{% endif %}</button>
+      <span class="code-ide-asset-tabs" id="code-ide-asset-tabs">
+        {% for asset_form in formset %}
+        <button
+          type="button"
+          class="code-ide-tab code-ide-tab--asset"
+          role="tab"
+          aria-selected="false"
+          data-panel="asset-{{ forloop.counter0 }}"
+          id="code-ide-tab-asset-{{ forloop.counter0 }}"
+          draggable="true"
+        ><span class="code-tab-drag" aria-hidden="true">⠿</span><span class="code-ide-tab-label">{{ asset_form.filename.value|default:"file.js" }}</span><span class="code-ide-tab-close" title="Remove file" aria-label="Remove file">×</span></button>
+        {% endfor %}
+      </span>
+      <button type="button" class="code-ide-tab-add" id="code-ide-add-file" title="Add file" aria-label="Add file">+</button>
+    </div>
+
+    {{ formset.management_form }}
+    {% if formset.non_form_errors %}
+    <div class="form-errors" role="alert">{{ formset.non_form_errors }}</div>
+    {% endif %}
+
+    <div class="code-ide-panels">
+    <div class="code-ide-panel is-active" data-panel="main" id="code-ide-panel-main" role="tabpanel" aria-labelledby="code-ide-tab-main">
+      <div class="code-ide-panel-toolbar">
+        <div class="form-field code-ide-filename-field">
+          <label class="form-label" for="{{ form.entry_filename.id_for_label }}">Main file</label>
+          {{ form.entry_filename }}
+        </div>
+      </div>
+      {% if form.code.errors %}
+      <div class="form-errors" role="alert">{{ form.code.errors|join:", " }}</div>
+      {% endif %}
+      <div class="code-ide-editor-area">
+        <label class="visually-hidden" for="{{ form.code.id_for_label }}">Source code</label>
+        {{ form.code }}
+      </div>
+    </div>
+
+    <div class="code-edit-assets">
+      <div class="formset-list" id="asset-formset-list">
+        {% for asset_form in formset %}
+        <div
+          class="formset-item code-ide-panel"
+          data-asset-panel
+          data-panel="asset-{{ forloop.counter0 }}"
+          id="code-ide-panel-asset-{{ forloop.counter0 }}"
+          role="tabpanel"
+          aria-labelledby="code-ide-tab-asset-{{ forloop.counter0 }}"
+          hidden
+        >
+          {% if asset_form.non_field_errors %}
+          <div class="form-errors" role="alert">{{ asset_form.non_field_errors }}</div>
+          {% endif %}
+          {% for hidden in asset_form.hidden_fields %}{{ hidden }}{% endfor %}
+          <div class="code-ide-panel-toolbar form-grid form-grid-asset">
+            <div class="visually-hidden">{{ asset_form.order }}</div>
+            {% include "sketches/partials/form_field.html" with field=asset_form.filename %}
+            {% include "sketches/partials/form_field.html" with field=asset_form.asset_type %}
+            {% if asset_form.DELETE %}
+            <div class="form-field form-field-check form-field-delete">
+              <label class="form-check" for="{{ asset_form.DELETE.id_for_label }}">
+                {{ asset_form.DELETE }}
+                <span class="form-check-label">Remove</span>
+              </label>
+            </div>
+            {% endif %}
+          </div>
+          {% if asset_form.content.errors %}
+          <div class="form-errors" role="alert">{{ asset_form.content.errors|join:", " }}</div>
+          {% endif %}
+          <div class="code-ide-editor-area">
+            <label class="visually-hidden" for="{{ asset_form.content.id_for_label }}">File content</label>
+            {{ asset_form.content }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    </div>
+
+    <template id="asset-empty-template">
+      <div class="formset-item code-ide-panel" data-asset-panel data-panel="asset-__prefix__" id="code-ide-panel-asset-__prefix__" role="tabpanel" hidden>
+        {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+        <div class="code-ide-panel-toolbar form-grid form-grid-asset">
+          <div class="visually-hidden">{{ formset.empty_form.order }}</div>
+          {% include "sketches/partials/form_field.html" with field=formset.empty_form.filename %}
+          {% include "sketches/partials/form_field.html" with field=formset.empty_form.asset_type %}
+          {% if formset.empty_form.DELETE %}
+          <div class="form-field form-field-check form-field-delete">
+            <label class="form-check" for="{{ formset.empty_form.DELETE.id_for_label }}">
+              {{ formset.empty_form.DELETE }}
+              <span class="form-check-label">Remove</span>
+            </label>
+          </div>
+          {% endif %}
+        </div>
+        <div class="code-ide-editor-area">
+          <label class="visually-hidden" for="{{ formset.empty_form.content.id_for_label }}">File content</label>
+          {{ formset.empty_form.content }}
+        </div>
+      </div>
+    </template>
+
+    <div class="code-ide-footer">
+      <span class="code-ide-status" id="code-ide-status-label">
+        {% if is_create %}
+          {% if form.sketch_type.value == "processing" %}Processing{% else %}p5.js{% endif %}
+        {% elif sketch.is_processing %}
+          Processing
+        {% else %}
+          p5.js
+        {% endif %}
+        · UTF-8 · Spaces: 2 · Tab indent · ⌘/ Ctrl+/ comment
+      </span>
+    </div>
+  </section>

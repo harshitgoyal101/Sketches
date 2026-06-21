@@ -1,0 +1,33 @@
+{% extends "sketches/base.html" %}
+{% load static %}
+
+{% block title %}Log in — sketches101{% endblock %}
+
+{% block content %}
+<section class="auth-card">
+  <h1>Log in</h1>
+  <p class="auth-lead">Sign in to manage your sketches and account.</p>
+
+  <form method="post" class="themed-form auth-form" novalidate>
+    {% csrf_token %}
+    {% include "sketches/partials/form_non_field_errors.html" with form=form %}
+    {% for field in form %}
+    {% include "sketches/partials/form_field.html" with field=field %}
+    {% endfor %}
+    <button type="submit" class="btn btn-primary btn-full">Log in</button>
+  </form>
+
+  <p class="auth-switch">
+    <a href="{% url 'password_reset' %}">Forgot password?</a>
+    ·
+    <a href="{% url 'resend_verification' %}">Resend verification</a>
+  </p>
+  <p class="auth-switch">
+    Don't have an account? <a href="{% url 'signup' %}">Sign up</a>
+  </p>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'sketches/js/forms.js' %}"></script>
+{% endblock %}

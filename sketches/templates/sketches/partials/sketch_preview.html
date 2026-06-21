@@ -1,0 +1,26 @@
+<div class="preview-panel">
+  {% if sketch.is_interactive %}
+  <div class="preview-toolbar">
+    <button type="button" id="restart-preview" title="Restart sketch (or click the preview)">↻ Restart</button>
+    <button type="button" id="fullscreen-preview" title="Fullscreen">⛶ Fullscreen</button>
+  </div>
+  <div class="preview-frame-wrap" id="preview-frame-wrap">
+    <iframe
+      id="sketch-preview"
+      src="{% url 'sketch_embed' sketch.slug %}"
+      sandbox="allow-scripts allow-same-origin"
+      loading="lazy"
+      title="{{ sketch.title }} preview"
+    ></iframe>
+  </div>
+  {% elif sketch.thumbnail %}
+  <div class="preview-thumbnail-wrap">
+    {% include "sketches/partials/sketch_thumbnail.html" with extra_class="sketch-thumbnail--preview" %}
+  </div>
+  <p class="preview-thumbnail-caption">Live preview unavailable — showing thumbnail.</p>
+  {% else %}
+  <div class="preview-unavailable">
+    Add a thumbnail or save your sketch to see a preview here.
+  </div>
+  {% endif %}
+</div>

@@ -1,0 +1,20 @@
+<div class="preview-panel" id="create-preview-panel" data-create-preview>
+  <div class="preview-toolbar">
+    <button type="button" id="restart-preview" title="Restart sketch (or click the preview)">↻ Restart</button>
+    <button type="button" id="fullscreen-preview" title="Fullscreen">⛶ Fullscreen</button>
+  </div>
+  <div class="code-error-panel preview-error-panel" id="create-preview-errors" hidden role="alert" aria-live="polite">
+    <div class="code-error-panel-header">
+      <span class="code-error-panel-title" id="create-preview-error-title">Sketch error</span>
+      <button type="button" class="code-error-dismiss" id="dismiss-create-preview-errors" aria-label="Dismiss errors">×</button>
+    </div>
+    <pre class="code-error-message" id="create-preview-error-message"></pre>
+  </div>
+  <div class="preview-frame-wrap is-click-restart" id="preview-frame-wrap">
+    <iframe
+      id="sketch-preview"
+      sandbox="allow-scripts allow-same-origin"
+      title="Sketch preview"
+    ></iframe>
+  </div>
+</div>
