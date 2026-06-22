@@ -31,6 +31,29 @@
         {% include "sketches/partials/sketch_status_badges.html" with sketch=sketch %}
       </div>
       {% endif %}
+      {% if is_create and form.sketch_type %}
+      <div class="sketch-type-picker sketch-type-picker--inline" role="group" aria-label="Sketch type">
+        <button
+          type="button"
+          class="sketch-type-option{% if form.sketch_type.value != 'processing' %} is-active{% endif %}"
+          data-sketch-type="p5js"
+          aria-pressed="{% if form.sketch_type.value != 'processing' %}true{% else %}false{% endif %}"
+        >
+          <span class="sketch-type-option-label">p5.js</span>
+          <span class="sketch-type-option-hint">JavaScript · sketch.js</span>
+        </button>
+        <button
+          type="button"
+          class="sketch-type-option{% if form.sketch_type.value == 'processing' %} is-active{% endif %}"
+          data-sketch-type="processing"
+          aria-pressed="{% if form.sketch_type.value == 'processing' %}true{% else %}false{% endif %}"
+        >
+          <span class="sketch-type-option-label">Processing</span>
+          <span class="sketch-type-option-hint">.pde · runs via Processing.js</span>
+        </button>
+        <div class="visually-hidden">{{ form.sketch_type }}</div>
+      </div>
+      {% endif %}
     </div>
     <div class="sketch-edit-topbar-actions">
       {% if not is_create and sketch.status != "published" %}
@@ -43,31 +66,11 @@
     </div>
   </div>
 
-  {% if is_create and form.sketch_type %}
-  <div class="sketch-type-picker" role="group" aria-label="Sketch type">
-    <button
-      type="button"
-      class="sketch-type-option{% if form.sketch_type.value != 'processing' %} is-active{% endif %}"
-      data-sketch-type="p5js"
-      aria-pressed="{% if form.sketch_type.value != 'processing' %}true{% else %}false{% endif %}"
-    >
-      <span class="sketch-type-option-label">p5.js</span>
-      <span class="sketch-type-option-hint">JavaScript · sketch.js</span>
-    </button>
-    <button
-      type="button"
-      class="sketch-type-option{% if form.sketch_type.value == 'processing' %} is-active{% endif %}"
-      data-sketch-type="processing"
-      aria-pressed="{% if form.sketch_type.value == 'processing' %}true{% else %}false{% endif %}"
-    >
-      <span class="sketch-type-option-label">Processing</span>
-      <span class="sketch-type-option-hint">.pde · runs via Processing.js</span>
-    </button>
-    <div class="visually-hidden">{{ form.sketch_type }}</div>
-  </div>
-  {% endif %}
-
   <div class="sketch-edit-workspace">
+    <div class="sketch-edit-main">
+      {% include "sketches/partials/sketch_code_edit.html" %}
+    </div>
+
     <aside class="sketch-edit-sidebar">
       <section class="edit-card edit-card-preview">
         <header class="edit-card-header">
@@ -169,10 +172,6 @@
         </div>
       </section>
     </aside>
-
-    <div class="sketch-edit-main">
-      {% include "sketches/partials/sketch_code_edit.html" %}
-    </div>
   </div>
 </form>
 {% endblock %}
@@ -194,6 +193,7 @@
 {% if not is_create and sketch.is_interactive %}
 <script src="{% static 'sketches/js/preview-controls.js' %}"></script>
 {% endif %}
+<script src="{% static 'sketches/js/file-tree.js' %}"></script>
 <script src="{% static 'sketches/js/code-editor-ui.js' %}"></script>
 <script src="{% static 'sketches/js/sketch-type-fields.js' %}"></script>
 <script src="{% static 'sketches/js/description-toolbar.js' %}"></script>

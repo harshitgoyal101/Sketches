@@ -1,0 +1,82 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Django checks
+        env:
+          SECRET_KEY: ci-test-secret-key
+          DEBUG: "false"
+          ALLOWED_HOSTS: example.com
+          CSRF_TRUSTED_ORIGINS: https://example.com
+        run: python manage.py check --deploy
+
+      - name: Run tests
+        env:
+          SECRET_KEY: ci-test-secret-key
+          DEBUG: "true"
+        run: python manage.py test sketches
+
+  deploy:
+    name: Deploy to PythonAnywhere
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ssh.pythonanywhere.com
+          username: ${{ secrets.PA_USERNAME }}
+          key: ${{ secrets.PA_SSH_PRIVATE_KEY }}
+          script_stop: true
+          command_timeout: 15m
+          script: |
+            PROJECT_DIR="${{ secrets.PA_PROJECT_DIR }}"
+            if [ -z "$PROJECT_DIR" ]; then
+              PROJECT_DIR="/home/${{ secrets.PA_USERNAME }}/Sketches"
+            fi
+            export PA_PROJECT_DIR="$PROJECT_DIR"
+            export PA_VENV_DIR="${{ secrets.PA_VENV_DIR }}"
+            bash "${PROJECT_DIR}/scripts/deploy_pythonanywhere.sh"
+
+      - name: Reload web app
+        env:
+          PA_USERNAME: ${{ secrets.PA_USERNAME }}
+          PA_API_TOKEN: ${{ secrets.PA_API_TOKEN }}
+          PA_DOMAIN: ${{ secrets.PA_DOMAIN }}
+        run: |
+          if [[ -z "${PA_DOMAIN}" ]]; then
+            PA_DOMAIN="${PA_USERNAME}.pythonanywhere.com"
+          fi
+          curl --fail --silent --show-error \
+            -X POST \
+            -H "Authorization: Token ${PA_API_TOKEN}" \
+            "https://www.pythonanywhere.com/api/v0/user/${PA_USERNAME}/webapps/${PA_DOMAIN}/reload/"

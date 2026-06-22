@@ -17,7 +17,7 @@
       </div>
     </div>
 
-    <div class="code-ide-tabs" role="tablist" aria-label="Source files">
+    <div class="code-ide-tabs code-ide-tabs--legacy" role="tablist" aria-label="Source files" hidden>
       <button
         type="button"
         class="code-ide-tab code-ide-tab--main is-active"
@@ -39,7 +39,7 @@
         ><span class="code-tab-drag" aria-hidden="true">⠿</span><span class="code-ide-tab-label">{{ asset_form.filename.value|default:"file.js" }}</span><span class="code-ide-tab-close" title="Remove file" aria-label="Remove file">×</span></button>
         {% endfor %}
       </span>
-      <button type="button" class="code-ide-tab-add" id="code-ide-add-file" title="Add file" aria-label="Add file">+</button>
+      <button type="button" class="code-ide-tab-add" id="code-ide-add-file-legacy" title="Add file" aria-label="Add file" hidden>+</button>
     </div>
 
     {{ formset.management_form }}
@@ -47,6 +47,10 @@
     <div class="form-errors" role="alert">{{ formset.non_form_errors }}</div>
     {% endif %}
 
+    <div class="code-ide-body">
+      {% include "sketches/partials/file_tree_sidebar.html" with show_add_file=True %}
+
+      <div class="code-ide-workspace">
     <div class="code-ide-panels">
     <div class="code-ide-panel is-active" data-panel="main" id="code-ide-panel-main" role="tabpanel" aria-labelledby="code-ide-tab-main">
       <div class="code-ide-panel-toolbar">
@@ -103,6 +107,8 @@
         </div>
         {% endfor %}
       </div>
+    </div>
+    </div>
     </div>
     </div>
 

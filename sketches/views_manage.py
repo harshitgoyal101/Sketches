@@ -15,6 +15,7 @@ from .forms import SketchAssetFormSet, SketchEditForm
 from .models import Sketch, SketchAsset
 from .permissions import can_edit_sketch
 from .services.embed_builder import build_p5_embed_html, build_processing_embed_html
+from .services.file_tree import build_file_tree
 from .services.sketch_context import build_sketch_detail_context
 from .services.sketch_starters import (
     get_default_filename,
@@ -85,6 +86,15 @@ def _get_editable_sketch(request, slug):
     return sketch
 
 
+def _build_edit_file_tree(form, formset, sketch=None):
+    """Build file tree for the edit/create form from bound or initial values."""
+    if sketch and sketch.pk:
+        return build_file_tree(sketch.get_source_files(), panel_mode="edit")
+
+    entry = (form.initial.get("entry_filename") or "sketch.js").strip()
+    return build_file_tree([{"filename": entry, "is_main": True}], panel_mode="edit")
+
+
 @login_required
 def sketch_create(request):
     is_admin = request.user.is_staff
@@ -121,10 +131,12 @@ def sketch_create(request):
         {
             "form": form,
             "formset": formset,
+            "file_tree": _build_edit_file_tree(form, formset),
             "is_create": True,
             "is_admin": is_admin,
             "submit_label": "Create sketch",
             "sketch_starters": get_starter_payload(),
+            "body_class": "edit-page",
         },
     )
 
@@ -164,10 +176,12 @@ def sketch_edit(request, slug):
         {
             "form": form,
             "formset": formset,
+            "file_tree": _build_edit_file_tree(form, formset, sketch=sketch),
             "is_create": False,
             "is_admin": is_admin,
             "can_edit": True,
             "submit_label": "Save changes",
+            "body_class": "edit-page",
         }
     )
     return render(request, "sketches/sketch_edit.html", context)

@@ -25,12 +25,23 @@ load_dotenv(BASE_DIR / ".env")
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-y^(9595rquvd0y4og&zaw3i6j*hebcs2!=q^16lriquwg-gm92'
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY",
+    "django-insecure-y^(9595rquvd0y4og&zaw3i6j*hebcs2!=q^16lriquwg-gm92",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "true").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = []
+_allowed_hosts = os.environ.get("ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = [host.strip() for host in _allowed_hosts.split(",") if host.strip()]
+if DEBUG and not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+
+_csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip() for origin in _csrf_origins.split(",") if origin.strip()
+]
 
 
 # Application definition
@@ -122,9 +133,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+SKETCH_PROJECTS_ROOT = BASE_DIR / 'sketch_projects'
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 

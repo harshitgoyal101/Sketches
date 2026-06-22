@@ -9,7 +9,19 @@ from django.contrib.auth.models import User
 from django.forms import inlineformset_factory
 
 from .models import Sketch, SketchAsset, Tag
+from .services.file_tree import normalize_path
 from .services.sketch_starters import get_default_filename, get_starter_code, normalize_sketch_type
+
+
+def _clean_sketch_path(value, *, field_label="Path"):
+    path = normalize_path(value or "")
+    if not path:
+        raise forms.ValidationError(f"{field_label} is required.")
+    if path.startswith("..") or "/../" in f"/{path}/":
+        raise forms.ValidationError("Path cannot contain .. segments.")
+    if any(part.startswith(".") for part in path.split("/")):
+        raise forms.ValidationError("Hidden files are not allowed.")
+    return path
 
 
 def style_field(field):
@@ -169,7 +181,7 @@ class SketchEditForm(ThemedModelForm):
         }
         help_texts = {
             "description": "Markdown supported.",
-            "entry_filename": "Main source file name shown in the code viewer.",
+            "entry_filename": "Main source file path (e.g. sketch.js or src/sketch.js).",
             "sketch_type": (
                 "p5.js sketches use JavaScript. Processing sketches use .pde syntax "
                 "and run in the browser via Processing.js."
@@ -203,6 +215,11 @@ class SketchEditForm(ThemedModelForm):
         entry_filename = (cleaned_data.get("entry_filename") or "").strip()
         if not entry_filename:
             cleaned_data["entry_filename"] = get_default_filename(sketch_type)
+        else:
+            cleaned_data["entry_filename"] = _clean_sketch_path(
+                entry_filename,
+                field_label="Main file path",
+            )
         return cleaned_data
 
     def _apply_sketch_type_widgets(self):
@@ -239,9 +256,13 @@ class SketchAssetForm(ThemedModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["order"].widget.attrs.setdefault("min", "0")
+        self.fields["filename"].help_text = "Path relative to the sketch folder (e.g. lib/helper.js)."
         parent_sketch = getattr(self.instance, "sketch", None)
         if parent_sketch and parent_sketch.sketch_type == Sketch.SketchType.PROCESSING:
             self.fields["content"].widget.attrs["data-editor-lang"] = "java"
+
+    def clean_filename(self):
+        return _clean_sketch_path(self.cleaned_data.get("filename"), field_label="Filename")
 
 
 SketchAssetFormSet = inlineformset_factory(

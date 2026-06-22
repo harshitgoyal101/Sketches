@@ -190,6 +190,19 @@ python manage.py test sketches
 
 Tests cover embed HTML generation, Processing preview wiring, sketch starters, and form behavior.
 
+The same test suite runs automatically in GitHub Actions on every push and pull request to `main`.
+
+---
+
+## Deployment (PythonAnywhere)
+
+CI/CD is configured in [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml):
+
+- **Pull requests** → run tests only
+- **Push to `main`** → run tests, then deploy via SSH + reload the PythonAnywhere web app
+
+Full one-time setup (virtualenv, WSGI, static files, GitHub secrets): **[DEPLOYMENT.md](DEPLOYMENT.md)**
+
 ---
 
 ## Security notes
@@ -205,11 +218,14 @@ Sketches execute author-supplied JavaScript in the browser.
 
 ## Production checklist
 
-1. Set environment variables (`SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `SITE_URL`, email)
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for PythonAnywhere setup and automated deploys.
+
+General items:
+
+1. Set environment variables (`SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `SITE_URL`, email)
 2. Run `python manage.py collectstatic`
-3. Use PostgreSQL or another production database if needed
-4. Serve with Gunicorn/uWSGI behind Nginx (or similar)
-5. Configure persistent media storage for thumbnails
+3. Map `/static/` and `/media/` in your host's web configuration
+4. Configure persistent media storage for thumbnails
 
 ---
 

@@ -447,69 +447,135 @@ function notifySourceChanged(container) {
   container.dispatchEvent(new CustomEvent("sketch-source-changed", { bubbles: true }));
 }
 
-function initAssetFormset(container) {
-  const addBtn = container.querySelector("#code-ide-add-file");
+function addAssetAtPath(container, newPath) {
   const assetTabs = container.querySelector("#code-ide-asset-tabs");
   const formsetList = container.querySelector("#asset-formset-list");
   const template = container.querySelector("#asset-empty-template");
   const totalFormsInput = container.querySelector('[name$="-TOTAL_FORMS"]');
-  if (!addBtn || !assetTabs || !formsetList || !template || !totalFormsInput) return;
+  if (!assetTabs || !formsetList || !template || !totalFormsInput) return;
 
-  addBtn.addEventListener("click", () => {
-    const index = parseInt(totalFormsInput.value, 10);
-    const sketchType = container.dataset.sketchType || "p5js";
-    const extension = sketchType === "processing" ? ".pde" : ".js";
-    const defaultName = `file${index + 1}${extension}`;
-    const html = template.innerHTML.replace(/__prefix__/g, String(index));
-    const wrapper = document.createElement("div");
-    wrapper.innerHTML = html.trim();
-    const panel = wrapper.firstElementChild;
-    panel.removeAttribute("hidden");
-    formsetList.appendChild(panel);
+  const sketchType = container.dataset.sketchType || "p5js";
+  const index = parseInt(totalFormsInput.value, 10);
+  const panelId = `asset-${index}`;
+  const html = template.innerHTML.replace(/__prefix__/g, String(index));
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = html.trim();
+  const panel = wrapper.firstElementChild;
+  panel.removeAttribute("hidden");
+  formsetList.appendChild(panel);
 
-    const tab = document.createElement("button");
-    tab.type = "button";
-    tab.className = "code-ide-tab code-ide-tab--asset is-active";
-    tab.setAttribute("role", "tab");
-    tab.setAttribute("aria-selected", "true");
-    tab.dataset.panel = `asset-${index}`;
-    tab.id = `code-ide-tab-asset-${index}`;
-    tab.draggable = true;
-    tab.dataset.defaultName = defaultName;
-    tab.innerHTML = `<span class="code-tab-drag" aria-hidden="true">⠿</span><span class="code-ide-tab-label">${defaultName}</span><span class="code-ide-tab-close" title="Remove file" aria-label="Remove file">×</span>`;
-    assetTabs.appendChild(tab);
+  const tab = document.createElement("button");
+  tab.type = "button";
+  tab.className = "code-ide-tab code-ide-tab--asset is-active";
+  tab.setAttribute("role", "tab");
+  tab.setAttribute("aria-selected", "true");
+  tab.dataset.panel = panelId;
+  tab.id = `code-ide-tab-${panelId}`;
+  tab.draggable = true;
+  tab.dataset.defaultName = newPath;
+  tab.innerHTML = `<span class="code-tab-drag" aria-hidden="true">⠿</span><span class="code-ide-tab-label">${newPath}</span><span class="code-ide-tab-close" title="Remove file" aria-label="Remove file">×</span>`;
+  assetTabs.appendChild(tab);
 
-    const filenameInput = panel.querySelector('[name$="-filename"]');
-    const orderInput = panel.querySelector('[name$="-order"]');
-    if (filenameInput) filenameInput.value = defaultName;
-    if (orderInput) orderInput.value = String(index);
+  const filenameInput = panel.querySelector('[name$="-filename"]');
+  const orderInput = panel.querySelector('[name$="-order"]');
+  if (filenameInput) filenameInput.value = newPath;
+  if (orderInput) orderInput.value = String(index);
 
-    totalFormsInput.value = String(index + 1);
+  totalFormsInput.value = String(index + 1);
 
-    const textarea = panel.querySelector("textarea");
-    if (textarea) {
-      textarea.rows = 12;
-      if (sketchType === "processing") {
-        textarea.dataset.editorLang = "java";
-      }
-      enhanceEditor(textarea);
+  const textarea = panel.querySelector("textarea");
+  if (textarea) {
+    textarea.rows = 12;
+    if (sketchType === "processing") {
+      textarea.dataset.editorLang = "java";
     }
-    if (filenameInput) {
-      filenameInput.addEventListener("input", () => {
-        const labelEl = tab.querySelector(".code-ide-tab-label");
-        if (labelEl) labelEl.textContent = filenameInput.value.trim() || defaultName;
-      });
-    }
-
-    syncAssetOrder(container);
-    container.activateIdeTab?.(tab);
-    requestAnimationFrame(() => {
-      ensurePanelEditorHeight(panel);
-      requestAnimationFrame(() => ensurePanelEditorHeight(panel));
+    enhanceEditor(textarea);
+  }
+  if (filenameInput) {
+    filenameInput.addEventListener("input", () => {
+      const labelEl = tab.querySelector(".code-ide-tab-label");
+      if (labelEl) labelEl.textContent = filenameInput.value.trim() || newPath;
+      window.SketchFileTree?.rebuildFileTree?.(container);
     });
-    filenameInput?.focus();
-    notifySourceChanged(container);
+  }
+
+  syncAssetOrder(container);
+  notifySourceChanged(container);
+  window.SketchFileTree?.rebuildFileTree?.(container);
+
+  if (window.SketchFileTree?.activateEditPanel) {
+    window.SketchFileTree.activateEditPanel(container, panelId);
+  } else {
+    container.activateIdeTab?.(tab);
+  }
+
+  requestAnimationFrame(() => {
+    ensurePanelEditorHeight(panel);
+    textarea?.focus();
   });
+}
+
+function initAssetFormset(container) {
+  const assetTabs = container.querySelector("#code-ide-asset-tabs");
+  const formsetList = container.querySelector("#asset-formset-list");
+  const template = container.querySelector("#asset-empty-template");
+  const totalFormsInput = container.querySelector('[name$="-TOTAL_FORMS"]');
+  if (!assetTabs || !formsetList || !template || !totalFormsInput) return;
+
+  container.addEventListener("sketch-add-asset", (event) => {
+    if (event.detail?.path) {
+      addAssetAtPath(container, event.detail.path);
+    }
+  });
+
+  container.addEventListener("sketch-remove-asset", (event) => {
+    if (event.detail?.panelId) {
+      removeAssetByPanelId(container, event.detail.panelId);
+    }
+  });
+}
+
+function removeAssetByPanelId(container, panelId) {
+  if (!panelId || panelId === "main") return;
+
+  const tab = container.querySelector(`.code-ide-tab--asset[data-panel="${panelId}"]`);
+  const panel = container.querySelector(`[data-panel="${panelId}"][data-asset-panel]`);
+  if (!panel) return;
+
+  const idInput = panel.querySelector('[name$="-id"]');
+  const deleteInput = panel.querySelector('[name$="-DELETE"]');
+  const isExisting = Boolean(idInput?.value);
+  const wasActive = panel.classList.contains("is-active")
+    || tab?.classList.contains("is-active")
+    || container.querySelector(`.code-ide-tree-file-btn.is-active[data-panel="${panelId}"]`);
+
+  if (isExisting && deleteInput) {
+    deleteInput.checked = true;
+    if (tab) tab.hidden = true;
+    panel.hidden = true;
+    panel.classList.remove("is-active");
+  } else {
+    tab?.remove();
+    panel.remove();
+    const totalFormsInput = container.querySelector('[name$="-TOTAL_FORMS"]');
+    if (totalFormsInput) {
+      const remaining = container.querySelectorAll("#asset-formset-list .formset-item").length;
+      totalFormsInput.value = String(remaining);
+    }
+  }
+
+  if (wasActive) {
+    if (window.SketchFileTree?.activateEditPanel) {
+      window.SketchFileTree.activateEditPanel(container, "main");
+    } else {
+      const mainTab = container.querySelector(".code-ide-tab--main");
+      container.activateIdeTab?.(mainTab);
+    }
+  }
+
+  syncAssetOrder(container);
+  notifySourceChanged(container);
+  window.SketchFileTree?.rebuildFileTree?.(container);
 }
 
 function initAssetTabRemove(container) {
@@ -522,47 +588,16 @@ function initAssetTabRemove(container) {
     event.preventDefault();
     event.stopPropagation();
     const tab = closeBtn.closest(".code-ide-tab--asset");
-    if (tab) removeAssetTab(container, tab);
+    if (tab?.dataset.panel) {
+      removeAssetByPanelId(container, tab.dataset.panel);
+    }
   });
 }
 
 function removeAssetTab(container, tab) {
-  const panelId = tab.dataset.panel;
-  const panel = container.querySelector(`[data-panel="${panelId}"][data-asset-panel]`);
-  if (!panel) return;
-
-  const idInput = panel.querySelector('[name$="-id"]');
-  const deleteInput = panel.querySelector('[name$="-DELETE"]');
-  const isExisting = Boolean(idInput?.value);
-  const wasActive = tab.classList.contains("is-active");
-
-  if (isExisting && deleteInput) {
-    deleteInput.checked = true;
-    tab.hidden = true;
-    panel.hidden = true;
-    panel.classList.remove("is-active");
-  } else {
-    tab.remove();
-    panel.remove();
-    const totalFormsInput = container.querySelector('[name$="-TOTAL_FORMS"]');
-    if (totalFormsInput) {
-      const remaining = container.querySelectorAll("#asset-formset-list .formset-item").length;
-      totalFormsInput.value = String(remaining);
-    }
+  if (tab?.dataset.panel) {
+    removeAssetByPanelId(container, tab.dataset.panel);
   }
-
-  if (wasActive) {
-    const mainTab = container.querySelector(".code-ide-tab--main");
-    if (mainTab) {
-      container.activateIdeTab?.(mainTab);
-    } else {
-      const nextTab = container.querySelector(".code-ide-tab--asset:not([hidden])");
-      if (nextTab) container.activateIdeTab?.(nextTab);
-    }
-  }
-
-  syncAssetOrder(container);
-  notifySourceChanged(container);
 }
 
 function syncAssetOrder(container) {

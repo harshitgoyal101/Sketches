@@ -46,18 +46,14 @@
     <pre class="code-error-message" id="sketch-code-error-message"></pre>
   </div>
 
-  {% if source_files|length == 1 %}
-  <div class="code-tabs" role="tablist" aria-label="Source files">
-    <button type="button" class="code-tab is-active code-tab--main" role="tab" aria-selected="true">{{ source_files.0.filename }}</button>
-  </div>
-  {% elif source_files|length > 1 %}
-  <div class="code-tabs" role="tablist" aria-label="Source files">
+  {% if source_files|length > 1 %}
+  <div class="code-tabs code-tabs--legacy" role="tablist" aria-label="Source files" hidden>
     {% for file in source_files %}
     <button
       type="button"
-      class="code-tab{% if forloop.first %} is-active{% endif %}{% if file.is_main %} code-tab--main{% endif %}"
+      class="code-tab{% if file.is_main %} is-active{% endif %}{% if file.is_main %} code-tab--main{% endif %}"
       role="tab"
-      aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+      aria-selected="{% if file.is_main %}true{% else %}false{% endif %}"
       aria-controls="code-panel-{{ forloop.counter0 }}"
       id="code-tab-{{ forloop.counter0 }}"
       data-tab-index="{{ forloop.counter0 }}"
@@ -71,14 +67,18 @@
   </div>
   {% endif %}
 
+  <div class="code-ide-body">
+    {% include "sketches/partials/file_tree_sidebar.html" with show_add_file=False %}
+
+    <div class="code-ide-workspace">
   {% for file in source_files %}
   <div
-    class="code-tab-panel{% if forloop.first %} is-active{% endif %}{% if source_files|length == 1 %} code-tab-panel--single{% endif %}"
+    class="code-tab-panel{% if file.is_main %} is-active{% endif %}{% if source_files|length == 1 %} code-tab-panel--single{% endif %}"
     role="tabpanel"
     id="code-panel-{{ forloop.counter0 }}"
     aria-labelledby="code-tab-{{ forloop.counter0 }}"
     data-is-main="{% if file.is_main %}true{% else %}false{% endif %}"
-    {% if not forloop.first %}hidden{% endif %}
+    {% if not file.is_main %}hidden{% endif %}
   >
     {% if source_files|length > 1 %}
     <div class="code-tab-panel-bar">
@@ -101,6 +101,8 @@
     </div>
   </div>
   {% endfor %}
+    </div>
+  </div>
 
   <div class="code-ide-footer">
     <span class="code-ide-status">{% if sketch.sketch_type == "p5js" %}JavaScript{% else %}Processing{% endif %} · UTF-8 · Spaces: 2</span>

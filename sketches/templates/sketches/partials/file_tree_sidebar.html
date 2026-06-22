@@ -1,0 +1,21 @@
+{% if file_tree %}
+<nav class="code-ide-file-tree" aria-label="Project files">
+  <div class="code-ide-file-tree-header">
+    <div class="code-ide-file-tree-heading">
+      <span class="code-ide-file-tree-title">Explorer</span>
+    </div>
+    {% if show_add_file %}
+    <button type="button" class="code-ide-file-tree-add" id="code-ide-add-file" title="New file" aria-label="New file">
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 3v5H3v1.5h5V14h1.5V9.5H14V8H9.5V3H8z"/></svg>
+    </button>
+    {% endif %}
+  </div>
+  <ul class="code-ide-file-tree-root" role="tree">
+    {% if file_tree.children %}
+    {% include "sketches/partials/file_tree_nodes.html" with nodes=file_tree.children depth=0 show_add_file=show_add_file %}
+    {% else %}
+    <li class="code-ide-tree-empty" aria-hidden="true">No files yet</li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}

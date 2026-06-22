@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from django.contrib.auth import get_user_model
 from django.test import Client, SimpleTestCase, TestCase, override_settings
@@ -111,6 +112,87 @@ class SketchStarterTests(SimpleTestCase):
         )
         self.assertTrue(form.is_valid())
         self.assertEqual(form.cleaned_data["entry_filename"], "sketch.pde")
+
+
+class FileTreeTests(SimpleTestCase):
+    def test_builds_nested_folders(self):
+        from sketches.services.file_tree import build_file_tree
+
+        tree = build_file_tree(
+            [
+                {"filename": "sketch.js", "is_main": True},
+                {"filename": "lib/Pixel.js", "is_main": False, "asset_id": 1},
+            ],
+            panel_mode="edit",
+        )
+        self.assertEqual(len(tree["children"]), 2)
+        lib_folder = next(node for node in tree["children"] if node["type"] == "folder")
+        self.assertEqual(lib_folder["name"], "lib")
+        self.assertEqual(lib_folder["children"][0]["name"], "Pixel.js")
+        self.assertEqual(lib_folder["children"][0]["panel"], "asset-0")
+
+    def test_edit_mode_uses_main_and_asset_panels(self):
+        from sketches.services.file_tree import build_file_tree
+
+        tree = build_file_tree(
+            [
+                {"filename": "sketch.js", "is_main": True},
+                {"filename": "helper.js", "is_main": False},
+            ],
+            panel_mode="edit",
+        )
+        files = [node for node in tree["children"] if node["type"] == "file"]
+        main_file = next(node for node in files if node["is_main"])
+        helper_file = next(node for node in files if not node["is_main"])
+        self.assertEqual(main_file["panel"], "main")
+        self.assertEqual(helper_file["panel"], "asset-0")
+
+
+class SketchFilesystemTests(TestCase):
+    def setUp(self):
+        from django.conf import settings
+        import tempfile
+
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.settings_override = override_settings(SKETCH_PROJECTS_ROOT=Path(self.temp_dir.name))
+        self.settings_override.enable()
+
+    def tearDown(self):
+        self.settings_override.disable()
+        self.temp_dir.cleanup()
+
+    def test_export_and_import_round_trip(self):
+        from pathlib import Path
+
+        from sketches.models import SketchAsset
+        from sketches.services.sketch_filesystem import export_sketch, import_sketch
+
+        sketch = Sketch.objects.create(
+            title="Nested Files",
+            slug="nested-files",
+            sketch_type=Sketch.SketchType.P5JS,
+            entry_filename="sketch.js",
+            code="function setup() {}",
+            status=Sketch.Status.DRAFT,
+        )
+        SketchAsset.objects.create(
+            sketch=sketch,
+            filename="lib/particle.js",
+            content="class Particle {}",
+            asset_type="js",
+            order=0,
+        )
+
+        folder = export_sketch(sketch)
+        self.assertTrue((folder / "meta.json").exists())
+        self.assertTrue((folder / "sketch.js").exists())
+        self.assertTrue((folder / "lib" / "particle.js").exists())
+
+        Sketch.objects.filter(slug="nested-files").delete()
+        imported = import_sketch(folder)
+        self.assertEqual(imported.slug, "nested-files")
+        self.assertEqual(imported.assets.count(), 1)
+        self.assertEqual(imported.assets.first().filename, "lib/particle.js")
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
