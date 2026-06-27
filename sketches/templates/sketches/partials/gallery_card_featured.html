@@ -1,0 +1,40 @@
+<a href="{% url 'sketch_detail' sketch.slug %}" class="group lg:col-span-2 relative glass-panel rounded-xl overflow-hidden hover:border-primary transition-all duration-500 shadow-md bg-white block">
+  <div class="h-64 md:h-80 relative overflow-hidden bg-surface-container-highest">
+    {% if sketch.thumbnail %}
+      <img alt="{{ sketch.title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="{{ sketch.thumbnail.url }}" loading="lazy">
+    {% else %}
+      <div class="w-full h-full flex items-center justify-center bg-primary-fixed">
+        <span class="material-symbols-outlined text-primary text-6xl">play_circle</span>
+      </div>
+    {% endif %}
+    <div class="absolute top-4 left-4 flex gap-2 flex-wrap">
+      <span class="bg-primary/90 text-white text-label-sm px-3 py-1 rounded-full uppercase font-bold">Featured</span>
+      {% if sketch.sketch_type == "p5js" %}
+      <span class="bg-black/20 backdrop-blur-md text-white text-label-sm px-3 py-1 rounded-full uppercase">p5.js</span>
+      {% else %}
+      <span class="bg-black/20 backdrop-blur-md text-white text-label-sm px-3 py-1 rounded-full uppercase">Processing</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="p-6 flex flex-col justify-between">
+    <div>
+      <h3 class="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors">{{ sketch.title }}</h3>
+      {% if sketch.description %}
+      <p class="text-on-surface-variant mt-2 line-clamp-2">{{ sketch.description|striptags|truncatewords:24 }}</p>
+      {% endif %}
+    </div>
+    <div class="flex items-center justify-between mt-6 gap-4 flex-wrap">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full border border-primary/10 bg-primary-fixed flex items-center justify-center text-on-primary-fixed-variant font-bold text-xs">
+          {% if sketch.author %}{{ sketch.author.username|slice:":1"|upper }}{% else %}?{% endif %}
+        </div>
+        {% if sketch.author %}
+        <span class="font-code-md text-code-md text-primary">@{{ sketch.author.username }}</span>
+        {% endif %}
+      </div>
+      {% if sketch.published_at %}
+      <span class="text-outline font-code-md text-code-md">{{ sketch.published_at|date:"M j, Y" }}</span>
+      {% endif %}
+    </div>
+  </div>
+</a>

@@ -1,58 +1,72 @@
 {% extends "sketches/base.html" %}
 
-{% block title %}My account — sketches101{% endblock %}
+{% block title %}My account | Sketches101{% endblock %}
+
+{% block page_background %}
+<div class="fixed inset-0 network-grid pointer-events-none z-0" aria-hidden="true"></div>
+{% endblock %}
 
 {% block content %}
-<section class="hero account-hero">
-  <h1>Hello, {{ user.username }}</h1>
-  <p>
-    {{ published_count }} published · {{ draft_count }} draft{{ draft_count|pluralize }}
-  </p>
-  <p class="account-actions account-create-actions">
-    <a href="{% url 'sketch_create' %}?type=p5js" class="btn btn-primary">New p5.js sketch</a>
-    <a href="{% url 'sketch_create' %}?type=processing" class="btn btn-secondary">New Processing sketch</a>
-  </p>
-</section>
+<div class="relative z-10 max-w-[960px] mx-auto">
+  <header class="mb-10">
+    <h1 class="font-display-lg text-headline-lg text-on-surface mb-2">Hello, {{ user.username }}</h1>
+    <p class="text-on-surface-variant font-body-md">
+      {{ published_count }} published · {{ draft_count }} draft{{ draft_count|pluralize }}
+    </p>
+    <div class="flex flex-wrap gap-3 mt-6">
+      <a href="{% url 'sketch_create' %}?type=p5js" class="inline-flex items-center gap-2 bg-primary text-white font-bold px-5 py-2.5 rounded-lg hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
+        <span class="material-symbols-outlined text-base">add</span>
+        New p5.js sketch
+      </a>
+      <a href="{% url 'sketch_create' %}?type=processing" class="inline-flex items-center gap-2 bg-white text-on-surface font-bold px-5 py-2.5 rounded-lg border border-outline-variant hover:border-primary hover:text-primary transition-all">
+        <span class="material-symbols-outlined text-base text-primary">add</span>
+        New Processing sketch
+      </a>
+    </div>
+  </header>
 
-{% if sketches %}
-<section>
-  <h2 class="section-title">Your sketches</h2>
-  <div class="account-sketch-list">
-    {% for sketch in sketches %}
-    <article class="account-sketch-row">
-      <div class="account-sketch-info">
-        <h3>
-          {% if sketch.status == "published" %}
-          <a href="{% url 'sketch_detail' sketch.slug %}">{{ sketch.title }}</a>
-          {% else %}
-          <a href="{% url 'sketch_edit' sketch.slug %}">{{ sketch.title }}</a>
-          {% endif %}
-        </h3>
-        <div class="sketch-card-meta">
-          {% include "sketches/partials/sketch_status_badges.html" with sketch=sketch %}
-          <span>Updated {{ sketch.updated_at|date:"M j, Y" }}</span>
+  {% if sketches %}
+  <section>
+    <h2 class="text-xl font-bold text-on-surface mb-4">Your sketches</h2>
+    <div class="space-y-3">
+      {% for sketch in sketches %}
+      <article class="bg-white p-4 md:p-5 rounded-xl border border-outline-variant shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-primary/30 transition-colors">
+        <div class="min-w-0">
+          <h3 class="font-bold text-lg text-on-surface truncate">
+            {% if sketch.status == "published" %}
+            <a href="{% url 'sketch_detail' sketch.slug %}" class="hover:text-primary transition-colors">{{ sketch.title }}</a>
+            {% else %}
+            <a href="{% url 'sketch_edit' sketch.slug %}" class="hover:text-primary transition-colors">{{ sketch.title }}</a>
+            {% endif %}
+          </h3>
+          <div class="flex flex-wrap items-center gap-2 mt-2 text-sm text-outline">
+            {% include "sketches/partials/sketch_status_badges.html" with sketch=sketch %}
+            <span>Updated {{ sketch.updated_at|date:"M j, Y" }}</span>
+          </div>
         </div>
-      </div>
-      <div class="account-sketch-actions">
-        {% if sketch.status != "published" %}
-        {% include "sketches/partials/sketch_publish_form.html" with sketch=sketch %}
-        {% else %}
-        <a href="{% url 'sketch_detail' sketch.slug %}" class="btn btn-secondary btn-sm">View</a>
-        {% endif %}
-        <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-secondary btn-sm">Edit</a>
-      </div>
-    </article>
-    {% endfor %}
+        <div class="flex flex-wrap gap-2 shrink-0">
+          {% if sketch.status != "published" %}
+          {% include "sketches/partials/sketch_publish_form.html" with sketch=sketch %}
+          {% else %}
+          <a href="{% url 'sketch_detail' sketch.slug %}" class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface font-medium hover:border-primary hover:text-primary transition-all text-sm">View</a>
+          {% endif %}
+          <a href="{% url 'sketch_edit' sketch.slug %}" class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface font-medium hover:border-primary hover:text-primary transition-all text-sm">Edit</a>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% else %}
+  <div class="text-center py-16 bg-white rounded-xl border border-outline-variant shadow-sm">
+    <span class="material-symbols-outlined text-primary text-5xl mb-4">code_blocks</span>
+    <h2 class="text-xl font-bold text-on-surface mb-2">No sketches yet</h2>
+    <p class="text-on-surface-variant mb-6">
+      Create your first sketch to get started.
+    </p>
+    <a href="{% url 'sketch_create' %}?type=p5js" class="text-primary font-bold hover:underline">New p5.js sketch</a>
+    <span class="text-outline mx-2">·</span>
+    <a href="{% url 'sketch_create' %}?type=processing" class="text-primary font-bold hover:underline">Processing sketch</a>
   </div>
-</section>
-{% else %}
-<div class="empty-state">
-  <h2>No sketches yet</h2>
-  <p>
-    <a href="{% url 'sketch_create' %}?type=p5js">Create your first p5.js sketch</a>
-    or
-    <a href="{% url 'sketch_create' %}?type=processing">Processing sketch</a>.
-  </p>
+  {% endif %}
 </div>
-{% endif %}
 {% endblock %}

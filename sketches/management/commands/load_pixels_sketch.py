@@ -1,27 +1,61 @@
-from pathlib import Path
-
 from django.core.management.base import BaseCommand
 
 from sketches.models import Sketch, SketchAsset, Tag
 
-SKETCH_DIR = Path(__file__).resolve().parents[3] / "Pixels_2026_06_13_17_10_33"
+PIXEL_JS = """class Pixel {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.xspeed = random(-1, 1);
+    this.yspeed = random(-1, 1);
+  }
+
+  apply_force(x_acc, y_acc) {
+    this.xspeed += x_acc;
+    this.yspeed += y_acc;
+  }
+
+  update() {
+    this.xspeed *= 0.95;
+    this.yspeed *= 0.95;
+
+    this.xspeed += random(-0.1, 0.1);
+    this.yspeed += random(-0.1, 0.1);
+
+    this.xspeed = constrain(this.xspeed, -5, 5);
+    this.yspeed = constrain(this.yspeed, -5, 5);
+
+    this.x += this.xspeed;
+    this.y += this.yspeed;
+
+    if (this.x < 0 || this.x > width) this.xspeed *= -1;
+    if (this.y < 0 || this.y > height) this.yspeed *= -1;
+
+    this.x = constrain(this.x, 0, width);
+    this.y = constrain(this.y, 0, height);
+  }
+}
+"""
 
 SKETCH_JS = """var pixel = [];
 let border_buffer = 10;
 
+function pointerX() {
+  if (touches.length > 0) return touches[0].x;
+  if (typeof window._parentMouseX === "number") return window._parentMouseX;
+  return mouseX;
+}
+
+function pointerY() {
+  if (touches.length > 0) return touches[0].y;
+  if (typeof window._parentMouseY === "number") return window._parentMouseY;
+  return mouseY;
+}
+
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  let canvas = createCanvas(windowWidth, windowHeight);
+  canvas.elt.style.touchAction = "none";
   initPixels();
-  window.addEventListener("message", (event) => {
-    if (!event.data) return;
-    if (event.data.type === "sketch-mouse") {
-      window._parentMouseX = event.data.x;
-      window._parentMouseY = event.data.y;
-    }
-    if (event.data.type === "sketch-restart") {
-      initPixels();
-    }
-  });
 }
 
 function windowResized() {
@@ -29,10 +63,17 @@ function windowResized() {
   initPixels();
 }
 
+function touchStarted() {
+  return false;
+}
+
+function touchMoved() {
+  return false;
+}
+
 function initPixels() {
   pixel = [];
-  let count = floor((width * height) / 6400);
-  count = constrain(count, 80, 160);
+  let count = floor((width * height) / 8000);
   for (let i = 0; i < count; i++) {
     pixel[i] = new Pixel(
       random(border_buffer, width - border_buffer),
@@ -46,8 +87,8 @@ function draw() {
 
   let push_strength = 0.6;
   let mouse_radius = 150;
-  let mx = window._parentMouseX !== undefined ? window._parentMouseX : mouseX;
-  let my = window._parentMouseY !== undefined ? window._parentMouseY : mouseY;
+  let mx = pointerX();
+  let my = pointerY();
 
   for (let i = 0; i < pixel.length; i++) {
     let p = pixel[i];
@@ -74,10 +115,15 @@ function draw() {
     p.apply_force(fx, fy);
     p.update();
 
+    fill(59, 130, 246);
+    noStroke();
+    ellipse(p.x, p.y, 5, 5);
+
     for (let j = i + 1; j < pixel.length; j++) {
       let d = dist(p.x, p.y, pixel[j].x, pixel[j].y);
       if (d <= 150) {
-        stroke(59, 144, 235, 255 - map(d, 0, 200, 0, 255));
+        stroke(59, 130, 246, 255 - map(d, 0, 150, 0, 255));
+        strokeWeight(1);
         line(p.x, p.y, pixel[j].x, pixel[j].y);
       }
     }
@@ -99,16 +145,9 @@ Moving the cursor gently repels nearby particles, creating interactive ripples t
 
 
 class Command(BaseCommand):
-    help = "Load the Pixels sketch from Pixels_2026_06_13_17_10_33/"
+    help = "Load the Pixels sketch (home background)."
 
     def handle(self, *args, **options):
-        pixel_path = SKETCH_DIR / "Pixel.js"
-        if not pixel_path.exists():
-            self.stderr.write(self.style.ERROR(f"Missing {pixel_path}"))
-            return
-
-        pixel_code = pixel_path.read_text(encoding="utf-8")
-
         tag, _ = Tag.objects.get_or_create(
             name="generative",
             defaults={"slug": "generative"},
@@ -136,7 +175,7 @@ class Command(BaseCommand):
             sketch=sketch,
             filename="Pixel.js",
             defaults={
-                "content": pixel_code,
+                "content": PIXEL_JS,
                 "asset_type": SketchAsset.AssetType.JS,
                 "order": 0,
             },

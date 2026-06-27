@@ -45,9 +45,13 @@ def _get_sketch_file_content(sketch, filename):
 def _apply_sketch_filters(queryset, request):
     query = request.GET.get("q", "").strip()
     tag_slug = request.GET.get("tag", "").strip()
+    sketch_type = request.GET.get("type", "").strip()
 
     if tag_slug:
         queryset = queryset.filter(tags__slug=tag_slug)
+
+    if sketch_type in (Sketch.SketchType.P5JS, Sketch.SketchType.PROCESSING):
+        queryset = queryset.filter(sketch_type=sketch_type)
 
     if query:
         queryset = queryset.filter(
@@ -57,7 +61,7 @@ def _apply_sketch_filters(queryset, request):
             | Q(tags__name__icontains=query)
         ).distinct()
 
-    return queryset, query, tag_slug
+    return queryset, query, tag_slug, sketch_type
 
 
 def _paginate_sketches(request, queryset, per_page=12):
@@ -70,7 +74,7 @@ def _filter_tags():
     return Tag.objects.filter(sketches__status=PUBLISHED).distinct().order_by("name")
 
 
-def _build_filter_context(request, page_obj, query="", tag_slug="", active_tag=None):
+def _build_filter_context(request, page_obj, query="", tag_slug="", active_tag=None, sketch_type=""):
     params = request.GET.copy()
     if "page" in params:
         del params["page"]
@@ -80,6 +84,7 @@ def _build_filter_context(request, page_obj, query="", tag_slug="", active_tag=N
         "query": query,
         "tag_slug": tag_slug,
         "active_tag": active_tag,
+        "sketch_type": sketch_type,
         "filter_querystring": params.urlencode(),
     }
 
@@ -96,26 +101,29 @@ def home(request):
         {
             "sketches": sketches,
             "background_sketch": background_sketch,
-            "body_class": "home-page",
             "meta_description": SITE_DESCRIPTION,
         },
     )
 
 
 def sketch_list(request):
-    queryset, query, tag_slug = _apply_sketch_filters(_gallery_sketches(), request)
+    queryset, query, tag_slug, sketch_type = _apply_sketch_filters(_gallery_sketches(), request)
     page_obj = _paginate_sketches(request, queryset)
     active_tag = Tag.objects.filter(slug=tag_slug).first() if tag_slug else None
-    context = _build_filter_context(request, page_obj, query, tag_slug, active_tag)
+    context = _build_filter_context(request, page_obj, query, tag_slug, active_tag, sketch_type)
+    context["gallery_show_featured"] = (
+        page_obj.number == 1 and not query and not tag_slug and not sketch_type
+    )
     return render(request, "sketches/sketch_list.html", context)
 
 
 def tag_detail(request, slug):
     tag = get_object_or_404(Tag, slug=slug)
     queryset = _gallery_sketches().filter(tags=tag)
-    queryset, query, _tag_slug = _apply_sketch_filters(queryset, request)
+    queryset, query, tag_slug, sketch_type = _apply_sketch_filters(queryset, request)
     page_obj = _paginate_sketches(request, queryset)
-    context = _build_filter_context(request, page_obj, query, slug, tag)
+    context = _build_filter_context(request, page_obj, query, slug, tag, sketch_type)
+    context["gallery_show_featured"] = False
     return render(request, "sketches/tag_detail.html", context)
 
 
@@ -129,6 +137,16 @@ def sketch_detail(request, slug):
             raise Http404
     context = build_sketch_detail_context(sketch)
     context["can_edit"] = can_edit_sketch(request.user, sketch)
+    first_tag = sketch.tags.first()
+    if first_tag:
+        context["related_sketches"] = (
+            _published_sketches()
+            .filter(tags=first_tag)
+            .exclude(pk=sketch.pk)[:4]
+        )
+    else:
+        context["related_sketches"] = _published_sketches().exclude(pk=sketch.pk)[:4]
+    context["breadcrumb_tag"] = first_tag
     return render(request, "sketches/sketch_detail.html", context)
 
 

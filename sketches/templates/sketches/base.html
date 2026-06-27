@@ -1,47 +1,60 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html class="light" lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}sketches101{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Sketches101{% endblock %}</title>
   <link rel="icon" type="image/png" href="{% static 'sketches/img/favicon_appicon.png' %}" sizes="512x512">
   {% block meta_tags %}
   <meta name="description" content="Interactive p5.js and Processing sketches with live previews and source code.">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="{% block og_title %}sketches101{% endblock %}">
+  <meta property="og:title" content="{% block og_title %}Sketches101{% endblock %}">
   <meta property="og:description" content="Interactive p5.js and Processing sketches with live previews and source code.">
   {% endblock %}
   <link rel="canonical" href="{{ request.build_absolute_uri }}">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'sketches/css/gallery.css' %}">
   <link rel="stylesheet" href="{% static 'sketches/css/style.css' %}">
+  {% include "sketches/partials/gallery_tailwind_config.html" %}
   {% block extra_head %}{% endblock %}
 </head>
-<body{% if body_class %} class="{{ body_class }}"{% endif %}>
+<body class="gallery-page font-body-md text-body-md selection:bg-primary-container/20 selection:text-primary pb-16 md:pb-0 {% block page_class %}{% endblock %}{% if body_class %} {{ body_class }}{% endif %}">
   {% block background %}{% endblock %}
-  {% include "sketches/partials/navbar.html" %}
+
+  {% block gallery_shell %}
+  {% include "sketches/partials/gallery_nav.html" %}
+  {% include "sketches/partials/gallery_sidebar.html" %}
+  {% endblock %}
 
   {% if messages %}
-  <div class="container site-messages" role="status">
+  <div class="gallery-messages" role="status">
     {% for message in messages %}
-    <div class="site-message site-message-{{ message.tags }}">{{ message }}</div>
+    <div class="gallery-message gallery-message-{{ message.tags }}">{{ message }}</div>
     {% endfor %}
   </div>
   {% endif %}
 
-  <main>
-    <div class="container">
-      {% block content %}{% endblock %}
-    </div>
+  <main class="{% block main_class %}xl:ml-sidebar-width pt-16 pb-12 px-6 md:px-margin-desktop min-h-screen relative overflow-hidden{% endblock %}">
+    {% block page_background %}
+    <div class="network-node" style="top: 15%; left: 10%;" aria-hidden="true"></div>
+    <div class="network-node" style="top: 40%; left: 85%;" aria-hidden="true"></div>
+    <div class="network-node" style="top: 70%; left: 20%;" aria-hidden="true"></div>
+    <div class="network-node" style="top: 85%; left: 60%;" aria-hidden="true"></div>
+    {% endblock %}
+
+    {% block gallery_content %}
+    {% block content %}{% endblock %}
+    {% endblock %}
   </main>
 
-  <footer class="site-footer">
-    <div class="container">
-    </div>
-  </footer>
+  {% block mobile_nav %}
+  {% include "sketches/partials/gallery_mobile_nav.html" %}
+  {% endblock %}
 
-  <script src="{% static 'sketches/js/nav.js' %}"></script>
+  <script src="{% static 'sketches/js/gallery.js' %}"></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,12 +1,7 @@
-{% load static %}
 <header class="site-header" id="site-header">
   <div class="container navbar">
-    <a href="{% url 'home' %}" class="navbar-brand">
-      <img
-        src="{% static 'sketches/img/full_logo.png' %}"
-        alt="sketches101"
-        width="220"
-      >
+    <a href="{% url 'home' %}" class="navbar-brand" aria-label="sketches101">
+      {% include "sketches/partials/site_logo.html" %}
     </a>
 
     <button

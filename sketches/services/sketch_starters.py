@@ -5,9 +5,9 @@ P5JS_STARTER_CODE = """function setup() {
 }
 
 function draw() {
-  background(220);
+  background(248, 250, 252);
   noStroke();
-  fill(43, 127, 212);
+  fill(59, 130, 246);
   circle(mouseX, mouseY, 48);
 }
 """
@@ -17,9 +17,9 @@ PROCESSING_STARTER_CODE = """void setup() {
 }
 
 void draw() {
-  background(220);
+  background(248, 250, 252);
   noStroke();
-  fill(43, 127, 212);
+  fill(59, 130, 246);
   ellipse(mouseX, mouseY, 48, 48);
 }
 """

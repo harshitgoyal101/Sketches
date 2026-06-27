@@ -1,0 +1,34 @@
+<a href="{% url 'sketch_detail' sketch.slug %}" class="group glass-panel rounded-xl overflow-hidden hover:border-primary transition-all duration-500 flex flex-col bg-white shadow-sm">
+  <div class="h-48 relative overflow-hidden bg-surface-container-highest">
+    {% if sketch.thumbnail %}
+      <img alt="{{ sketch.title }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src="{{ sketch.thumbnail.url }}" loading="lazy">
+    {% else %}
+      <div class="w-full h-full flex items-center justify-center bg-primary-fixed">
+        <span class="material-symbols-outlined text-primary text-5xl">grid_view</span>
+      </div>
+    {% endif %}
+    <div class="absolute bottom-2 right-2">
+      {% if sketch.sketch_type == "p5js" %}
+      <span class="bg-white/90 text-on-surface text-[10px] px-2 py-0.5 rounded-full uppercase border border-primary/10">p5.js</span>
+      {% else %}
+      <span class="bg-white/90 text-on-surface text-[10px] px-2 py-0.5 rounded-full uppercase border border-primary/10">Processing</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="p-5 flex flex-col flex-1">
+    <h3 class="font-bold text-lg text-on-surface group-hover:text-primary transition-colors">{{ sketch.title }}</h3>
+    {% if sketch.description %}
+    <p class="text-sm text-on-surface-variant mt-2 line-clamp-2">{{ sketch.description|striptags|truncatewords:16 }}</p>
+    {% endif %}
+    <div class="mt-auto pt-4 flex items-center justify-between gap-2">
+      {% if sketch.author %}
+      <span class="text-xs font-code-md text-primary">@{{ sketch.author.username }}</span>
+      {% else %}
+      <span class="text-xs font-code-md text-outline">sketches101</span>
+      {% endif %}
+      {% if sketch.published_at %}
+      <span class="text-xs text-outline font-code-md">{{ sketch.published_at|date:"M j" }}</span>
+      {% endif %}
+    </div>
+  </div>
+</a>

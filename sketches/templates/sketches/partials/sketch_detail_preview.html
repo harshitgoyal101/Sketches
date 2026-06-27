@@ -1,0 +1,35 @@
+<div class="sketch-detail-preview group" id="preview-frame-wrap">
+  {% if sketch.is_interactive %}
+  <div class="absolute inset-0 bg-gradient-to-br from-primary-fixed via-white to-surface-container opacity-30 pointer-events-none z-0" aria-hidden="true"></div>
+  <iframe
+    id="sketch-preview"
+    class="relative z-10"
+    src="{% url 'sketch_embed' sketch.slug %}"
+    sandbox="allow-scripts allow-same-origin"
+    loading="lazy"
+    title="{{ sketch.title }} preview"
+  ></iframe>
+  <div class="preview-toolbar" hidden aria-hidden="true">
+    <button type="button" id="restart-preview">Restart</button>
+    <button type="button" id="fullscreen-preview">Fullscreen</button>
+  </div>
+  <div class="absolute bottom-6 left-6 right-6 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 pointer-events-none">
+    <div class="flex items-center gap-2 glass-panel-strong p-2 rounded-lg shadow-sm pointer-events-auto">
+      <button type="button" id="restart-preview-overlay" class="p-2 hover:bg-primary-fixed rounded text-primary transition-colors" title="Restart sketch">
+        <span class="material-symbols-outlined">refresh</span>
+      </button>
+      <div class="h-4 w-px bg-outline-variant mx-1"></div>
+      <span class="text-xs font-bold text-on-surface-variant px-2">Live</span>
+    </div>
+    <button type="button" id="fullscreen-preview-overlay" class="p-3 glass-panel-strong rounded-lg hover:bg-primary-fixed transition-colors shadow-sm pointer-events-auto text-primary" title="Fullscreen">
+      <span class="material-symbols-outlined">fullscreen</span>
+    </button>
+  </div>
+  {% elif sketch.thumbnail %}
+  <img class="sketch-detail-preview-thumb" src="{{ sketch.thumbnail.url }}" alt="{{ sketch.title }}" loading="lazy">
+  {% else %}
+  <div class="absolute inset-0 bg-gradient-to-br from-primary-fixed via-white to-surface-container flex items-center justify-center">
+    <span class="material-symbols-outlined text-primary text-5xl opacity-40">play_circle</span>
+  </div>
+  {% endif %}
+</div>

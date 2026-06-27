@@ -1,11 +1,22 @@
 {% extends "sketches/base.html" %}
 {% load static %}
 
-{% block title %}sketches101 — Creative Coding{% endblock %}
+{% block title %}Sketches101 — Creative Coding{% endblock %}
+
+{% block page_class %}gallery-home-page{% endblock %}
+{% block main_class %}min-h-screen relative z-10 p-0 overflow-hidden{% endblock %}
+
+{% block gallery_shell %}
+{% include "sketches/partials/gallery_home_nav.html" %}
+{% endblock %}
+
+{% block mobile_nav %}{% endblock %}
+
+{% block page_background %}{% endblock %}
 
 {% block background %}
 {% if background_sketch %}
-<div class="home-bg" aria-hidden="true">
+<div class="gallery-home-bg" aria-hidden="true">
   <iframe
     id="home-bg-sketch"
     src="{% url 'sketch_embed' background_sketch.slug %}"
@@ -19,15 +30,14 @@
 {% endblock %}
 
 {% block content %}
-<section class="hero home-hero">
-  <h1>Creative coding sketches</h1>
-  <p>Interactive p5.js and Processing experiments with live previews and source code.</p>
-  <a href="{% url 'sketch_list' %}" class="btn btn-explore">Explore</a>
-</section>
+<div class="gallery-home-hero">
+  <div class="gallery-home-brand">
+    {% include "sketches/partials/site_logo.html" %}
+    <p class="gallery-home-subtitle">Creative Coding</p>
+    <p class="gallery-home-hint">Tab to reset. Drag to interact.</p>
+  </div>
+  <a href="{% url 'sketch_list' %}" class="gallery-home-explore">Explore</a>
+</div>
 {% endblock %}
 
-{% block extra_js %}
-{% if background_sketch %}
-<script src="{% static 'sketches/js/home-background.js' %}"></script>
-{% endif %}
-{% endblock %}
+{% block extra_js %}{% endblock %}

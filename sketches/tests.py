@@ -27,6 +27,7 @@ class EmbedBuilderTests(SimpleTestCase):
     def test_build_fullscreen_mode_includes_restart_handler(self):
         html = build_p5_embed_html("function setup() {}", mode="fullscreen")
         self.assertIn("sketch-restart", html)
+        self.assertIn("sketch-mouse", html)
         self.assertNotIn("sketch-preview-restart", html)
         self.assertIn("background: #ffffff", html)
 

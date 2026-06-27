@@ -1,7 +1,7 @@
 {% extends "sketches/base.html" %}
 {% load static %}
 
-{% block title %}{{ sketch.title }} — sketches101{% endblock %}
+{% block title %}{{ sketch.title }} | Sketches101{% endblock %}
 
 {% block meta_tags %}
 <meta name="description" content="{{ meta_description|striptags|truncatechars:160 }}">
@@ -17,54 +17,189 @@
 <meta name="twitter:description" content="{{ meta_description|striptags|truncatechars:160 }}">
 {% endblock %}
 
+{% block page_class %}gallery-detail-page{% endblock %}
+{% block main_class %}xl:ml-sidebar-width pt-16 min-h-screen relative z-10{% endblock %}
+
+{% block page_background %}
+<div class="fixed inset-0 network-grid pointer-events-none z-0" aria-hidden="true"></div>
+{% endblock %}
+
+{% block extra_head %}
+{% endblock %}
+
 {% block content %}
-{% csrf_token %}
-{% if can_edit and sketch.status == "draft" %}
-<div class="sketch-draft-banner" role="status">
-  This sketch is a draft — only you can see it until you publish.
-</div>
-{% endif %}
+<div class="max-w-[1440px] mx-auto p-6 md:p-margin-desktop relative z-10">
+  {% csrf_token %}
 
-<header class="sketch-header">
-  <div class="sketch-header-top">
-    <h1>{{ sketch.title }}</h1>
-    {% if can_edit %}
-    <div class="sketch-edit-actions">
-      {% if sketch.status == "draft" %}
-      {% include "sketches/partials/sketch_publish_form.html" with sketch=sketch %}
+  {% if can_edit and sketch.status == "draft" %}
+  <div class="mb-6 px-4 py-3 rounded-lg bg-primary-fixed border border-primary/20 text-on-primary-fixed-variant text-sm font-medium" role="status">
+    This sketch is a draft — only you can see it until you publish.
+  </div>
+  {% endif %}
+
+  <nav class="flex items-center gap-2 text-xs font-bold text-outline mb-6 uppercase tracking-wider flex-wrap" aria-label="Breadcrumb">
+    <a class="hover:text-primary transition-colors" href="{% url 'sketch_list' %}">Gallery</a>
+    {% if breadcrumb_tag %}
+    <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+    <a class="hover:text-primary transition-colors" href="{% url 'tag_detail' breadcrumb_tag.slug %}">{{ breadcrumb_tag.name }}</a>
+    {% endif %}
+    <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+    <span class="text-on-surface">{{ sketch.title }}</span>
+  </nav>
+
+  <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+    <div class="xl:col-span-8 space-y-8">
+      {% include "sketches/partials/sketch_detail_preview.html" %}
+
+      <div class="space-y-4">
+        <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <h1 class="font-display-lg text-4xl font-bold text-on-surface">{{ sketch.title }}</h1>
+          {% if can_edit %}
+          <a href="{% url 'sketch_edit' sketch.slug %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant text-on-surface font-bold hover:border-primary hover:text-primary transition-all shrink-0">
+            <span class="material-symbols-outlined text-base">edit</span>
+            Edit
+          </a>
+          {% endif %}
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full border border-primary/20 overflow-hidden bg-primary-fixed flex items-center justify-center text-on-primary-fixed-variant font-bold">
+            {% if sketch.author %}{{ sketch.author.username|slice:":1"|upper }}{% else %}?{% endif %}
+          </div>
+          <div>
+            {% if sketch.author %}
+            <p class="text-on-surface font-semibold">@{{ sketch.author.username }}</p>
+            {% endif %}
+            {% if sketch.published_at %}
+            <p class="text-xs text-outline font-medium">Published {{ sketch.published_at|date:"M j, Y" }}</p>
+            {% elif sketch.created_at %}
+            <p class="text-xs text-outline font-medium">Created {{ sketch.created_at|date:"M j, Y" }}</p>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if sketch.description %}
+        <p class="text-on-surface-variant text-lg max-w-2xl leading-relaxed font-body-md">
+          {{ sketch.description|striptags|truncatewords:48 }}
+        </p>
+        {% endif %}
+
+        <div class="flex flex-wrap gap-2">
+          {% if sketch.sketch_type == "p5js" %}
+          <span class="px-3 py-1 bg-primary-fixed border border-primary/10 rounded-full text-xs font-bold text-primary">p5.js</span>
+          {% else %}
+          <span class="px-3 py-1 bg-primary-fixed border border-primary/10 rounded-full text-xs font-bold text-primary">Processing</span>
+          {% endif %}
+          {% if sketch.status == "draft" %}
+          <span class="px-3 py-1 bg-surface-container border border-outline-variant rounded-full text-xs font-bold text-on-surface-variant">Draft</span>
+          {% endif %}
+          {% for tag in sketch.tags.all %}
+          <a href="{% url 'tag_detail' tag.slug %}" class="px-3 py-1 bg-surface-container border border-outline-variant rounded-full text-xs font-bold text-on-surface-variant hover:border-primary hover:text-primary transition-colors">{{ tag.name }}</a>
+          {% endfor %}
+        </div>
+      </div>
+
+      {% if description_html %}
+      <section class="space-y-4">
+        <h2 class="text-2xl font-bold text-on-surface">About this sketch</h2>
+        <div class="bg-white p-6 rounded-xl border border-outline-variant shadow-sm markdown-body">
+          {{ description_html|safe }}
+        </div>
+      </section>
       {% endif %}
-      <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-secondary btn-sm">Edit</a>
+
+      {% if related_sketches %}
+      <section class="space-y-4">
+        <h2 class="text-2xl font-bold text-on-surface">Related sketches</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {% for related in related_sketches %}
+          <a href="{% url 'sketch_detail' related.slug %}" class="bg-white p-4 rounded-xl flex items-center gap-4 border border-outline-variant hover:border-primary hover:shadow-md transition-all group">
+            <div class="w-16 h-12 bg-primary-fixed/30 rounded-lg overflow-hidden border border-outline-variant shrink-0 flex items-center justify-center">
+              {% if related.thumbnail %}
+              <img src="{{ related.thumbnail.url }}" alt="" class="w-full h-full object-cover">
+              {% else %}
+              <span class="material-symbols-outlined text-primary text-lg">grid_view</span>
+              {% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-bold text-on-surface group-hover:text-primary transition-colors truncate">{{ related.title }}</h4>
+              {% if related.author %}
+              <p class="text-xs text-outline">@{{ related.author.username }}</p>
+              {% endif %}
+            </div>
+            <span class="material-symbols-outlined text-outline group-hover:translate-x-1 group-hover:text-primary transition-all">arrow_forward</span>
+          </a>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
     </div>
-    {% endif %}
-  </div>
-  <div class="sketch-meta">
-    {% include "sketches/partials/sketch_status_badges.html" with sketch=sketch show_published_status=False %}
-    {% if sketch.author %}
-      <span>by {{ sketch.author.get_username }}</span>
-    {% endif %}
-    {% if sketch.published_at %}
-      <span>{{ sketch.published_at|date:"F j, Y" }}</span>
-    {% endif %}
-    {% for tag in sketch.tags.all %}
-      <a href="{% url 'tag_detail' tag.slug %}" class="tag">{{ tag.name }}</a>
-    {% endfor %}
-  </div>
-</header>
 
-<div class="sketch-layout">
-  {% include "sketches/partials/sketch_preview.html" %}
+    <div class="xl:col-span-4 space-y-6">
+      <div class="bg-white p-6 rounded-xl border border-outline-variant shadow-sm space-y-4">
+        {% if can_edit and sketch.status == "draft" %}
+        <form method="post" action="{% url 'sketch_publish' sketch.slug %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-publish-inline flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined">publish</span>
+            Publish sketch
+          </button>
+        </form>
+        {% endif %}
 
-  <div class="description-panel">
-    <h2>Description</h2>
-    {% if description_html %}
-    <div class="markdown-body">{{ description_html|safe }}</div>
-    {% else %}
-    <p class="description-empty">No description provided.</p>
-    {% endif %}
+        <a href="#source-code" id="view-source-btn" class="w-full py-4 bg-primary text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95">
+          <span class="material-symbols-outlined">code</span>
+          View Source
+        </a>
+
+        {% if can_edit %}
+        <a href="{% url 'sketch_edit' sketch.slug %}" class="w-full py-4 bg-white text-on-surface font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-surface-container transition-all border border-outline-variant">
+          <span class="material-symbols-outlined text-primary">edit</span>
+          Open in Editor
+        </a>
+        {% endif %}
+
+        <button type="button" id="share-sketch" class="w-full py-3 bg-white border border-outline-variant rounded-lg flex items-center justify-center gap-2 hover:text-primary hover:border-primary transition-colors group font-bold">
+          <span class="material-symbols-outlined group-hover:scale-110 transition-transform">share</span>
+          <span class="share-label">Share</span>
+        </button>
+      </div>
+
+      <div class="bg-white p-6 rounded-xl border border-outline-variant shadow-sm">
+        <h3 class="font-bold text-on-surface mb-4 flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-lg">info</span>
+          Technical Details
+        </h3>
+        <div class="space-y-3">
+          <div class="flex justify-between items-center py-2 border-b border-outline-variant gap-4">
+            <span class="text-xs text-outline font-bold uppercase shrink-0">Runtime</span>
+            <span class="font-bold text-primary text-right">{% if sketch.sketch_type == "p5js" %}p5.js{% else %}Processing{% endif %}</span>
+          </div>
+          <div class="flex justify-between items-center py-2 border-b border-outline-variant gap-4">
+            <span class="text-xs text-outline font-bold uppercase shrink-0">Entry file</span>
+            <span class="font-code-md text-code-md text-on-surface text-right">{{ sketch.entry_filename }}</span>
+          </div>
+          <div class="flex justify-between items-center py-2 border-b border-outline-variant gap-4">
+            <span class="text-xs text-outline font-bold uppercase shrink-0">Source files</span>
+            <span class="font-medium text-on-surface">{{ source_files|length }}</span>
+          </div>
+          <div class="flex justify-between items-center py-2 border-b border-outline-variant gap-4">
+            <span class="text-xs text-outline font-bold uppercase shrink-0">Preview</span>
+            <span class="font-medium text-on-surface">{% if sketch.is_interactive %}Interactive{% else %}Static{% endif %}</span>
+          </div>
+          <div class="flex justify-between items-center py-2 gap-4">
+            <span class="text-xs text-outline font-bold uppercase shrink-0">Status</span>
+            <span class="font-medium text-on-surface capitalize">{{ sketch.status }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-12 relative z-10">
+    {% include "sketches/partials/sketch_source_view.html" %}
   </div>
 </div>
-
-{% include "sketches/partials/sketch_source_view.html" %}
 {% endblock %}
 
 {% block extra_js %}
@@ -80,4 +215,5 @@
 <script src="{% static 'sketches/js/code-editor-ui.js' %}"></script>
 <script src="{% static 'sketches/js/sketch-live-editor.js' %}"></script>
 <script src="{% static 'sketches/js/copy-code.js' %}"></script>
+<script src="{% static 'sketches/js/sketch-detail.js' %}"></script>
 {% endblock %}

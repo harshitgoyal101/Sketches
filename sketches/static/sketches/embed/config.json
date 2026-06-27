@@ -2,12 +2,12 @@
   "p5js_cdn": "https://cdn.jsdelivr.net/npm/p5@1.11.0/lib/p5.min.js",
   "processingjs_cdn": "/static/sketches/embed/processing.min.js",
   "page_styles": {
-    "fullscreen": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n  background: #ffffff;\n}\ncanvas {\n  display: block;\n}",
-    "preview": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  min-height: 100%;\n  overflow: hidden;\n  background: #dce8f4;\n  cursor: pointer;\n}\ncanvas {\n  display: block;\n  cursor: auto;\n}",
-    "live": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  min-height: 100%;\n  overflow: hidden;\n  background: #dce8f4;\n}\ncanvas {\n  display: block;\n}"
+    "fullscreen": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n  background: #ffffff;\n  touch-action: none;\n  overscroll-behavior: none;\n}\ncanvas {\n  display: block;\n  touch-action: none;\n}",
+    "preview": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  min-height: 100%;\n  overflow: hidden;\n  background: #eff6ff;\n  cursor: pointer;\n}\ncanvas {\n  display: block;\n  cursor: auto;\n}",
+    "live": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  min-height: 100%;\n  overflow: hidden;\n  background: #eff6ff;\n}\ncanvas {\n  display: block;\n}"
   },
   "head_snippets": {
-    "fullscreen": ["sketch-restart-handler.js"],
+    "fullscreen": ["mouse-bridge.js", "sketch-restart-handler.js"],
     "preview": ["restart-background.js"],
     "live": ["error-reporter.js", "mouse-bridge.js", "sketch-restart-handler.js"]
   },

@@ -1,0 +1,53 @@
+{% with chip_query=query|urlencode %}
+<header class="mb-10 relative z-10">
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div>
+      <h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">
+        {% if active_tag %}{{ active_tag.name }} <span class="text-primary">Gallery</span>{% else %}Discovery <span class="text-primary">Gallery</span>{% endif %}
+      </h1>
+      <p class="text-on-surface-variant max-w-2xl font-body-md">
+        {% if active_tag %}
+        Sketches tagged <strong class="text-on-surface">{{ active_tag.name }}</strong> — generative art, simulations, and creative coding experiments.
+        {% else %}
+        Explore a curated selection of generative art, interactive simulations, and creative experiments built by the Sketches101 community.
+        {% endif %}
+      </p>
+      {% if page_obj.paginator.count %}
+      <p class="text-sm text-outline mt-2 font-code-md">{{ page_obj.paginator.count }} published sketch{{ page_obj.paginator.count|pluralize }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="flex flex-wrap gap-3 mt-8" aria-label="Filter sketches">
+    <a
+      href="{% url 'sketch_list' %}{% if query %}?q={{ chip_query }}{% endif %}"
+      class="{% if not tag_slug and not sketch_type %}bg-primary text-white shadow-lg shadow-primary/30{% else %}glass-panel text-on-surface-variant hover:border-primary hover:text-primary{% endif %} px-6 py-1.5 rounded-full font-label-md text-label-md uppercase tracking-wider transition-all"
+    >All Works</a>
+
+    {% for tag in tags %}
+    <a
+      href="{% url 'tag_detail' tag.slug %}{% if query %}?q={{ chip_query }}{% endif %}"
+      class="{% if tag_slug == tag.slug %}bg-primary text-white shadow-lg shadow-primary/30{% else %}glass-panel text-on-surface-variant hover:border-primary hover:text-primary{% endif %} px-6 py-1.5 rounded-full font-label-md text-label-md uppercase tracking-wider transition-all"
+    >{{ tag.name }}</a>
+    {% endfor %}
+
+    <a
+      href="{% url 'sketch_list' %}?type=p5js{% if query %}&amp;q={{ chip_query }}{% endif %}{% if tag_slug %}&amp;tag={{ tag_slug }}{% endif %}"
+      class="{% if sketch_type == 'p5js' %}bg-primary text-white shadow-lg shadow-primary/30{% else %}glass-panel text-on-surface-variant hover:border-primary hover:text-primary{% endif %} px-6 py-1.5 rounded-full font-label-md text-label-md uppercase tracking-wider transition-all"
+    >p5.js</a>
+    <a
+      href="{% url 'sketch_list' %}?type=processing{% if query %}&amp;q={{ chip_query }}{% endif %}{% if tag_slug %}&amp;tag={{ tag_slug }}{% endif %}"
+      class="{% if sketch_type == 'processing' %}bg-primary text-white shadow-lg shadow-primary/30{% else %}glass-panel text-on-surface-variant hover:border-primary hover:text-primary{% endif %} px-6 py-1.5 rounded-full font-label-md text-label-md uppercase tracking-wider transition-all"
+    >Processing</a>
+  </div>
+
+  {% if query or tag_slug or sketch_type %}
+  <p class="mt-4 text-sm text-on-surface-variant">
+    {% if active_tag %}Showing <strong class="text-on-surface">{{ active_tag.name }}</strong>{% endif %}
+    {% if sketch_type %}<strong class="text-on-surface">{{ sketch_type }}</strong> sketches{% endif %}
+    {% if query %} matching <strong class="text-on-surface">"{{ query }}"</strong>{% endif %}
+    · <a href="{% url 'sketch_list' %}" class="text-primary hover:underline">Clear filters</a>
+  </p>
+  {% endif %}
+</header>
+{% endwith %}

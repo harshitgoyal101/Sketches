@@ -1,14 +1,21 @@
 {% extends "sketches/base.html" %}
 {% load static %}
 
-{% block title %}{% if is_create %}New sketch{% else %}{{ sketch.title }} — Edit{% endif %} — sketches101{% endblock %}
+{% block title %}{% if is_create %}New sketch{% else %}{{ sketch.title }} — Edit{% endif %} | Sketches101{% endblock %}
+
+{% block page_class %}gallery-edit-page{% endblock %}
+{% block main_class %}xl:ml-sidebar-width pt-16 min-h-screen relative z-10 px-3 md:px-4 pb-8{% endblock %}
+
+{% block page_background %}
+<div class="fixed inset-0 network-grid pointer-events-none z-0" aria-hidden="true"></div>
+{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% url 'pygments_css' %}">
 {% endblock %}
 
 {% block content %}
-<form method="post" class="themed-form sketch-edit-page" enctype="multipart/form-data" novalidate>
+<form method="post" class="themed-form sketch-edit-page relative z-10" enctype="multipart/form-data" novalidate>
   {% csrf_token %}
   {% include "sketches/partials/form_non_field_errors.html" with form=form %}
 

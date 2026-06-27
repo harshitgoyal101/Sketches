@@ -1,42 +1,41 @@
 {% extends "sketches/base.html" %}
 
-{% block title %}{{ active_tag.name }} — sketches101{% endblock %}
+{% block title %}{{ active_tag.name }} | Sketches101{% endblock %}
 
 {% block meta_tags %}
-<meta name="description" content="Sketches tagged {{ active_tag.name }} on sketches101.">
+<meta name="description" content="Sketches tagged {{ active_tag.name }} on Sketches101.">
+{% endblock %}
+
+{% block page_background %}
+<div class="fixed inset-0 network-grid pointer-events-none z-0" aria-hidden="true"></div>
 {% endblock %}
 
 {% block content %}
-<section class="hero">
-  <h1>{{ active_tag.name }}</h1>
-  <p>{{ page_obj.paginator.count }} sketch{{ page_obj.paginator.count|pluralize }}</p>
-</section>
-
-{% include "sketches/partials/sketch_filters.html" %}
+{% include "sketches/partials/gallery_header.html" %}
 
 {% if page_obj.object_list %}
-<div class="sketch-grid">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-gutter relative z-10">
   {% for sketch in page_obj %}
-    {% include "sketches/partials/sketch_card.html" %}
+    {% include "sketches/partials/gallery_card.html" %}
   {% endfor %}
 </div>
 
-{% if page_obj.has_other_pages %}
-<nav class="pagination" aria-label="Pagination">
-  {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}{% if filter_querystring %}&amp;{{ filter_querystring }}{% endif %}">← Previous</a>
-  {% endif %}
-  <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-  {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}{% if filter_querystring %}&amp;{{ filter_querystring }}{% endif %}">Next →</a>
-  {% endif %}
-</nav>
+{% if page_obj.has_next %}
+<div class="mt-16 text-center relative z-10">
+  <a
+    href="?page={{ page_obj.next_page_number }}{% if filter_querystring %}&amp;{{ filter_querystring }}{% endif %}"
+    class="inline-block px-8 py-3 border border-primary/20 rounded-full hover:bg-primary hover:text-white transition-all font-label-md text-label-md uppercase tracking-widest text-primary font-bold"
+  >Load More Experiments</a>
+</div>
 {% endif %}
 
 {% else %}
-<div class="empty-state">
-  <h2>No sketches found</h2>
-  <p>Try a different search or <a href="{% url 'sketch_list' %}">browse all sketches</a>.</p>
+<div class="relative z-10 text-center py-20 glass-panel rounded-xl max-w-lg mx-auto">
+  <span class="material-symbols-outlined text-primary text-5xl mb-4">search_off</span>
+  <h2 class="font-headline-md text-on-surface mb-2">No sketches found</h2>
+  <p class="text-on-surface-variant">
+    Try a different search or <a href="{% url 'sketch_list' %}" class="text-primary hover:underline">browse all sketches</a>.
+  </p>
 </div>
 {% endif %}
 {% endblock %}
