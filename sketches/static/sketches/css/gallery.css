@@ -35,7 +35,7 @@ body.gallery-page {
 
 .gallery-page .gallery-messages {
   position: fixed;
-  top: 4.5rem;
+  top: 7rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 60;
@@ -248,8 +248,12 @@ body.gallery-home-page {
   gap: 1rem;
   height: 6.5rem;
   padding: 0 2rem;
-  background: transparent;
+  background: #ffffff;
   pointer-events: auto;
+}
+
+body.gallery-home-page .gallery-home-nav {
+  background: transparent;
 }
 
 .gallery-home-nav-brand {
