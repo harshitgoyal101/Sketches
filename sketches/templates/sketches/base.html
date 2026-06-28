@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Sketches101{% endblock %}</title>
-  <link rel="icon" type="image/png" href="{% static 'sketches/img/favicon_appicon.png' %}" sizes="512x512">
+  <link rel="icon" type="image/svg+xml" href="{% static 'sketches/img/icon.svg' %}">
   {% block meta_tags %}
   <meta name="description" content="Interactive p5.js and Processing sketches with live previews and source code.">
   <meta property="og:type" content="website">
@@ -39,7 +39,7 @@
   </div>
   {% endif %}
 
-  <main class="{% block main_class %}xl:ml-sidebar-width pt-[6.5rem] pb-12 px-6 md:px-margin-desktop min-h-screen relative overflow-hidden{% endblock %}">
+  <main class="{% block main_class %}xl:ml-sidebar-width pb-12 px-6 md:px-margin-desktop relative z-10{% endblock %}">
     {% block page_background %}
     <div class="network-node" style="top: 15%; left: 10%;" aria-hidden="true"></div>
     <div class="network-node" style="top: 40%; left: 85%;" aria-hidden="true"></div>

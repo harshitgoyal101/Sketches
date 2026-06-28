@@ -10,12 +10,13 @@
   --bg: #ffffff;
   --surface: #ffffff;
   --surface-2: #f8fafc;
-  --border: #e2e8f0;
+  --border: rgba(59, 130, 246, 0.15);
   --text: #1E293B;
   --text-muted: rgba(30, 41, 59, 0.62);
   --accent: #3B82F6;
   --accent-hover: #2563EB;
   --accent-soft: rgba(59, 130, 246, 0.12);
+  --accent-shadow: rgba(59, 130, 246, 0.08);
   --badge-p5: #3B82F6;
   --badge-processing: #1E293B;
   --radius: 6px;
@@ -107,6 +108,12 @@ a:hover {
   display: block;
   height: 2.25rem;
   width: auto;
+}
+
+.site-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .navbar-menu {
@@ -630,6 +637,7 @@ body.home-page .hero.home-hero {
 
 .sketch-card:hover {
   border-color: var(--accent);
+  box-shadow: 0 8px 20px -4px var(--accent-shadow);
 }
 
 .sketch-card-link {
@@ -963,6 +971,7 @@ main:has(.sketch-edit-page) {
   flex-direction: column;
   gap: 0;
   min-height: 0;
+  height: 100%;
 }
 
 .sketch-edit-topbar {
@@ -970,13 +979,13 @@ main:has(.sketch-edit-page) {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.35rem 0;
+  padding: 0.35rem 0.75rem;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--border);
   border-radius: 0;
   flex-shrink: 0;
-  margin-bottom: var(--page-gutter);
+  margin-bottom: 0;
 }
 
 .sketch-edit-topbar-start {
@@ -1090,38 +1099,84 @@ main:has(.sketch-edit-page) {
 }
 
 .sketch-edit-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(13rem, 16rem);
-  gap: var(--page-gutter);
-  align-items: stretch;
+  --edit-sidebar-width: clamp(360px, 44vw, 760px);
+  display: flex;
   flex: 1;
-  min-height: min(70vh, 40rem);
+  min-height: 0;
+  gap: 0;
+  align-items: stretch;
+}
+
+.sketch-edit-main {
+  flex: 1 1 auto;
+  min-width: 280px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sketch-edit-resizer {
+  flex: 0 0 8px;
+  position: relative;
+  align-self: stretch;
+  z-index: 2;
+  cursor: col-resize;
+  touch-action: none;
+  background: transparent;
+}
+
+.sketch-edit-resizer::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 2.75rem;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: var(--border);
+  transition: background-color 0.15s, height 0.15s;
+}
+
+.sketch-edit-resizer:hover::before,
+.sketch-edit-resizer:focus-visible::before,
+.sketch-edit-resizer.is-dragging::before {
+  background: var(--accent);
+  height: 3.5rem;
+}
+
+.sketch-edit-resizer:focus-visible {
+  outline: none;
+}
+
+body.sketch-edit-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.sketch-edit-resizing iframe {
+  pointer-events: none;
 }
 
 .sketch-edit-sidebar {
   display: flex;
   flex-direction: column;
   gap: 0;
+  width: var(--edit-sidebar-width);
+  flex: 0 0 var(--edit-sidebar-width);
+  min-width: 280px;
   min-height: 0;
-  overflow: visible;
+  overflow: hidden;
   border: 1px solid var(--border);
+  border-left: none;
   border-radius: var(--radius);
   background: var(--surface);
-  order: 2;
-}
-
-.sketch-edit-main {
-  min-width: 0;
-  min-height: min(70vh, 40rem);
-  overflow: visible;
-  order: 1;
 }
 
 .sketch-edit-main .code-section-edit.code-ide {
   display: flex;
   flex-direction: column;
-  min-height: min(70vh, 40rem);
-  height: auto;
+  min-height: 0;
+  height: 100%;
   margin: 0;
 }
 
@@ -1213,8 +1268,17 @@ main:has(.sketch-edit-page) {
 }
 
 .edit-card-preview {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 0;
+}
+
+.sketch-edit-sidebar-meta {
+  flex: 0 1 auto;
+  min-height: 0;
 }
 
 .edit-card-description {
@@ -1256,6 +1320,10 @@ main:has(.sketch-edit-page) {
   border: none;
   border-radius: 0;
   box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .edit-card-preview .preview-panel-placeholder {
@@ -1267,8 +1335,10 @@ main:has(.sketch-edit-page) {
 .edit-card-preview .preview-frame-wrap,
 .edit-card-preview .preview-unavailable,
 .edit-card-preview .preview-thumbnail-wrap {
-  aspect-ratio: 4 / 3;
-  max-height: 9rem;
+  flex: 1;
+  min-height: 12rem;
+  aspect-ratio: auto;
+  max-height: none;
 }
 
 .edit-card-description .form-textarea {
@@ -1350,34 +1420,31 @@ main:has(.sketch-edit-page) {
 }
 
 @media (max-width: 1024px) {
-  main:has(.sketch-edit-page) {
-    overflow-y: auto;
-  }
-
   main:has(.sketch-edit-page) > .container {
     overflow: visible;
     height: auto;
   }
 
-  .sketch-edit-page {
-    height: auto;
-    min-height: calc(100dvh - 6rem);
-  }
-
   .sketch-edit-workspace {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     min-height: 0;
   }
 
   .sketch-edit-sidebar {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--page-gutter);
-    height: auto;
+    width: 100%;
+    flex: 0 0 auto;
+    max-width: none;
+    min-width: 0;
     overflow: visible;
     border: none;
     background: transparent;
     order: 2;
+  }
+
+  .sketch-edit-sidebar-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--page-gutter);
   }
 
   .sketch-edit-sidebar .edit-card {
@@ -1396,6 +1463,7 @@ main:has(.sketch-edit-page) {
 
   .edit-card-preview {
     grid-column: 1 / -1;
+    overflow: visible;
   }
 
   .edit-card-description {
@@ -1424,7 +1492,7 @@ main:has(.sketch-edit-page) {
   }
 
   .sketch-edit-main {
-    min-height: min(65vh, 40rem);
+    min-height: min(55vh, 640px);
     height: auto;
     overflow: visible;
   }
@@ -1434,6 +1502,10 @@ main:has(.sketch-edit-page) {
   .sketch-edit-topbar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .sketch-edit-sidebar-meta {
+    grid-template-columns: 1fr;
   }
 
   .sketch-edit-topbar-start {
@@ -1497,17 +1569,63 @@ main:has(.sketch-edit-page) {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .preview-toolbar {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   padding: 0.6rem 0.85rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface-2);
+  flex-shrink: 0;
 }
 
-.preview-toolbar button {
+.preview-toolbar-label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.preview-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.preview-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+}
+
+.preview-toolbar-btn .material-symbols-outlined {
+  font-size: 1.125rem;
+}
+
+.preview-toolbar-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.preview-toolbar button:not(.preview-toolbar-btn) {
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
@@ -1518,7 +1636,7 @@ main:has(.sketch-edit-page) {
   font-family: var(--font);
 }
 
-.preview-toolbar button:hover {
+.preview-toolbar button:not(.preview-toolbar-btn):hover {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-soft);
@@ -1526,7 +1644,8 @@ main:has(.sketch-edit-page) {
 
 .preview-frame-wrap {
   position: relative;
-  aspect-ratio: 4 / 3;
+  flex: 1;
+  min-height: 12rem;
   background: #eff6ff;
 }
 
@@ -3817,6 +3936,7 @@ body.code-editor-fullscreen {
   background: var(--accent-hover);
   color: #ffffff;
   text-decoration: none;
+  box-shadow: 0 8px 20px -4px var(--accent-shadow);
 }
 
 .btn-secondary {

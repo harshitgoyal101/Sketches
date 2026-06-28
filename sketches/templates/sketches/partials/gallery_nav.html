@@ -4,7 +4,10 @@
   </a>
   <div class="gallery-home-nav-links">
     {% if user.is_authenticated %}
-    <a href="{% url 'account' %}" class="gallery-home-nav-btn">Account</a>
+    <form method="post" action="{% url 'logout' %}" class="gallery-home-nav-logout-form">
+      {% csrf_token %}
+      <button type="submit" class="gallery-home-nav-btn">Log out</button>
+    </form>
     {% else %}
     <a href="{% url 'login' %}" class="gallery-home-nav-btn">Log in</a>
     {% endif %}

@@ -28,10 +28,10 @@
           class="navbar-link{% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'sketch_detail' or request.resolver_match.url_name == 'tag_detail' %} is-active{% endif %}"
         >Sketches</a>
         {% if user.is_authenticated %}
-        <a
-          href="{% url 'account' %}"
-          class="navbar-link{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' %} is-active{% endif %}"
-        >Account</a>
+        <form method="post" action="{% url 'logout' %}" class="navbar-logout-form navbar-logout-form--inline">
+          {% csrf_token %}
+          <button type="submit" class="navbar-link navbar-link-button">Log out</button>
+        </form>
         {% endif %}
       </nav>
 
@@ -40,10 +40,6 @@
         {% if user.is_authenticated %}
         <div class="navbar-user-row">
           <span class="navbar-user">{{ user.username }}</span>
-          <form method="post" action="{% url 'logout' %}" class="navbar-logout-form">
-            {% csrf_token %}
-            <button type="submit" class="navbar-link navbar-link-button">Log out</button>
-          </form>
         </div>
         {% else %}
         <div class="navbar-auth-row">

@@ -1,8 +1,15 @@
 <div class="preview-panel">
   {% if sketch.is_interactive %}
   <div class="preview-toolbar">
-    <button type="button" id="restart-preview" title="Restart sketch (or click the preview)">↻ Restart</button>
-    <button type="button" id="fullscreen-preview" title="Fullscreen">⛶ Fullscreen</button>
+    <span class="preview-toolbar-label">Live preview</span>
+    <div class="preview-toolbar-actions">
+      <button type="button" id="restart-preview" class="preview-toolbar-btn" title="Restart sketch (or click the preview)" aria-label="Restart preview">
+        <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+      </button>
+      <button type="button" id="fullscreen-preview" class="preview-toolbar-btn" title="Fullscreen preview" aria-label="Fullscreen preview">
+        <span class="material-symbols-outlined" aria-hidden="true">fullscreen</span>
+      </button>
+    </div>
   </div>
   <div class="preview-frame-wrap" id="preview-frame-wrap">
     <iframe

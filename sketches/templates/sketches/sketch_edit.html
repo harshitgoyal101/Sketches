@@ -4,7 +4,7 @@
 {% block title %}{% if is_create %}New sketch{% else %}{{ sketch.title }} — Edit{% endif %} | Sketches101{% endblock %}
 
 {% block page_class %}gallery-edit-page{% endblock %}
-{% block main_class %}xl:ml-sidebar-width pt-[6.5rem] min-h-screen relative z-10 px-3 md:px-4 pb-8{% endblock %}
+{% block main_class %}xl:ml-sidebar-width relative z-10 px-3 md:px-4 pb-0 flex flex-col min-h-0 overflow-hidden{% endblock %}
 
 {% block page_background %}
 <div class="fixed inset-0 network-grid pointer-events-none z-0" aria-hidden="true"></div>
@@ -73,10 +73,20 @@
     </div>
   </div>
 
-  <div class="sketch-edit-workspace">
+  <div class="sketch-edit-workspace" data-edit-workspace>
     <div class="sketch-edit-main">
       {% include "sketches/partials/sketch_code_edit.html" %}
     </div>
+
+    <div
+      class="sketch-edit-resizer"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize preview panel"
+      aria-valuemin="280"
+      aria-valuemax="960"
+      tabindex="0"
+    ></div>
 
     <aside class="sketch-edit-sidebar">
       <section class="edit-card edit-card-preview">
@@ -90,6 +100,7 @@
         {% endif %}
       </section>
 
+      <div class="sketch-edit-sidebar-meta">
       <section class="edit-card edit-card-description">
         <header class="edit-card-header">
           <h2 class="edit-card-title">Description</h2>
@@ -178,6 +189,7 @@
           {% endif %}
         </div>
       </section>
+      </div>
     </aside>
   </div>
 </form>
@@ -200,6 +212,7 @@
 {% if not is_create and sketch.is_interactive %}
 <script src="{% static 'sketches/js/preview-controls.js' %}"></script>
 {% endif %}
+<script src="{% static 'sketches/js/sketch-edit-resize.js' %}"></script>
 <script src="{% static 'sketches/js/file-tree.js' %}"></script>
 <script src="{% static 'sketches/js/code-editor-ui.js' %}"></script>
 <script src="{% static 'sketches/js/sketch-type-fields.js' %}"></script>
