@@ -1,0 +1,1 @@
+from sketch_gallery.settings import *
