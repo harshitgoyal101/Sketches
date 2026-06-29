@@ -14,12 +14,12 @@
       {{ published_count }} published · {{ draft_count }} draft{{ draft_count|pluralize }}
     </p>
     <div class="flex flex-wrap gap-3 mt-6">
-      <a href="{% url 'sketch_create' %}?type=p5js" class="inline-flex items-center gap-2 bg-primary text-white font-bold px-5 py-2.5 rounded-lg hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
+      <a href="{% url 'sketch_create' %}?type=p5js" class="link-action link-action--primary">
         <span class="material-symbols-outlined text-base">add</span>
         New p5.js sketch
       </a>
-      <a href="{% url 'sketch_create' %}?type=processing" class="inline-flex items-center gap-2 bg-white text-on-surface font-bold px-5 py-2.5 rounded-lg border border-outline-variant hover:border-primary hover:text-primary transition-all">
-        <span class="material-symbols-outlined text-base text-primary">add</span>
+      <a href="{% url 'sketch_create' %}?type=processing" class="link-action">
+        <span class="material-symbols-outlined text-base">add</span>
         New Processing sketch
       </a>
     </div>
@@ -34,9 +34,9 @@
         <div class="min-w-0">
           <h3 class="font-bold text-lg text-on-surface truncate">
             {% if sketch.status == "published" %}
-            <a href="{% url 'sketch_detail' sketch.slug %}" class="hover:text-primary transition-colors">{{ sketch.title }}</a>
+            <a href="{% url 'sketch_detail' sketch.slug %}" class="link-title">{{ sketch.title }}</a>
             {% else %}
-            <a href="{% url 'sketch_edit' sketch.slug %}" class="hover:text-primary transition-colors">{{ sketch.title }}</a>
+            <a href="{% url 'sketch_edit' sketch.slug %}" class="link-title">{{ sketch.title }}</a>
             {% endif %}
           </h3>
           <div class="flex flex-wrap items-center gap-2 mt-2 text-sm text-outline">
@@ -48,9 +48,9 @@
           {% if sketch.status != "published" %}
           {% include "sketches/partials/sketch_publish_form.html" with sketch=sketch %}
           {% else %}
-          <a href="{% url 'sketch_detail' sketch.slug %}" class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface font-medium hover:border-primary hover:text-primary transition-all text-sm">View</a>
+          <a href="{% url 'sketch_detail' sketch.slug %}" class="link-action link-action--sm">View</a>
           {% endif %}
-          <a href="{% url 'sketch_edit' sketch.slug %}" class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface font-medium hover:border-primary hover:text-primary transition-all text-sm">Edit</a>
+          <a href="{% url 'sketch_edit' sketch.slug %}" class="link-action link-action--sm">Edit</a>
         </div>
       </article>
       {% endfor %}
@@ -63,9 +63,9 @@
     <p class="text-on-surface-variant mb-6">
       Create your first sketch to get started.
     </p>
-    <a href="{% url 'sketch_create' %}?type=p5js" class="text-primary font-bold hover:underline">New p5.js sketch</a>
+    <a href="{% url 'sketch_create' %}?type=p5js" class="link">New p5.js sketch</a>
     <span class="text-outline mx-2">·</span>
-    <a href="{% url 'sketch_create' %}?type=processing" class="text-primary font-bold hover:underline">Processing sketch</a>
+    <a href="{% url 'sketch_create' %}?type=processing" class="link">Processing sketch</a>
   </div>
   {% endif %}
 </div>

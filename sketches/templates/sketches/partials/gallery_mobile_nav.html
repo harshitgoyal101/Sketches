@@ -1,4 +1,4 @@
-<div class="md:hidden fixed bottom-0 left-0 w-full h-16 bg-white border-t border-primary/10 z-50 flex items-center justify-around px-4 shadow-lg">
+<div class="gallery-mobile-nav md:hidden fixed bottom-0 left-0 w-full h-16 bg-white border-t border-primary/10 z-50 flex items-center justify-around px-4 shadow-lg">
   <a href="{% url 'home' %}" class="flex flex-col items-center justify-center {% if request.resolver_match.url_name == 'home' %}text-primary{% else %}text-outline hover:text-primary{% endif %}">
     <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'home' %} is-filled{% endif %}">home</span>
     <span class="text-[10px] uppercase font-label-sm">Home</span>

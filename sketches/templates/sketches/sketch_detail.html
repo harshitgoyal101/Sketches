@@ -38,10 +38,10 @@
   {% endif %}
 
   <nav class="flex items-center gap-2 text-xs font-bold text-outline mb-6 uppercase tracking-wider flex-wrap" aria-label="Breadcrumb">
-    <a class="hover:text-primary transition-colors" href="{% url 'sketch_list' %}">Gallery</a>
+    <a class="link-subtle" href="{% url 'sketch_list' %}">Gallery</a>
     {% if breadcrumb_tag %}
     <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-    <a class="hover:text-primary transition-colors" href="{% url 'tag_detail' breadcrumb_tag.slug %}">{{ breadcrumb_tag.name }}</a>
+    <a class="link-subtle" href="{% url 'tag_detail' breadcrumb_tag.slug %}">{{ breadcrumb_tag.name }}</a>
     {% endif %}
     <span class="material-symbols-outlined text-[14px]">chevron_right</span>
     <span class="text-on-surface">{{ sketch.title }}</span>
@@ -55,7 +55,7 @@
         <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <h1 class="font-display-lg text-4xl font-bold text-on-surface">{{ sketch.title }}</h1>
           {% if can_edit %}
-          <a href="{% url 'sketch_edit' sketch.slug %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant text-on-surface font-bold hover:border-primary hover:text-primary transition-all shrink-0">
+          <a href="{% url 'sketch_edit' sketch.slug %}" class="link-action">
             <span class="material-symbols-outlined text-base">edit</span>
             Edit
           </a>
@@ -94,7 +94,7 @@
           <span class="px-3 py-1 bg-surface-container border border-outline-variant rounded-full text-xs font-bold text-on-surface-variant">Draft</span>
           {% endif %}
           {% for tag in sketch.tags.all %}
-          <a href="{% url 'tag_detail' tag.slug %}" class="px-3 py-1 bg-surface-container border border-outline-variant rounded-full text-xs font-bold text-on-surface-variant hover:border-primary hover:text-primary transition-colors">{{ tag.name }}</a>
+          <a href="{% url 'tag_detail' tag.slug %}" class="link-chip">{{ tag.name }}</a>
           {% endfor %}
         </div>
       </div>
@@ -140,27 +140,27 @@
         {% if can_edit and sketch.status == "draft" %}
         <form method="post" action="{% url 'sketch_publish' sketch.slug %}">
           {% csrf_token %}
-          <button type="submit" class="btn-publish-inline flex items-center justify-center gap-2">
+          <button type="submit" class="btn btn-primary btn-full btn-lg">
             <span class="material-symbols-outlined">publish</span>
             Publish sketch
           </button>
         </form>
         {% endif %}
 
-        <a href="#source-code" id="view-source-btn" class="w-full py-4 bg-primary text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95">
+        <a href="#source-code" id="view-source-btn" class="btn btn-primary btn-full btn-lg">
           <span class="material-symbols-outlined">code</span>
           View Source
         </a>
 
         {% if can_edit %}
-        <a href="{% url 'sketch_edit' sketch.slug %}" class="w-full py-4 bg-white text-on-surface font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-surface-container transition-all border border-outline-variant">
-          <span class="material-symbols-outlined text-primary">edit</span>
+        <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-secondary btn-full btn-lg">
+          <span class="material-symbols-outlined">edit</span>
           Open in Editor
         </a>
         {% endif %}
 
-        <button type="button" id="share-sketch" class="w-full py-3 bg-white border border-outline-variant rounded-lg flex items-center justify-center gap-2 hover:text-primary hover:border-primary transition-colors group font-bold">
-          <span class="material-symbols-outlined group-hover:scale-110 transition-transform">share</span>
+        <button type="button" id="share-sketch" class="btn btn-secondary btn-full">
+          <span class="material-symbols-outlined">share</span>
           <span class="share-label">Share</span>
         </button>
       </div>

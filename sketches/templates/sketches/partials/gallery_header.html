@@ -46,7 +46,7 @@
     {% if active_tag %}Showing <strong class="text-on-surface">{{ active_tag.name }}</strong>{% endif %}
     {% if sketch_type %}<strong class="text-on-surface">{{ sketch_type }}</strong> sketches{% endif %}
     {% if query %} matching <strong class="text-on-surface">"{{ query }}"</strong>{% endif %}
-    · <a href="{% url 'sketch_list' %}" class="text-primary hover:underline">Clear filters</a>
+    · <a href="{% url 'sketch_list' %}" class="link">Clear filters</a>
   </p>
   {% endif %}
 </header>

@@ -17,8 +17,13 @@
   --accent-hover: #2563EB;
   --accent-soft: rgba(59, 130, 246, 0.12);
   --accent-shadow: rgba(59, 130, 246, 0.08);
+  --link-color: var(--accent);
+  --link-hover: var(--accent-hover);
+  --link-decoration: rgba(59, 130, 246, 0.35);
+  --link-decoration-hover: rgba(59, 130, 246, 0.85);
   --badge-p5: #3B82F6;
   --badge-processing: #1E293B;
+  --btn-radius: 0.5rem;
   --radius: 6px;
   --font: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -58,13 +63,182 @@ body {
 }
 
 a {
+  color: var(--link-color);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+  transition:
+    color 0.15s ease,
+    text-decoration-color 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+a:hover {
+  color: var(--link-hover);
+  text-decoration-color: var(--link-decoration-hover);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+a:where(
+  .btn,
+  .sketch-card-link,
+  .navbar-link,
+  .navbar-brand,
+  .gallery-home-nav-btn,
+  .gallery-home-explore,
+  .filter-tag,
+  .tag,
+  .link-subtle,
+  .link-action,
+  .link-chip,
+  .link-nav,
+  .link-title
+) {
+  text-decoration: none;
+}
+
+a:where(
+  .btn,
+  .sketch-card-link,
+  .navbar-link,
+  .navbar-brand,
+  .gallery-home-nav-btn,
+  .gallery-home-explore,
+  .filter-tag,
+  .tag,
+  .link-subtle,
+  .link-action,
+  .link-chip,
+  .link-nav,
+  .link-title
+):hover {
+  text-decoration: none;
+}
+
+a.group,
+a[class*="glass-panel"] {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.group:hover,
+a[class*="glass-panel"]:hover {
+  text-decoration: none;
+}
+
+.link {
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--link-decoration);
+}
+
+.link:hover {
+  text-decoration-color: var(--link-decoration-hover);
+}
+
+.link-subtle {
+  color: var(--text-muted);
+  font-weight: inherit;
+  text-decoration: none;
+}
+
+.link-subtle:hover {
   color: var(--accent);
   text-decoration: none;
 }
 
-a:hover {
-  color: var(--accent-hover);
-  text-decoration: underline;
+.link-title {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.link-title:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.link-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--btn-radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.link-action:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  text-decoration: none;
+  box-shadow: 0 4px 12px -2px var(--accent-shadow);
+}
+
+.link-action--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.link-action--primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #ffffff;
+  box-shadow: 0 8px 20px -4px var(--accent-shadow);
+}
+
+.link-action--sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.link-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s, box-shadow 0.15s;
+}
+
+.link-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  text-decoration: none;
+  box-shadow: 0 4px 12px -2px var(--accent-shadow);
+}
+
+.link-nav {
+  color: var(--text-muted);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.link-nav:hover,
+.link-nav.is-active {
+  color: var(--accent);
+  text-decoration: none;
 }
 
 .container {
@@ -357,27 +531,40 @@ body.home-page .hero.home-hero {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   padding: 0.55rem 1.1rem;
-  border-radius: var(--radius);
+  border-radius: var(--btn-radius);
   font-family: var(--font);
-  font-weight: 500;
+  font-weight: 600;
   font-size: 0.875rem;
   text-decoration: none;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
+}
+
+.btn .material-symbols-outlined {
+  font-size: 1.125rem;
 }
 
 .btn-explore {
   margin-top: clamp(1.5rem, 4vw, 2rem);
   background: var(--accent);
+  border: 1px solid var(--accent);
   color: #ffffff;
 }
 
 .btn-explore:hover {
   background: var(--accent-hover);
+  border-color: var(--accent-hover);
   color: #ffffff;
   text-decoration: none;
+  box-shadow: 0 8px 20px -4px var(--accent-shadow);
 }
 
 .home-hero-credit {
@@ -699,6 +886,7 @@ body.home-page .hero.home-hero {
   text-decoration: none;
   background: var(--accent);
   color: #ffffff;
+  box-shadow: 0 4px 12px -2px var(--accent-shadow);
 }
 
 .sketch-filters {
@@ -745,6 +933,7 @@ body.home-page .hero.home-hero {
   color: var(--accent);
   border-color: var(--accent);
   text-decoration: none;
+  box-shadow: 0 4px 12px -2px var(--accent-shadow);
 }
 
 .filter-tag.is-active {
@@ -757,6 +946,10 @@ body.home-page .hero.home-hero {
   margin: 0;
   font-size: 0.9rem;
   color: var(--text-muted);
+}
+
+.sketch-filters-status a {
+  font-weight: 600;
 }
 
 .visually-hidden {
@@ -781,7 +974,7 @@ body.home-page .hero.home-hero {
 .btn-copy {
   padding: 0.35rem 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--btn-radius);
   background: var(--surface);
   color: var(--text);
   font-family: var(--font);
@@ -794,6 +987,7 @@ body.home-page .hero.home-hero {
 .btn-copy:hover {
   border-color: var(--accent);
   color: var(--accent);
+  box-shadow: 0 4px 12px -2px var(--accent-shadow);
 }
 
 .btn-copy.is-copied {
@@ -848,6 +1042,15 @@ body.home-page .hero.home-hero {
   border-radius: 4px;
   font-size: 0.75rem;
   color: var(--accent);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+a.tag:hover {
+  background: var(--accent);
+  color: #ffffff;
+  text-decoration: none;
+  box-shadow: 0 4px 12px -2px var(--accent-shadow);
 }
 
 .sketch-header {
@@ -1608,7 +1811,7 @@ body.sketch-edit-resizing iframe {
   height: 2rem;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--btn-radius);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -1623,6 +1826,7 @@ body.sketch-edit-resizing iframe {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-soft);
+  box-shadow: 0 4px 12px -2px var(--accent-shadow);
 }
 
 .preview-toolbar button:not(.preview-toolbar-btn) {
@@ -1630,7 +1834,7 @@ body.sketch-edit-resizing iframe {
   border: 1px solid var(--border);
   color: var(--text);
   padding: 0.35rem 0.75rem;
-  border-radius: 6px;
+  border-radius: var(--btn-radius);
   font-size: 0.8rem;
   cursor: pointer;
   font-family: var(--font);
@@ -1640,6 +1844,7 @@ body.sketch-edit-resizing iframe {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-soft);
+  box-shadow: 0 4px 12px -2px var(--accent-shadow);
 }
 
 .preview-frame-wrap {
@@ -1755,6 +1960,14 @@ body.sketch-edit-resizing iframe {
 
 .edit-thumbnail-upload a {
   color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.edit-thumbnail-upload a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--link-decoration-hover);
+  text-underline-offset: 0.2em;
 }
 
 .description-panel {
@@ -1792,6 +2005,16 @@ body.sketch-edit-resizing iframe {
 
 .markdown-body p {
   margin: 0 0 1rem;
+}
+
+.markdown-body a {
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--link-decoration);
+}
+
+.markdown-body a:hover {
+  text-decoration-color: var(--link-decoration-hover);
 }
 
 .markdown-body pre {
@@ -1936,6 +2159,14 @@ body.sketch-edit-resizing iframe {
 
 .code-section-header a {
   font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.code-section-header a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--link-decoration-hover);
+  text-underline-offset: 0.2em;
 }
 
 .code-tabs {
@@ -2566,7 +2797,7 @@ body.code-editor-fullscreen {
 }
 
 .code-ide-create-btn {
-  border-radius: 6px;
+  border-radius: var(--btn-radius);
   font-size: 0.78rem;
   font-weight: 500;
   padding: 0.4rem 0.75rem;
@@ -3242,7 +3473,7 @@ body.code-editor-fullscreen {
   height: 1.5rem;
   padding: 0 0.35rem;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--btn-radius);
   background: var(--surface);
   color: var(--text);
   font-size: 0.75rem;
@@ -3252,6 +3483,7 @@ body.code-editor-fullscreen {
 .description-toolbar-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .description-toolbar-underline {
@@ -3474,16 +3706,18 @@ body.code-editor-fullscreen {
 .pagination span {
   padding: 0.5rem 0.85rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--btn-radius);
   color: var(--text-muted);
   text-decoration: none;
   font-size: 0.9rem;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
 .pagination a:hover {
   border-color: var(--accent);
   color: var(--accent);
   text-decoration: none;
+  box-shadow: 0 4px 12px -2px var(--accent-shadow);
 }
 
 .pagination .current {
@@ -3858,7 +4092,7 @@ body.code-editor-fullscreen {
   margin-right: 0.75rem;
   padding: 0.45rem 0.85rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--btn-radius);
   background: var(--accent-soft);
   color: var(--accent);
   font-family: var(--font);
@@ -3929,11 +4163,13 @@ body.code-editor-fullscreen {
 
 .btn-primary {
   background: var(--accent);
+  border-color: var(--accent);
   color: #ffffff;
 }
 
 .btn-primary:hover {
   background: var(--accent-hover);
+  border-color: var(--accent-hover);
   color: #ffffff;
   text-decoration: none;
   box-shadow: 0 8px 20px -4px var(--accent-shadow);
@@ -3942,7 +4178,7 @@ body.code-editor-fullscreen {
 .btn-secondary {
   background: var(--surface);
   color: var(--text);
-  border: 1px solid var(--border);
+  border-color: var(--border);
 }
 
 .btn-secondary:hover {
@@ -3950,19 +4186,21 @@ body.code-editor-fullscreen {
   color: var(--accent);
   text-decoration: none;
   border-color: var(--accent);
+  box-shadow: 0 4px 12px -2px var(--accent-shadow);
 }
 
 .btn-publish {
-  background: var(--badge-processing);
-  border: 1px solid var(--badge-processing);
+  background: var(--accent);
+  border-color: var(--accent);
   color: #ffffff;
 }
 
 .btn-publish:hover {
-  background: #151f2e;
-  border-color: #151f2e;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
   color: #ffffff;
   text-decoration: none;
+  box-shadow: 0 8px 20px -4px var(--accent-shadow);
 }
 
 .btn-sm {
@@ -3980,6 +4218,11 @@ body.code-editor-fullscreen {
 .btn-full {
   width: 100%;
   margin-top: 0.25rem;
+}
+
+.btn-lg {
+  padding: 1rem 1.25rem;
+  font-weight: 700;
 }
 
 .account-actions {
@@ -4016,6 +4259,17 @@ body.code-editor-fullscreen {
   color: var(--text-muted);
 }
 
+.auth-switch a {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-switch a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--link-decoration-hover);
+  text-underline-offset: 0.2em;
+}
+
 .password-input-wrap {
   position: relative;
 }
@@ -4029,14 +4283,14 @@ body.code-editor-fullscreen {
   top: 50%;
   right: 0.5rem;
   transform: translateY(-50%);
-  border: none;
+  border: 1px solid var(--border);
   background: var(--accent-soft);
   color: var(--accent);
   font-family: var(--font);
   font-size: 0.78rem;
   font-weight: 600;
   padding: 0.35rem 0.65rem;
-  border-radius: 6px;
+  border-radius: var(--btn-radius);
   cursor: pointer;
 }
 
@@ -4116,10 +4370,12 @@ body.code-editor-fullscreen {
 .account-sketch-info h3 a {
   color: var(--text);
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 .account-sketch-info h3 a:hover {
   color: var(--accent);
+  text-decoration: none;
 }
 
 @media (max-width: 640px) {
