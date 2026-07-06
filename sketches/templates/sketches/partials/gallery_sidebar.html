@@ -28,10 +28,10 @@
       {% if user.is_authenticated %}
       <a
         href="{% url 'account' %}"
-        class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' %}bg-primary-fixed text-on-primary-fixed-variant border-l-4 border-primary rounded-r-lg{% else %}text-outline hover:text-primary hover:bg-primary/5{% endif %}"
+        class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' or request.resolver_match.url_name == 'sketch_settings' %}bg-primary-fixed text-on-primary-fixed-variant border-l-4 border-primary rounded-r-lg{% else %}text-outline hover:text-primary hover:bg-primary/5{% endif %}"
       >
-        <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' %} is-filled{% endif %}">code_blocks</span>
-        <span class="font-code-md text-code-md{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' %} font-bold{% endif %}">My Sketches</span>
+        <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' or request.resolver_match.url_name == 'sketch_settings' %} is-filled{% endif %}">code_blocks</span>
+        <span class="font-code-md text-code-md{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' or request.resolver_match.url_name == 'sketch_settings' %} font-bold{% endif %}">My Sketches</span>
       </a>
       {% endif %}
     </nav>

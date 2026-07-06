@@ -31,6 +31,7 @@
     const entryField = page.querySelector('[name="entry_filename"]');
     const typeField = page.querySelector('[name="sketch_type"]');
     const codeField = page.querySelector('[name="code"]');
+    const codeSection = page.querySelector(".code-section-edit.code-ide");
 
     const assets = [];
     page.querySelectorAll("[data-asset-panel]").forEach((panel) => {
@@ -49,7 +50,7 @@
     return {
       title: titleField?.value || "",
       entry_filename: entryField?.value || "",
-      sketch_type: typeField?.value || "p5js",
+      sketch_type: typeField?.value || codeSection?.dataset.sketchType || "p5js",
       code: codeField?.value || "",
       assets,
       savedAt: Date.now(),
@@ -391,7 +392,7 @@
 
     form?.addEventListener("submit", () => {
       navigationAllowed = true;
-      saveDraft(captureEditState(page));
+      clearDraft();
     });
 
     page.addEventListener("input", () => updateDirtyState());

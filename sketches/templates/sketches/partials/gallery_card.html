@@ -60,7 +60,8 @@
     {% else %}
     <a href="{% url 'sketch_detail' sketch.slug %}" class="link-action link-action--sm">View</a>
     {% endif %}
-    <a href="{% url 'sketch_edit' sketch.slug %}" class="link-action link-action--sm">Edit</a>
+    <a href="{% url 'sketch_edit' sketch.slug %}" class="link-action link-action--sm">Code</a>
+    <a href="{% url 'sketch_settings' sketch.slug %}" class="link-action link-action--sm">Settings</a>
   </div>
 {% endif %}
 </article>

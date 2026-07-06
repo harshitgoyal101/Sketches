@@ -5,6 +5,7 @@
 
 {% block auth_content %}
 <section class="auth-card gallery-themed-card">
+  {% include "sketches/partials/auth_card_icon.html" with icon="signup" %}
   <h1>Create account</h1>
   <p class="auth-lead">Join the gallery to publish and manage your sketches.</p>
 
@@ -28,11 +29,12 @@
         >Show</button>
       </div>
       <ul class="password-requirements" id="password-requirements" aria-live="polite">
-        <li class="password-requirement" data-rule="length">At least 8 characters</li>
-        <li class="password-requirement" data-rule="numeric">Not entirely numeric</li>
-        <li class="password-requirement" data-rule="common">Not a commonly used password</li>
-        <li class="password-requirement" data-rule="similar">Not too similar to your username</li>
-        <li class="password-requirement" data-rule="match">Passwords match</li>
+        <li class="password-requirement" data-rule="length">At least 8 characters long</li>
+        <li class="password-requirement" data-rule="letter">Must have an alphabet</li>
+        <li class="password-requirement" data-rule="number">Must have a number</li>
+        <li class="password-requirement" data-rule="symbol">Must have a symbol</li>
+        <li class="password-requirement" data-rule="similar">Should not be your username</li>
+        <li class="password-requirement" data-rule="match">Password must match</li>
       </ul>
       {% if form.password1.errors %}
       <span class="field-error">{{ form.password1.errors|join:", " }}</span>
@@ -53,5 +55,5 @@
 
 {% block extra_js %}
 <script src="{% static 'sketches/js/forms.js' %}"></script>
-<script src="{% static 'sketches/js/signup.js' %}"></script>
+<script src="{% static 'sketches/js/signup.js' %}?v=20260706a"></script>
 {% endblock %}

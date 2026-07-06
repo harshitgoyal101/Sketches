@@ -10,9 +10,9 @@ register = template.Library()
 def gallery_filter_url(context, **kwargs):
     params = {
         "query": context.get("query", ""),
-        "tag_slug": context.get("tag_slug", ""),
-        "sketch_type": context.get("sketch_type", ""),
-        "author_username": context.get("author_username", ""),
+        "tag_slugs": context.get("tag_slugs", []),
+        "sketch_types": context.get("sketch_types", []),
+        "author_usernames": context.get("author_usernames", []),
     }
     params.update(kwargs)
     return gallery_filters.build_filter_url(**params)

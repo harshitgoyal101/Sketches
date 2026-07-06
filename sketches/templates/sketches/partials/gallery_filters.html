@@ -7,9 +7,15 @@
       action="{% url 'sketch_list' %}"
       role="search"
     >
-      {% if tag_slug %}<input type="hidden" name="tag" value="{{ tag_slug }}">{% endif %}
-      {% if sketch_type %}<input type="hidden" name="type" value="{{ sketch_type }}">{% endif %}
-      {% if author_username %}<input type="hidden" name="author" value="{{ author_username }}">{% endif %}
+      {% for tag in active_tags %}
+      <input type="hidden" name="tag" value="{{ tag.slug }}">
+      {% endfor %}
+      {% for type_slug in sketch_types %}
+      <input type="hidden" name="type" value="{{ type_slug }}">
+      {% endfor %}
+      {% for username in author_usernames %}
+      <input type="hidden" name="author" value="{{ username }}">
+      {% endfor %}
       <label class="sr-only" for="gallery-filter-search">Search sketches</label>
       <span class="material-symbols-outlined gallery-filters-search-icon" aria-hidden="true">search</span>
       <input
@@ -35,7 +41,7 @@
       aria-controls="gallery-filters-panel"
     >
       <span class="material-symbols-outlined" aria-hidden="true">tune</span>
-      <span>Filters</span>
+      <span class="gallery-filters-toggle-label">Filters</span>
       {% if active_filter_count %}
       <span class="gallery-filters-toggle-count">{{ active_filter_count }}</span>
       {% endif %}
@@ -50,24 +56,24 @@
       <span class="material-symbols-outlined" aria-hidden="true">close</span>
     </a>
     {% endif %}
-    {% if tag_slug %}
-    <a href="{% gallery_filter_url remove_tag=True %}" class="gallery-filter-pill gallery-filter-pill--active">
-      <span>{% if active_tag %}{{ active_tag.name }}{% else %}{{ tag_slug }}{% endif %}</span>
+    {% for tag in active_tags %}
+    <a href="{% gallery_filter_url remove_tag=tag.slug %}" class="gallery-filter-pill gallery-filter-pill--active">
+      <span>{{ tag.name }}</span>
       <span class="material-symbols-outlined" aria-hidden="true">close</span>
     </a>
-    {% endif %}
-    {% if sketch_type %}
-    <a href="{% gallery_filter_url remove_type=True %}" class="gallery-filter-pill gallery-filter-pill--active">
-      <span>{{ sketch_type_label }}</span>
+    {% endfor %}
+    {% for type_slug, type_label in sketch_type_labels %}
+    <a href="{% gallery_filter_url remove_type=type_slug %}" class="gallery-filter-pill gallery-filter-pill--active">
+      <span>{{ type_label }}</span>
       <span class="material-symbols-outlined" aria-hidden="true">close</span>
     </a>
-    {% endif %}
-    {% if author_username %}
-    <a href="{% gallery_filter_url remove_author=True %}" class="gallery-filter-pill gallery-filter-pill--active">
-      <span>@{{ author_username }}</span>
+    {% endfor %}
+    {% for username in author_usernames %}
+    <a href="{% gallery_filter_url remove_author=username %}" class="gallery-filter-pill gallery-filter-pill--active">
+      <span>@{{ username }}</span>
       <span class="material-symbols-outlined" aria-hidden="true">close</span>
     </a>
-    {% endif %}
+    {% endfor %}
     <a href="{% url 'sketch_list' %}" class="gallery-filter-clear">Clear all</a>
   </div>
   {% endif %}
@@ -76,17 +82,18 @@
     <div class="gallery-filters-panel-inner">
       <section class="gallery-filter-group">
         <h2 class="gallery-filter-group-title">Format</h2>
-        <p class="gallery-filter-group-desc">Filter by sketch runtime or language.</p>
+        <p class="gallery-filter-group-desc">Select one or more sketch runtimes.</p>
         <div class="gallery-filter-chips">
           <a
             href="{% gallery_filter_url remove_type=True %}"
-            class="gallery-filter-chip{% if not sketch_type %} is-active{% endif %}"
+            class="gallery-filter-chip{% if not sketch_types %} is-active{% endif %}"
           >All formats</a>
           {% for fmt in sketch_formats %}
           <a
             href="{% gallery_filter_url toggle_type=fmt.slug %}"
-            class="gallery-filter-chip{% if sketch_type == fmt.slug %} is-active{% endif %}"
+            class="gallery-filter-chip{% if fmt.slug in sketch_types %} is-active{% endif %}"
             title="{{ fmt.description }}"
+            aria-pressed="{% if fmt.slug in sketch_types %}true{% else %}false{% endif %}"
           >{{ fmt.name }}</a>
           {% endfor %}
         </div>
@@ -95,12 +102,13 @@
       {% if gallery_authors %}
       <section class="gallery-filter-group">
         <h2 class="gallery-filter-group-title">Authors</h2>
-        <p class="gallery-filter-group-desc">Browse sketches by creator, or type <strong>@username</strong> in search.</p>
+        <p class="gallery-filter-group-desc">Select one or more creators, or type <strong>@username</strong> in search.</p>
         <div class="gallery-filter-chips">
           {% for author in gallery_authors %}
           <a
             href="{% gallery_filter_url toggle_author=author.username %}"
-            class="gallery-filter-chip gallery-filter-chip--author{% if author_username == author.username %} is-active{% endif %}"
+            class="gallery-filter-chip gallery-filter-chip--author{% if author.username in author_usernames %} is-active{% endif %}"
+            aria-pressed="{% if author.username in author_usernames %}true{% else %}false{% endif %}"
           >@{{ author.username }}</a>
           {% endfor %}
         </div>
@@ -115,14 +123,17 @@
         {% if group.category and group.category.description %}
         <p class="gallery-filter-group-desc">{{ group.category.description }}</p>
         {% elif not group.category %}
-        <p class="gallery-filter-group-desc">Browse by topic and technique.</p>
+        <p class="gallery-filter-group-desc">Select one or more topics and techniques.</p>
+        {% else %}
+        <p class="gallery-filter-group-desc">Select one or more tags.</p>
         {% endif %}
         <div class="gallery-filter-chips">
           {% for tag in group.tags %}
           <a
             href="{% gallery_filter_url toggle_tag=tag.slug %}"
-            class="gallery-filter-chip{% if tag_slug == tag.slug %} is-active{% endif %}"
+            class="gallery-filter-chip{% if tag.slug in tag_slugs %} is-active{% endif %}"
             title="{{ tag.description }}"
+            aria-pressed="{% if tag.slug in tag_slugs %}true{% else %}false{% endif %}"
           >{{ tag.name }}</a>
           {% endfor %}
         </div>

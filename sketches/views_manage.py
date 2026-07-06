@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
-from .forms import SketchAssetFormSet, SketchEditForm
+from .forms import SketchAssetFormSet, SketchDetailsForm, SketchEditForm
 from .models import Sketch, SketchAsset
 from .permissions import can_access_sketch_editor, can_edit_sketch
 from .services.embed_builder import build_p5_embed_html, build_processing_embed_html
@@ -149,6 +149,8 @@ def sketch_create(request):
             "can_edit": True,
             "submit_label": "Create sketch",
             "sketch_starters": get_starter_payload(),
+            "editor_sketch_type": form.editor_sketch_type(),
+            "show_sketch_type_picker": "sketch_type" in form.fields,
             "body_class": "edit-page",
         },
     )
@@ -168,6 +170,7 @@ def sketch_edit(request, slug):
             instance=sketch,
             is_admin=is_admin,
             editor_mode=True,
+            lock_sketch_type=True,
         )
         formset = SketchAssetFormSet(request.POST, instance=sketch)
         if form.is_valid() and formset.is_valid():
@@ -184,7 +187,12 @@ def sketch_edit(request, slug):
             messages.success(request, f"“{sketch.title}” saved.")
             return redirect("sketch_edit", slug=sketch.slug)
     else:
-        form = SketchEditForm(instance=sketch, is_admin=is_admin, editor_mode=True)
+        form = SketchEditForm(
+            instance=sketch,
+            is_admin=is_admin,
+            editor_mode=True,
+            lock_sketch_type=True,
+        )
         formset = SketchAssetFormSet(instance=sketch)
 
     context = build_sketch_detail_context(sketch)
@@ -197,10 +205,42 @@ def sketch_edit(request, slug):
             "is_admin": is_admin,
             "can_edit": can_save,
             "submit_label": "Save changes",
+            "editor_sketch_type": sketch.sketch_type,
+            "show_sketch_type_picker": False,
             "body_class": "edit-page",
         }
     )
     return render(request, "sketches/sketch_edit.html", context)
+
+
+@login_required
+def sketch_settings(request, slug):
+    sketch = _get_editable_sketch(request, slug)
+    is_admin = request.user.is_staff
+
+    if request.method == "POST":
+        form = SketchDetailsForm(
+            request.POST,
+            request.FILES,
+            instance=sketch,
+            is_admin=is_admin,
+        )
+        if form.is_valid():
+            sketch = form.save()
+            messages.success(request, f"“{sketch.title}” settings saved.")
+            return redirect("sketch_settings", slug=sketch.slug)
+    else:
+        form = SketchDetailsForm(instance=sketch, is_admin=is_admin)
+
+    return render(
+        request,
+        "sketches/sketch_settings.html",
+        {
+            "form": form,
+            "sketch": sketch,
+            "is_admin": is_admin,
+        },
+    )
 
 
 @login_required

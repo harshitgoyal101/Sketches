@@ -1,16 +1,3 @@
-const COMMON_PASSWORDS = new Set([
-  "password",
-  "password123",
-  "12345678",
-  "123456789",
-  "qwerty123",
-  "admin123",
-  "letmein",
-  "welcome",
-  "monkey123",
-  "dragon123",
-]);
-
 function isSimilarToUsername(password, username) {
   if (!password || !username) return true;
   const pass = password.toLowerCase();
@@ -29,8 +16,9 @@ function evaluatePasswordRules(password, username, confirm) {
   if (!password) {
     return {
       length: false,
-      numeric: false,
-      common: false,
+      letter: false,
+      number: false,
+      symbol: false,
       similar: false,
       match: false,
     };
@@ -38,8 +26,9 @@ function evaluatePasswordRules(password, username, confirm) {
 
   return {
     length: password.length >= 8,
-    numeric: !/^\d+$/.test(password),
-    common: !COMMON_PASSWORDS.has(password.toLowerCase()),
+    letter: /[A-Za-z]/.test(password),
+    number: /\d/.test(password),
+    symbol: /[^A-Za-z0-9]/.test(password),
     similar: isSimilarToUsername(password, username),
     match: confirm.length > 0 && password === confirm,
   };

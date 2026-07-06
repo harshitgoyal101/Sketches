@@ -29,9 +29,9 @@
     {% if user.is_authenticated %}
     <a
       href="{% url 'account' %}"
-      class="gallery-mobile-menu-link{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' %} is-active{% endif %}"
+      class="gallery-mobile-menu-link{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' or request.resolver_match.url_name == 'sketch_settings' %} is-active{% endif %}"
     >
-      <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' %} is-filled{% endif %}">code_blocks</span>
+      <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' or request.resolver_match.url_name == 'sketch_settings' %} is-filled{% endif %}">code_blocks</span>
       <span>My Sketches</span>
     </a>
     <a

@@ -217,36 +217,27 @@ window.CodeEditorSyntax = (function () {
     return [];
   }
 
-  function validateJavaScript(code) {
-    if (typeof acorn !== "undefined") {
-      try {
-        acorn.parse(code, { ecmaVersion: "latest", sourceType: "script" });
-        return [];
-      } catch (error) {
-        return [{
-          line: error.loc?.line || 1,
-          column: error.loc?.column != null ? error.loc.column + 1 : null,
-          message: error.message,
-        }];
-      }
-    }
-    return validateBrackets(code);
+  function looksLikeProcessingSyntax(code) {
+    if (!code || !code.trim()) return false;
+    return (
+      /\bvoid\s+(setup|draw)\s*\(/.test(code) ||
+      (/\bsize\s*\(/.test(code) && !/\bcreateCanvas\s*\(/.test(code))
+    );
   }
 
   function validate(code, language) {
-    if (!code.trim()) {
+    if (!code.trim() || language === "plain") {
       return [];
     }
-    // Processing (.pde) is not JavaScript — only check obvious bracket/string issues.
-    if (language === "java") {
-      return validateBrackets(code);
-    }
-    return validateJavaScript(code);
+    // Sketch code (p5.js, Processing, multi-file assets) is not strict ES —
+    // bracket/string checks catch obvious typos without Acorn false positives.
+    return validateBrackets(code);
   }
 
   return {
     highlight,
     validate,
     validateBrackets,
+    looksLikeProcessingSyntax,
   };
 })();

@@ -38,10 +38,18 @@
       {% endif %}
     </div>
     {% if sketch.status == "published" or can_edit %}
-    <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-primary sketch-detail-edit-btn">
-      <span class="material-symbols-outlined">edit</span>
-      Open in Editor
-    </a>
+    <div class="sketch-detail-topbar-actions">
+      {% if can_edit %}
+      <a href="{% url 'sketch_settings' sketch.slug %}" class="btn btn-secondary sketch-detail-edit-btn">
+        <span class="material-symbols-outlined">tune</span>
+        Settings
+      </a>
+      {% endif %}
+      <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-primary sketch-detail-edit-btn">
+        <span class="material-symbols-outlined">edit</span>
+        Open in Editor
+      </a>
+    </div>
     {% endif %}
   </header>
 

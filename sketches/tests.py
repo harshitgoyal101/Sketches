@@ -4,7 +4,7 @@ from pathlib import Path
 from django.contrib.auth import get_user_model
 from django.test import Client, SimpleTestCase, TestCase, override_settings
 
-from sketches.forms import SketchEditForm
+from sketches.forms import SketchDetailsForm, SketchEditForm
 from sketches.models import Sketch
 from sketches.services.embed_builder import (
     EMBED_ROOT,
@@ -114,6 +114,30 @@ class SketchStarterTests(SimpleTestCase):
         self.assertTrue(form.is_valid())
         self.assertEqual(form.cleaned_data["entry_filename"], "sketch.pde")
 
+    def test_edit_form_locks_sketch_type(self):
+        sketch = Sketch(
+            title="Locked Type",
+            slug="locked-type",
+            sketch_type=Sketch.SketchType.PROCESSING,
+            entry_filename="sketch.pde",
+            code="void setup() {}",
+        )
+        sketch.pk = 1
+        form = SketchEditForm(
+            data={
+                "title": "Locked Type",
+                "entry_filename": "sketch.pde",
+                "code": "void setup() {}",
+                "sketch_type": Sketch.SketchType.P5JS,
+            },
+            instance=sketch,
+            editor_mode=True,
+            lock_sketch_type=True,
+        )
+        self.assertTrue(form.is_valid())
+        self.assertNotIn("sketch_type", form.fields)
+        self.assertEqual(form.cleaned_data["sketch_type"], Sketch.SketchType.PROCESSING)
+
 
 class FileTreeTests(SimpleTestCase):
     def test_builds_nested_folders(self):
@@ -203,7 +227,15 @@ class GalleryFilterTests(TestCase):
 
         user_model = get_user_model()
         self.author = user_model.objects.create_user(username="filter-user", password="secret")
-        self.category = TagCategory.objects.create(name="Topics", slug="topics")
+        self.category, _ = TagCategory.objects.get_or_create(
+            slug="topics",
+            defaults={
+                "name": "Topics",
+                "description": "Browse sketches by theme or subject",
+                "sort_order": 0,
+                "is_active": True,
+            },
+        )
         self.tag = Tag.objects.create(name="Particles", slug="particles", category=self.category)
         self.sketch = Sketch.objects.create(
             title="Particle Field",
@@ -264,6 +296,50 @@ class GalleryFilterTests(TestCase):
         response = self.client.get("/sketches/", {"tag": "particles"})
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Particle Field")
+
+    def test_multi_tag_filter_matches_any_selected_tag(self):
+        from sketches.models import Tag
+
+        second_tag = Tag.objects.create(name="Network", slug="network", category=self.category)
+        second_sketch = Sketch.objects.create(
+            title="Network Graph",
+            slug="filter-user-network-graph",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            author=self.author,
+        )
+        second_sketch.tags.add(second_tag)
+
+        response = self.client.get("/sketches/", [("tag", "particles"), ("tag", "network")])
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Particle Field")
+        self.assertContains(response, "Network Graph")
+
+    def test_multi_type_filter_matches_any_selected_format(self):
+        processing_sketch = Sketch.objects.create(
+            title="Processing Sketch",
+            slug="filter-user-processing-sketch",
+            sketch_type=Sketch.SketchType.PROCESSING,
+            code="void setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            author=self.author,
+        )
+        response = self.client.get("/sketches/", [("type", "p5js"), ("type", "processing")])
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Particle Field")
+        self.assertContains(response, "Processing Sketch")
+
+    def test_toggle_tag_url_adds_and_removes_from_selection(self):
+        from sketches.services.gallery_filters import build_filter_url
+
+        url = build_filter_url(tag_slugs=["particles"], toggle_tag="network")
+        self.assertIn("tag=particles", url)
+        self.assertIn("tag=network", url)
+
+        url = build_filter_url(tag_slugs=["particles", "network"], toggle_tag="network")
+        self.assertIn("tag=particles", url)
+        self.assertNotIn("tag=network", url)
 
     def test_gallery_filter_ui_renders(self):
         response = self.client.get("/sketches/")
@@ -341,6 +417,22 @@ class SketchEditorAccessTests(TestCase):
         self.sketch.refresh_from_db()
         self.assertEqual(self.sketch.title, "Updated Title")
 
+    def test_edit_form_post_valid_without_sketch_type_field(self):
+        form = SketchEditForm(
+            data={
+                "title": "Updated Title",
+                "entry_filename": "sketch.js",
+                "code": "function setup() { createCanvas(100, 100); }",
+            },
+            instance=self.sketch,
+            editor_mode=True,
+            lock_sketch_type=True,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        saved = form.save()
+        self.assertEqual(saved.sketch_type, Sketch.SketchType.P5JS)
+        self.assertIn("createCanvas", saved.code)
+
     def test_anonymous_preview_cache_works(self):
         response = self.client.post(
             "/accounts/sketches/preview/",
@@ -357,6 +449,119 @@ class SketchEditorAccessTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn("url", response.json())
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class SketchSettingsTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(username="settings-author", password="secret")
+        self.other = user_model.objects.create_user(username="settings-visitor", password="secret")
+        self.sketch = Sketch.objects.create(
+            title="My Sketch",
+            slug="my-sketch",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            description="Old description",
+            status=Sketch.Status.DRAFT,
+            author=self.author,
+        )
+        self.client = Client()
+
+    def test_author_can_open_settings_page(self):
+        self.client.force_login(self.author)
+        response = self.client.get("/accounts/sketches/my-sketch/settings/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sketch settings")
+        self.assertContains(response, "sketch-description-input")
+        self.assertNotContains(response, "code-editor")
+
+    def test_visitor_cannot_open_settings_page(self):
+        self.client.force_login(self.other)
+        response = self.client.get("/accounts/sketches/my-sketch/settings/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_author_can_save_description(self):
+        self.client.force_login(self.author)
+        response = self.client.post(
+            "/accounts/sketches/my-sketch/settings/",
+            {
+                "title": "My Sketch",
+                "description": "Updated **description**",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.sketch.refresh_from_db()
+        self.assertEqual(self.sketch.description, "Updated **description**")
+
+    def test_details_form_excludes_admin_fields_for_authors(self):
+        form = SketchDetailsForm(instance=self.sketch, is_admin=False)
+        self.assertIn("description", form.fields)
+        self.assertIn("thumbnail", form.fields)
+        self.assertNotIn("slug", form.fields)
+        self.assertNotIn("status", form.fields)
+
+    def test_details_form_excludes_slug_for_admins(self):
+        form = SketchDetailsForm(instance=self.sketch, is_admin=True)
+        self.assertNotIn("slug", form.fields)
+        self.assertIn("status", form.fields)
+
+
+class SketchSlugTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(username="alice", password="secret")
+        self.other = user_model.objects.create_user(username="bob", password="secret")
+
+    def test_duplicate_titles_get_unique_slugs(self):
+        Sketch.objects.create(
+            title="My Sketch",
+            author=self.author,
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+        )
+        second = Sketch.objects.create(
+            title="My Sketch",
+            author=self.author,
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+        )
+        self.assertEqual(second.slug, "alice-my-sketch-2")
+
+    def test_different_authors_same_title_get_different_slugs(self):
+        first = Sketch.objects.create(
+            title="My Sketch",
+            author=self.author,
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+        )
+        second = Sketch.objects.create(
+            title="My Sketch",
+            author=self.other,
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+        )
+        self.assertEqual(first.slug, "alice-my-sketch")
+        self.assertEqual(second.slug, "bob-my-sketch")
+
+    def test_changing_title_does_not_change_slug(self):
+        sketch = Sketch.objects.create(
+            title="Original Title",
+            author=self.author,
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+        )
+        sketch.title = "New Title"
+        sketch.save()
+        self.assertEqual(sketch.slug, "alice-original-title")
+
+    def test_sketch_without_author_uses_default_prefix(self):
+        sketch = Sketch.objects.create(
+            title="Orphan Sketch",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+        )
+        self.assertEqual(sketch.slug, "sketches101-orphan-sketch")
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])

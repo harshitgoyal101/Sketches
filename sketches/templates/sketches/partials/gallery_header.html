@@ -3,14 +3,17 @@
     <div>
       <h1 class="gallery-page-title">
         {% if active_tag %}{{ active_tag.name }} <span class="text-primary">Gallery</span>
-        {% elif author_username %}<span class="text-primary">@{{ author_username }}</span>
+        {% elif author_usernames|length == 1 %}<span class="text-primary">@{{ author_usernames.0 }}</span>
+        {% elif author_usernames|length > 1 %}<span class="text-primary">Authors</span>
         {% else %}Discovery <span class="text-primary">Gallery</span>{% endif %}
       </h1>
       <p class="gallery-page-lead">
         {% if active_tag %}
         Sketches tagged <strong>{{ active_tag.name }}</strong> — generative art, simulations, and creative coding experiments.
-        {% elif author_username %}
-        Published sketches by <strong>@{{ author_username }}</strong>.
+        {% elif author_usernames|length == 1 %}
+        Published sketches by <strong>@{{ author_usernames.0 }}</strong>.
+        {% elif author_usernames|length > 1 %}
+        Published sketches by <strong>{{ author_usernames|length }} selected authors</strong>.
         {% else %}
         Explore generative art, interactive simulations, and creative experiments from the Sketches101 community.
         {% endif %}

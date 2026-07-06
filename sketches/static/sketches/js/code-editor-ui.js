@@ -1,4 +1,5 @@
 const EDITOR_THEME_KEY = "sketches-code-editor-theme";
+const EDITOR_TREE_COLLAPSED_KEY = "sketches-editor-tree-collapsed";
 const EDITOR_MIN_HEIGHT = 320;
 const COMPACT_EDITOR_MQ = "(max-width: 1024px)";
 const FULLSCREEN_CHROME_SELECTORS = [
@@ -38,19 +39,33 @@ function setFullscreenChromeHidden(hidden) {
 }
 
 function resolveEditorLanguage(textarea) {
+  const panel = textarea.closest("[data-asset-panel]");
+  if (panel) {
+    const assetType = panel.querySelector('[name$="-asset_type"]')?.value;
+    if (assetType === "css" || assetType === "json" || assetType === "other") {
+      return "plain";
+    }
+    const filename = (panel.querySelector('[name$="-filename"]')?.value || "").toLowerCase();
+    if (filename.endsWith(".css") || filename.endsWith(".json")) {
+      return "plain";
+    }
+  }
+
   const stored = textarea.dataset.editorLang;
-  if (stored === "java" || stored === "javascript") {
-    return stored;
+  if (stored === "java" || stored === "javascript" || stored === "plain") {
+    if (stored === "plain") return stored;
+    if (!panel) return stored;
   }
 
   const container = textarea.closest(".code-ide, .code-section-live, .code-section-edit");
   const sketchType = container?.dataset.sketchType;
 
   let filename = textarea.dataset.filename || "";
-  if (!filename) {
-    const panel = textarea.closest("[data-asset-panel]");
-    const filenameInput = panel?.querySelector('[name$="-filename"]');
-    filename = filenameInput?.value || "";
+  if (!filename && panel) {
+    filename = panel.querySelector('[name$="-filename"]')?.value || "";
+  }
+  if (!filename && !panel && container) {
+    filename = container.querySelector('[name="entry_filename"]')?.value || "";
   }
 
   if (sketchType === "processing" || filename.toLowerCase().endsWith(".pde")) {
@@ -80,8 +95,21 @@ document.addEventListener("DOMContentLoaded", () => {
     initAssetFormset(container);
     initAssetTabDrag(container);
     initAssetTabRemove(container);
+    initAssetEditorLanguageSync(container);
   });
 });
+
+function initAssetEditorLanguageSync(container) {
+  container.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!target.matches('[name$="-asset_type"], [name$="-filename"]')) return;
+    const panel = target.closest("[data-asset-panel]");
+    const textarea = panel?.querySelector("textarea");
+    if (!textarea) return;
+    textarea.dataset.editorLang = resolveEditorLanguage(textarea);
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
 
 function initEditorChrome(container) {
   const themeBtn = container.querySelector("[data-editor-theme-toggle]");
@@ -200,11 +228,51 @@ function initMobileFileTreeToggle(container) {
   const toggleBtn = container.querySelector("[data-editor-tree-toggle]");
   const backdrop = container.querySelector("[data-editor-tree-backdrop]");
   const fileTree = container.querySelector(".code-ide-file-tree");
+  const collapseBtn = fileTree?.querySelector("[data-editor-tree-collapse]");
   if (!toggleBtn || !fileTree) return;
 
   const compactQuery = window.matchMedia(COMPACT_EDITOR_MQ);
   let treeAnchor = null;
   let portalHost = null;
+
+  function isDesktopCollapsed() {
+    return container.classList.contains("is-tree-collapsed");
+  }
+
+  function updateCollapseButton() {
+    if (!collapseBtn) return;
+    if (compactQuery.matches) {
+      const isOpen = container.classList.contains("is-tree-open");
+      collapseBtn.title = isOpen ? "Close explorer" : "Open explorer";
+      collapseBtn.setAttribute("aria-label", collapseBtn.title);
+      collapseBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      return;
+    }
+    const collapsed = isDesktopCollapsed();
+    collapseBtn.title = collapsed ? "Expand explorer" : "Collapse explorer";
+    collapseBtn.setAttribute("aria-label", collapseBtn.title);
+    collapseBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  }
+
+  function setDesktopCollapsed(collapsed) {
+    if (compactQuery.matches) return;
+    container.classList.toggle("is-tree-collapsed", collapsed);
+    localStorage.setItem(EDITOR_TREE_COLLAPSED_KEY, collapsed ? "1" : "0");
+    toggleBtn.classList.remove("is-active");
+    toggleBtn.setAttribute("aria-expanded", "false");
+    toggleBtn.title = collapsed ? "Show files" : "Hide files";
+    toggleBtn.setAttribute("aria-label", toggleBtn.title);
+    updateCollapseButton();
+    refreshEditorLayoutAfterTreeChange();
+  }
+
+  function applyStoredDesktopCollapse() {
+    if (compactQuery.matches) return;
+    if (localStorage.getItem(EDITOR_TREE_COLLAPSED_KEY) === "1") {
+      container.classList.add("is-tree-collapsed");
+    }
+    updateCollapseButton();
+  }
 
   function ensurePortalHost() {
     if (portalHost) return portalHost;
@@ -288,6 +356,7 @@ function initMobileFileTreeToggle(container) {
       toggleBtn.setAttribute("aria-expanded", "false");
       document.body.classList.remove("code-ide-tree-open");
       document.documentElement.classList.remove("code-ide-tree-open");
+      updateCollapseButton();
       refreshEditorLayoutAfterTreeChange();
       return;
     }
@@ -320,6 +389,7 @@ function initMobileFileTreeToggle(container) {
 
     document.body.classList.toggle("code-ide-tree-open", isOpen);
     document.documentElement.classList.toggle("code-ide-tree-open", isOpen);
+    updateCollapseButton();
     refreshEditorLayoutAfterTreeChange();
   }
 
@@ -333,15 +403,36 @@ function initMobileFileTreeToggle(container) {
   const toggleTree = (event) => {
     event.preventDefault();
     event.stopPropagation();
-    setTreeOpen(!container.classList.contains("is-tree-open"));
+    if (compactQuery.matches) {
+      setTreeOpen(!container.classList.contains("is-tree-open"));
+      return;
+    }
+    setDesktopCollapsed(!isDesktopCollapsed());
   };
 
   toggleBtn.addEventListener("click", toggleTree);
 
+  collapseBtn?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (compactQuery.matches) {
+      closeTree();
+      return;
+    }
+    setDesktopCollapsed(!isDesktopCollapsed());
+  });
+
   backdrop?.addEventListener("click", closeTree);
 
   compactQuery.addEventListener("change", () => {
-    if (!compactQuery.matches) closeTree();
+    if (!compactQuery.matches) {
+      closeTree();
+      applyStoredDesktopCollapse();
+    } else {
+      container.classList.remove("is-tree-collapsed");
+    }
+    updateCollapseButton();
+    refreshEditorLayoutAfterTreeChange();
   });
 
   document.addEventListener("keydown", (event) => {
@@ -353,6 +444,8 @@ function initMobileFileTreeToggle(container) {
       closeTree();
     }
   });
+
+  applyStoredDesktopCollapse();
 }
 
 function ensurePanelEditorHeight(panel) {
@@ -385,13 +478,20 @@ function ensurePanelEditorHeight(panel) {
   if (editorArea) {
     editorArea.style.flex = "1";
     editorArea.style.minHeight = "0";
+    editorArea.style.overflow = "hidden";
   }
   if (editorBody && !shell) {
     editorBody.style.minHeight = `${targetHeight}px`;
   }
   if (shell) {
+    const isEditLayout = container?.classList.contains("code-section-edit");
     shell.style.flex = "1";
-    shell.style.minHeight = `${targetHeight}px`;
+    shell.style.height = isEditLayout ? "" : "100%";
+    shell.style.maxHeight = isEditLayout ? "100%" : "";
+    shell.style.minHeight = "0";
+    if (!isEditLayout && targetHeight > EDITOR_MIN_HEIGHT) {
+      shell.style.minHeight = `${targetHeight}px`;
+    }
   }
   if (textarea && !shell) {
     textarea.style.minHeight = `${targetHeight}px`;
@@ -411,7 +511,11 @@ function initFilenameTabSync(container) {
         mainTab.textContent = label;
       }
     };
-    mainFilename.addEventListener("input", syncMain);
+    const mainCode = container.querySelector('[name="code"]');
+    mainFilename.addEventListener("input", () => {
+      syncMain();
+      mainCode?.dispatchEvent(new Event("input", { bubbles: true }));
+    });
     syncMain();
   }
 
@@ -461,10 +565,24 @@ function enhanceEditor(textarea) {
   textarea.spellcheck = false;
   textarea.wrap = "off";
   textarea.dataset.editorLang = resolveEditorLanguage(textarea);
+  textarea.style.borderRadius = "0";
+  textarea.style.border = "none";
+  textarea.style.boxShadow = "none";
 
   const lineHeight = 1.6;
   const fontSize = parseFloat(getComputedStyle(textarea).fontSize) || 13;
-  shell.style.minHeight = `${EDITOR_MIN_HEIGHT}px`;
+  const editorArea = textarea.closest(".code-ide-editor-area");
+  if (editorArea) {
+    editorArea.style.display = "flex";
+    editorArea.style.flexDirection = "column";
+    editorArea.style.flex = "1";
+    editorArea.style.minHeight = "0";
+  }
+  shell.style.flex = "1";
+  shell.style.minHeight = "0";
+  shell.style.width = "100%";
+  shell.style.maxHeight = "100%";
+  shell.style.overflow = "hidden";
 
   let syntaxErrors = [];
   let syncScrollFrame = 0;
@@ -483,7 +601,7 @@ function enhanceEditor(textarea) {
       if (errorLines.has(lineNumber)) {
         classes.push("has-error");
       }
-      return `<span class="${classes.join(" ")}" title="${errorLines.has(lineNumber) ? "Syntax issue on this line" : ""}">${lineNumber}</span>`;
+      return `<span class="${classes.join(" ")}">${lineNumber}</span>`;
     }).join("");
     gutter.style.lineHeight = String(lineHeight);
     textarea.style.lineHeight = String(lineHeight);
@@ -495,7 +613,7 @@ function enhanceEditor(textarea) {
   function updateErrorBar() {
     if (!syntaxErrors.length) {
       errorBar.hidden = true;
-      errorBar.textContent = "";
+      errorBar.innerHTML = "";
       shell.classList.remove("has-syntax-error");
       return;
     }
@@ -503,7 +621,16 @@ function enhanceEditor(textarea) {
     const location = first.column
       ? `Line ${first.line}, column ${first.column}`
       : `Line ${first.line}`;
-    errorBar.textContent = `${location}: ${first.message}`;
+    const message = (first.message || "").replace(/^SyntaxError:\s*/i, "");
+    errorBar.innerHTML = "";
+    const summary = document.createElement("span");
+    summary.className = "code-editor-syntax-error-summary";
+    summary.textContent = `${location}: ${message}`;
+    const hint = document.createElement("span");
+    hint.className = "code-editor-syntax-error-hint";
+    hint.textContent = "Editor check only — you can still save. Open Preview if the sketch fails to run.";
+    errorBar.appendChild(summary);
+    errorBar.appendChild(hint);
     errorBar.hidden = false;
     shell.classList.add("has-syntax-error");
   }
@@ -511,10 +638,25 @@ function enhanceEditor(textarea) {
   function refreshEditor() {
     const language = getLanguage();
     const code = textarea.value;
+    const container = textarea.closest(".code-ide, .code-section-live, .code-section-edit");
+    const sketchType = container?.dataset.sketchType || "p5js";
+    const isMainCode = textarea.matches('[name="code"]');
     if (window.CodeEditorSyntax) {
       const highlighted = window.CodeEditorSyntax.highlight(code, language);
       highlightCode.innerHTML = code.endsWith("\n") ? `${highlighted}\n` : highlighted;
-      syntaxErrors = window.CodeEditorSyntax.validate(code, language);
+      if (
+        isMainCode &&
+        sketchType === "p5js" &&
+        window.CodeEditorSyntax.looksLikeProcessingSyntax(code)
+      ) {
+        syntaxErrors = [{
+          line: 1,
+          column: null,
+          message: "Processing syntax (void setup, size) — use function setup() and createCanvas() for p5.js, or create a Processing sketch",
+        }];
+      } else {
+        syntaxErrors = window.CodeEditorSyntax.validate(code, language);
+      }
     } else {
       highlightCode.textContent = code;
       syntaxErrors = [];

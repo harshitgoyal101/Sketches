@@ -1,3 +1,5 @@
+import re
+
 from django import forms
 from django.contrib.auth.forms import (
     AuthenticationForm,
@@ -6,7 +8,9 @@ from django.contrib.auth.forms import (
     UserCreationForm,
 )
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.forms import inlineformset_factory
+from django.forms.models import construct_instance
 
 from .models import Sketch, SketchAsset, Tag
 from .services.file_tree import normalize_path
@@ -71,21 +75,54 @@ class SignUpForm(UserCreationForm):
         super().__init__(*args, **kwargs)
         style_form(self)
         self.fields["username"].widget.attrs.setdefault("autocomplete", "username")
+        self.fields["username"].widget.attrs.setdefault("placeholder", "alex")
+        self.fields["username"].help_text = (
+            "Shown on your sketches and author profile. For example: <strong>alex</strong>. "
+            "Up to 150 characters — letters, numbers, and @ . + - _ only."
+        )
         self.fields["email"].widget.attrs.setdefault("autocomplete", "email")
         self.fields["password1"].widget.attrs.update(
             {
                 "autocomplete": "new-password",
                 "data-password-primary": "true",
+                "placeholder": "Sketch@42",
             }
         )
         self.fields["password2"].widget.attrs.update(
             {
                 "autocomplete": "new-password",
                 "data-password-confirm": "true",
+                "placeholder": "Sketch@42",
             }
         )
         self.fields["password1"].help_text = ""
         self.fields["password2"].help_text = ""
+
+    def clean_password1(self):
+        password = self.cleaned_data.get("password1")
+        if not password:
+            return password
+
+        errors = []
+        if len(password) < 8:
+            errors.append("Password must be at least 8 characters long.")
+        if not re.search(r"[A-Za-z]", password):
+            errors.append("Password must include at least one letter.")
+        if not re.search(r"\d", password):
+            errors.append("Password must include at least one number.")
+        if not re.search(r"[^A-Za-z0-9]", password):
+            errors.append("Password must include at least one symbol.")
+        username = (self.cleaned_data.get("username") or "").strip()
+        if username:
+            lowered_password = password.lower()
+            lowered_username = username.lower()
+            if lowered_password == lowered_username or (
+                len(lowered_username) >= 3 and lowered_username in lowered_password
+            ):
+                errors.append("Password should not be your username.")
+        if errors:
+            raise ValidationError(errors)
+        return super().clean_password1()
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -152,7 +189,6 @@ class SketchEditForm(ThemedModelForm):
             "code",
             "thumbnail",
             "tags",
-            "slug",
             "sketch_type",
             "status",
             "is_home_background",
@@ -175,6 +211,7 @@ class SketchEditForm(ThemedModelForm):
                     "class": "form-textarea form-textarea-code sketch-code-input code-editor",
                     "spellcheck": "false",
                     "data-editor-lang": "javascript",
+                    "style": "border-radius:0;border:none;box-shadow:none;",
                 }
             ),
             "tags": forms.CheckboxSelectMultiple(),
@@ -188,19 +225,20 @@ class SketchEditForm(ThemedModelForm):
             ),
         }
 
-    def __init__(self, *args, is_admin=False, editor_mode=False, **kwargs):
+    def __init__(self, *args, is_admin=False, editor_mode=False, lock_sketch_type=False, **kwargs):
+        self.lock_sketch_type = lock_sketch_type
         super().__init__(*args, **kwargs)
         if editor_mode:
-            allowed = {"title", "entry_filename", "code", "sketch_type"}
+            allowed = {"title", "entry_filename", "code"}
+            if not lock_sketch_type:
+                allowed.add("sketch_type")
             for name in list(self.fields):
                 if name not in allowed:
                     self.fields.pop(name, None)
         if not is_admin:
-            for name in ("slug", "status", "is_home_background"):
+            for name in ("status", "is_home_background"):
                 self.fields.pop(name, None)
-        elif "slug" in self.fields:
-            self.fields["slug"].required = False
-            if "is_home_background" in self.fields:
+        elif "is_home_background" in self.fields:
                 self.fields["is_home_background"].help_text = (
                     "Only one p5.js sketch can be the home page background."
                 )
@@ -209,16 +247,40 @@ class SketchEditForm(ThemedModelForm):
             self.fields["tags"].required = False
         if "entry_filename" in self.fields:
             self.fields["entry_filename"].required = False
-        if not self.instance.pk and not self.is_bound:
+        if not lock_sketch_type and not self.instance.pk and not self.is_bound:
             sketch_type = normalize_sketch_type(self.initial.get("sketch_type"))
             self.initial.setdefault("sketch_type", sketch_type)
             self.initial.setdefault("entry_filename", get_default_filename(sketch_type))
             self.initial.setdefault("code", get_starter_code(sketch_type))
         self._apply_sketch_type_widgets()
 
+    def save(self, commit=True):
+        sketch = super().save(commit=False)
+        sketch_type = self.cleaned_data.get("sketch_type")
+        if sketch_type:
+            sketch.sketch_type = sketch_type
+        if commit:
+            sketch.save()
+            self.save_m2m()
+        return sketch
+
+    def editor_sketch_type(self):
+        if "sketch_type" in self.fields:
+            if self.is_bound:
+                return normalize_sketch_type(self.data.get("sketch_type"))
+            return normalize_sketch_type(self.initial.get("sketch_type"))
+        if self.instance.pk:
+            return normalize_sketch_type(self.instance.sketch_type)
+        return Sketch.SketchType.P5JS
+
     def clean(self):
         cleaned_data = super().clean()
-        sketch_type = normalize_sketch_type(cleaned_data.get("sketch_type"))
+        if "sketch_type" in self.fields:
+            sketch_type = normalize_sketch_type(cleaned_data.get("sketch_type"))
+        elif self.instance.pk:
+            sketch_type = normalize_sketch_type(self.instance.sketch_type)
+        else:
+            sketch_type = Sketch.SketchType.P5JS
         cleaned_data["sketch_type"] = sketch_type
         entry_filename = (cleaned_data.get("entry_filename") or "").strip()
         if not entry_filename:
@@ -229,6 +291,29 @@ class SketchEditForm(ThemedModelForm):
                 field_label="Main file path",
             )
         return cleaned_data
+
+    def _post_clean(self):
+        """Only bind model fields that remain on the form (editor mode drops several)."""
+        opts = self._meta
+        exclude = self._get_validation_exclusions()
+        construct_fields = [name for name in opts.fields if name in self.fields]
+
+        try:
+            self.instance = construct_instance(
+                self, self.instance, construct_fields, opts.exclude
+            )
+        except ValidationError as error:
+            self._update_errors(error)
+
+        if "sketch_type" in self.cleaned_data and "sketch_type" not in self.fields:
+            self.instance.sketch_type = self.cleaned_data["sketch_type"]
+
+        try:
+            self.instance.full_clean(exclude=exclude, validate_unique=False)
+        except ValidationError as error:
+            self._update_errors(error)
+
+        self.validate_unique()
 
     def _apply_sketch_type_widgets(self):
         sketch_type = self.data.get("sketch_type") if self.is_bound else None
@@ -271,6 +356,42 @@ class SketchAssetForm(ThemedModelForm):
 
     def clean_filename(self):
         return _clean_sketch_path(self.cleaned_data.get("filename"), field_label="Filename")
+
+
+class SketchDetailsForm(ThemedModelForm):
+    """Sketch metadata (description, thumbnail, tags, etc.) — no code editor."""
+
+    class Meta:
+        model = Sketch
+        fields = (
+            "title",
+            "description",
+            "thumbnail",
+            "tags",
+            "status",
+        )
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "form-input sketch-title-input"}),
+            "description": forms.Textarea(
+                attrs={
+                    "rows": 12,
+                    "class": "form-textarea sketch-description-input",
+                    "placeholder": "Write a markdown description…",
+                }
+            ),
+            "tags": forms.CheckboxSelectMultiple(),
+        }
+        help_texts = {
+            "description": "Markdown supported.",
+        }
+
+    def __init__(self, *args, is_admin=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not is_admin:
+            self.fields.pop("status", None)
+        if "tags" in self.fields:
+            self.fields["tags"].queryset = Tag.objects.order_by("name")
+            self.fields["tags"].required = False
 
 
 SketchAssetFormSet = inlineformset_factory(

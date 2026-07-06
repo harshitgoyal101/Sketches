@@ -14,6 +14,33 @@ document.addEventListener("DOMContentLoaded", () => {
   const embedReady = SketchEmbed.preload();
   const PREVIEW_DEBOUNCE_MS = 700;
 
+  const PROCESSING_IN_P5_MESSAGE = [
+    "This code uses Processing (.pde) syntax, but the sketch is set to p5.js.",
+    "",
+    "For p5.js, write:",
+    "  function setup() { createCanvas(400, 400); }",
+    "  function draw() { background(9); }",
+    "",
+    "Or create a new Processing sketch and paste this code there.",
+  ].join("\n");
+
+  function looksLikeProcessingInP5(sketchType, code) {
+    return sketchType === "p5js" && window.CodeEditorSyntax?.looksLikeProcessingSyntax(code);
+  }
+
+  function setRuntimeHint(active, text) {
+    const hint = document.getElementById("code-ide-runtime-hint");
+    if (!hint) return;
+    hint.hidden = !active;
+    const textEl = hint.querySelector(".code-ide-runtime-hint-text");
+    if (textEl) {
+      textEl.textContent = text || "Sketch error.";
+    }
+    codeSection.dispatchEvent(
+      new CustomEvent("sketch-edit-preview-error", { bubbles: true, detail: { active } })
+    );
+  }
+
   function clearErrors() {
     if (!errorPanel || !errorMessage) return;
     errorType = null;
@@ -22,6 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (errorTitle) {
       errorTitle.textContent = "Sketch error";
     }
+    setRuntimeHint(false);
   }
 
   function showRuntimeError(detail) {
@@ -30,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const lines = [];
     if (detail.message) {
-      lines.push(detail.message);
+      lines.push(detail.message.replace(/^SyntaxError:\s*/i, ""));
     }
     if (detail.source && detail.line) {
       const location = detail.col
@@ -47,10 +75,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (errorTitle) {
-      errorTitle.textContent = "Sketch error";
+      errorTitle.textContent = detail.kind === "processing-mismatch" ? "Wrong sketch language" : "Sketch error";
     }
     errorMessage.textContent = lines.join("\n");
     errorPanel.hidden = false;
+    const hintText = detail.kind === "processing-mismatch"
+      ? "Processing syntax in a p5.js sketch — open Preview for how to fix"
+      : "Sketch error — open Preview for details";
+    setRuntimeHint(true, hintText);
+  }
+
+  function initRuntimeHint() {
+    const hint = document.getElementById("code-ide-runtime-hint");
+    const openBtn = hint?.querySelector("[data-open-edit-preview]");
+    openBtn?.addEventListener("click", () => {
+      const previewBtn = document.querySelector('[data-edit-pane="preview"]');
+      if (previewBtn && window.matchMedia("(max-width: 1024px)").matches) {
+        previewBtn.click();
+      } else {
+        document.getElementById("sketch-edit-sidebar")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      document.getElementById("create-preview-errors")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
   }
 
   function getEditorState() {
@@ -104,6 +150,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (errorType === "runtime") {
       clearErrors();
+    }
+
+    if (looksLikeProcessingInP5(sketchType, main.content)) {
+      showRuntimeError({ message: PROCESSING_IN_P5_MESSAGE, kind: "processing-mismatch" });
+      return;
     }
 
     try {
@@ -167,12 +218,23 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (data.type !== "sketch-preview-error") return;
     if (data.runId !== previewRunId) return;
+    const sketchType = codeSection.dataset.sketchType || "p5js";
+    const { main } = getEditorState();
+    if (
+      looksLikeProcessingInP5(sketchType, main.content) &&
+      /SyntaxError|Unexpected token/i.test(data.message || "")
+    ) {
+      showRuntimeError({ message: PROCESSING_IN_P5_MESSAGE, kind: "processing-mismatch" });
+      return;
+    }
     showRuntimeError(data);
   });
 
   if (dismissErrorsBtn) {
     dismissErrorsBtn.addEventListener("click", clearErrors);
   }
+
+  initRuntimeHint();
 
   runPreview().catch((error) => {
     console.error(error);

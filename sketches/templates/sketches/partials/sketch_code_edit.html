@@ -3,7 +3,7 @@
     class="code-section code-section-edit code-ide"
     data-editor-tabs
     data-formset-prefix="{{ formset.prefix }}"
-    data-sketch-type="{% if is_create %}{{ form.sketch_type.value|default:'p5js' }}{% else %}{{ sketch.sketch_type }}{% endif %}"
+    data-sketch-type="{{ editor_sketch_type|default:'p5js' }}"
     data-preview-url="{% url 'sketch_preview_cache' %}"
     data-theme="dark"
   >
@@ -125,6 +125,12 @@
       </div>
     </div>
     </div>
+
+    <div class="code-ide-runtime-hint" id="code-ide-runtime-hint" hidden role="status" aria-live="polite">
+      <span class="material-symbols-outlined" aria-hidden="true">error</span>
+      <span class="code-ide-runtime-hint-text">Sketch error.</span>
+      <button type="button" class="code-ide-runtime-hint-link" data-open-edit-preview>Open Preview for details</button>
+    </div>
     </div>
     </div>
 
@@ -153,23 +159,11 @@
 
     <div class="code-ide-footer">
       <span class="code-ide-status code-ide-status--full" id="code-ide-status-label">
-        {% if is_create %}
-          {% if form.sketch_type.value == "processing" %}Processing{% else %}p5.js{% endif %}
-        {% elif sketch.is_processing %}
-          Processing
-        {% else %}
-          p5.js
-        {% endif %}
+        {% if editor_sketch_type == "processing" %}Processing{% else %}p5.js{% endif %}
         · UTF-8 · Spaces: 2 · Tab indent · ⌘/ Ctrl+/ comment
       </span>
       <span class="code-ide-status code-ide-status--compact" aria-hidden="true">
-        {% if is_create %}
-          {% if form.sketch_type.value == "processing" %}Processing{% else %}p5.js{% endif %}
-        {% elif sketch.is_processing %}
-          Processing
-        {% else %}
-          p5.js
-        {% endif %}
+        {% if editor_sketch_type == "processing" %}Processing{% else %}p5.js{% endif %}
         · UTF-8 · Tab: 2
       </span>
     </div>

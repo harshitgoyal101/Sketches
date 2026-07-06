@@ -80,34 +80,63 @@ def filter_tag_categories():
     return grouped
 
 
+def _dedupe_preserve_order(values):
+    seen = set()
+    ordered = []
+    for value in values:
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        ordered.append(value)
+    return ordered
+
+
+def _parse_multi_param(request, key):
+    return _dedupe_preserve_order(value.strip() for value in request.GET.getlist(key) if value.strip())
+
+
 def parse_filter_params(request, active_tag=None):
     query = request.GET.get("q", "").strip()
-    tag_slug = active_tag.slug if active_tag else request.GET.get("tag", "").strip()
-    sketch_type = request.GET.get("type", "").strip()
-    author_username = request.GET.get("author", "").strip()
+    tag_slugs = _parse_multi_param(request, "tag")
+    sketch_types = _parse_multi_param(request, "type")
+    author_usernames = _parse_multi_param(request, "author")
+
+    if active_tag and active_tag.slug not in tag_slugs:
+        tag_slugs.insert(0, active_tag.slug)
+
     return {
         "query": query,
-        "tag_slug": tag_slug,
-        "sketch_type": sketch_type,
-        "author_username": author_username,
+        "tag_slugs": tag_slugs,
+        "sketch_types": sketch_types,
+        "author_usernames": author_usernames,
     }
 
 
 def apply_sketch_filters(queryset, request, active_tag=None):
     params = parse_filter_params(request, active_tag=active_tag)
     query = params["query"]
-    tag_slug = params["tag_slug"]
-    sketch_type = params["sketch_type"]
-    author_username = params["author_username"]
+    tag_slugs = params["tag_slugs"]
+    sketch_types = params["sketch_types"]
+    author_usernames = params["author_usernames"]
 
-    if tag_slug and Tag.objects.filter(slug=tag_slug, is_active=True).exists():
-        queryset = queryset.filter(tags__slug=tag_slug)
+    if tag_slugs:
+        valid_tag_slugs = list(
+            Tag.objects.filter(slug__in=tag_slugs, is_active=True).values_list("slug", flat=True)
+        )
+        if valid_tag_slugs:
+            queryset = queryset.filter(tags__slug__in=valid_tag_slugs).distinct()
+        else:
+            queryset = queryset.none()
 
-    if sketch_type in valid_sketch_type_slugs():
-        queryset = queryset.filter(sketch_type=sketch_type)
+    valid_types = [value for value in sketch_types if value in valid_sketch_type_slugs()]
+    if valid_types:
+        queryset = queryset.filter(sketch_type__in=valid_types)
 
-    if author_username:
-        queryset = queryset.filter(author__username__iexact=author_username)
+    if author_usernames:
+        author_query = Q()
+        for username in author_usernames:
+            author_query |= Q(author__username__iexact=username)
+        queryset = queryset.filter(author_query)
 
     if query:
         if query.startswith("@"):
@@ -128,12 +157,25 @@ def apply_sketch_filters(queryset, request, active_tag=None):
     return queryset, params
 
 
+def _toggle_value(values, toggle_value):
+    values = list(values)
+    if toggle_value in values:
+        return [value for value in values if value != toggle_value]
+    return values + [toggle_value]
+
+
+def _remove_value(values, remove_value):
+    if remove_value is True:
+        return []
+    return [value for value in values if value != remove_value]
+
+
 def build_filter_url(
     *,
     query="",
-    tag_slug="",
-    sketch_type="",
-    author_username="",
+    tag_slugs=None,
+    sketch_types=None,
+    author_usernames=None,
     remove_tag=False,
     remove_type=False,
     remove_author=False,
@@ -142,52 +184,58 @@ def build_filter_url(
     toggle_type="",
     toggle_author="",
 ):
+    tag_slugs = list(tag_slugs or [])
+    sketch_types = list(sketch_types or [])
+    author_usernames = list(author_usernames or [])
+
+    if toggle_tag:
+        tag_slugs = _toggle_value(tag_slugs, toggle_tag)
+    elif remove_tag:
+        tag_slugs = _remove_value(tag_slugs, remove_tag)
+
+    if toggle_type:
+        sketch_types = _toggle_value(sketch_types, toggle_type)
+    elif remove_type:
+        sketch_types = _remove_value(sketch_types, remove_type)
+
+    if toggle_author:
+        author_usernames = _toggle_value(author_usernames, toggle_author)
+    elif remove_author:
+        author_usernames = _remove_value(author_usernames, remove_author)
+
     params = {}
 
     if not remove_query and query:
         params["q"] = query
-
-    if toggle_tag:
-        if toggle_tag == tag_slug:
-            pass
-        else:
-            params["tag"] = toggle_tag
-    elif tag_slug and not remove_tag:
-        params["tag"] = tag_slug
-
-    if toggle_type:
-        if toggle_type == sketch_type:
-            pass
-        else:
-            params["type"] = toggle_type
-    elif sketch_type and not remove_type:
-        params["type"] = sketch_type
-
-    if toggle_author:
-        if toggle_author == author_username:
-            pass
-        else:
-            params["author"] = toggle_author
-    elif author_username and not remove_author:
-        params["author"] = author_username
+    if tag_slugs:
+        params["tag"] = tag_slugs
+    if sketch_types:
+        params["type"] = sketch_types
+    if author_usernames:
+        params["author"] = author_usernames
 
     base_url = reverse("sketch_list")
     if not params:
         return base_url
-    return f"{base_url}?{urlencode(params)}"
+    return f"{base_url}?{urlencode(params, doseq=True)}"
 
 
 def active_filter_count(params):
     count = 0
     if params.get("query"):
         count += 1
-    if params.get("tag_slug"):
-        count += 1
-    if params.get("sketch_type"):
-        count += 1
-    if params.get("author_username"):
-        count += 1
+    count += len(active_tags_for_params(params))
+    count += len(params.get("sketch_types") or [])
+    count += len(params.get("author_usernames") or [])
     return count
+
+
+def active_tags_for_params(params):
+    slugs = params.get("tag_slugs") or []
+    if not slugs:
+        return []
+    tags = Tag.objects.filter(slug__in=slugs, is_active=True).in_bulk(field_name="slug")
+    return [tags[slug] for slug in slugs if slug in tags]
 
 
 def format_label_for_slug(sketch_type):
@@ -195,3 +243,7 @@ def format_label_for_slug(sketch_type):
         return ""
     match = next((fmt for fmt in active_sketch_formats() if fmt.slug == sketch_type), None)
     return match.name if match else sketch_type
+
+
+def format_labels_for_slugs(sketch_types):
+    return [(slug, format_label_for_slug(slug)) for slug in sketch_types or []]

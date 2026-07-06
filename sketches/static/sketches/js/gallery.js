@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", function () {
   initGalleryFilters();
   initGalleryMobileNav();
   initGalleryWorkspaceSidebar();
+  initGalleryMessages();
 });
 
 function initGalleryFilters() {
@@ -9,14 +10,33 @@ function initGalleryFilters() {
   var panel = document.getElementById("gallery-filters-panel");
   if (!toggle || !panel) return;
 
-  function setPanelOpen(open) {
+  var STORAGE_KEY = "gallery-filters-panel-open";
+
+  function setPanelOpen(open, persist) {
     panel.hidden = !open;
     panel.classList.toggle("is-open", open);
     toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    if (persist !== false) {
+      if (open) {
+        sessionStorage.setItem(STORAGE_KEY, "true");
+      } else {
+        sessionStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  }
+
+  if (sessionStorage.getItem(STORAGE_KEY) === "true") {
+    setPanelOpen(true, false);
   }
 
   toggle.addEventListener("click", function () {
     setPanelOpen(panel.hidden);
+  });
+
+  panel.querySelectorAll(".gallery-filter-chip").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      sessionStorage.setItem(STORAGE_KEY, "true");
+    });
   });
 }
 
@@ -114,4 +134,35 @@ function initGalleryWorkspaceSidebar() {
 
   desktopQuery.addEventListener("change", loadSavedState);
   loadSavedState();
+}
+
+function initGalleryMessages() {
+  var container = document.querySelector(".gallery-messages");
+  if (!container) return;
+
+  container.querySelectorAll(".gallery-message").forEach(function (message) {
+    var isError = message.classList.contains("gallery-message-error");
+    var dismissMs = isError ? 8000 : 4500;
+    var dismissTimer = null;
+
+    function dismiss() {
+      if (message.classList.contains("is-dismissing")) return;
+      if (dismissTimer) {
+        window.clearTimeout(dismissTimer);
+        dismissTimer = null;
+      }
+      message.classList.add("is-dismissing");
+      window.setTimeout(function () {
+        message.remove();
+        if (!container.querySelector(".gallery-message")) {
+          container.remove();
+        }
+      }, 280);
+    }
+
+    message.style.cursor = "pointer";
+    message.title = "Dismiss";
+    message.addEventListener("click", dismiss);
+    dismissTimer = window.setTimeout(dismiss, dismissMs);
+  });
 }

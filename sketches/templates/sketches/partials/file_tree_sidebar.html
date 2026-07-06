@@ -4,11 +4,23 @@
     <div class="code-ide-file-tree-heading">
       <span class="code-ide-file-tree-title">Explorer</span>
     </div>
-    {% if show_add_file %}
-    <button type="button" class="code-ide-file-tree-add" id="code-ide-add-file" title="New file" aria-label="New file">
-      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 3v5H3v1.5h5V14h1.5V9.5H14V8H9.5V3H8z"/></svg>
-    </button>
-    {% endif %}
+    <div class="code-ide-file-tree-actions">
+      <button
+        type="button"
+        class="code-ide-file-tree-collapse"
+        data-editor-tree-collapse
+        title="Collapse explorer"
+        aria-label="Collapse explorer"
+        aria-expanded="true"
+      >
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M10.5 3.5 9.44 2.44 4.88 7l4.56 4.56L10.5 10.5 7 7l3.5-3.5z"/></svg>
+      </button>
+      {% if show_add_file %}
+      <button type="button" class="code-ide-file-tree-add" id="code-ide-add-file" title="New file" aria-label="New file">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 3v5H3v1.5h5V14h1.5V9.5H14V8H9.5V3H8z"/></svg>
+      </button>
+      {% endif %}
+    </div>
   </div>
   <ul class="code-ide-file-tree-root" role="tree">
     {% if file_tree.children %}

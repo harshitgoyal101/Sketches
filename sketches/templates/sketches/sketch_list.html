@@ -37,10 +37,10 @@
 <div class="relative z-10 text-center py-20 glass-panel rounded-xl max-w-lg mx-auto">
   <span class="material-symbols-outlined text-primary text-5xl mb-4">search_off</span>
   <h2 class="font-headline-md text-on-surface mb-2">
-    {% if query or tag_slug or sketch_type %}No sketches found{% else %}No sketches yet{% endif %}
+    {% if active_filter_count %}No sketches found{% else %}No sketches yet{% endif %}
   </h2>
   <p class="text-on-surface-variant">
-    {% if query or tag_slug or sketch_type %}
+    {% if active_filter_count %}
       Try a different search or <a href="{% url 'sketch_list' %}" class="link">clear filters</a>.
     {% else %}
       Publish sketches from your account to see them here.

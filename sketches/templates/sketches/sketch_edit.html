@@ -62,22 +62,22 @@
         {% include "sketches/partials/sketch_status_badges.html" with sketch=sketch %}
       </div>
       {% endif %}
-      {% if is_create and form.sketch_type %}
+      {% if show_sketch_type_picker %}
       <div class="sketch-type-picker sketch-type-picker--inline" role="group" aria-label="Sketch type">
         <button
           type="button"
-          class="sketch-type-option{% if form.sketch_type.value != 'processing' %} is-active{% endif %}"
+          class="sketch-type-option{% if editor_sketch_type != 'processing' %} is-active{% endif %}"
           data-sketch-type="p5js"
-          aria-pressed="{% if form.sketch_type.value != 'processing' %}true{% else %}false{% endif %}"
+          aria-pressed="{% if editor_sketch_type != 'processing' %}true{% else %}false{% endif %}"
         >
           <span class="sketch-type-option-label">p5.js</span>
           <span class="sketch-type-option-hint">JavaScript · sketch.js</span>
         </button>
         <button
           type="button"
-          class="sketch-type-option{% if form.sketch_type.value == 'processing' %} is-active{% endif %}"
+          class="sketch-type-option{% if editor_sketch_type == 'processing' %} is-active{% endif %}"
           data-sketch-type="processing"
-          aria-pressed="{% if form.sketch_type.value == 'processing' %}true{% else %}false{% endif %}"
+          aria-pressed="{% if editor_sketch_type == 'processing' %}true{% else %}false{% endif %}"
         >
           <span class="sketch-type-option-label">Processing</span>
           <span class="sketch-type-option-hint">.pde · runs via Processing.js</span>
@@ -88,6 +88,12 @@
     </div>
     <div class="sketch-edit-topbar-actions">
       {% if can_edit %}
+      {% if not is_create %}
+      <a href="{% url 'sketch_settings' sketch.slug %}" class="btn btn-secondary btn-sm sketch-edit-settings-btn" aria-label="Sketch settings">
+        <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+        <span class="sketch-edit-topbar-btn-label">Settings</span>
+      </a>
+      {% endif %}
       {% if not is_create and sketch.status != "published" %}
       <button type="submit" name="action" value="publish" class="btn btn-publish btn-sm">Publish</button>
       {% endif %}
@@ -168,12 +174,11 @@
 {{ sketch_starters|json_script:"sketch-starter-templates" }}
 {% endif %}
 {% if is_create or not is_create and sketch.is_interactive %}
-<script src="https://cdn.jsdelivr.net/npm/acorn@8.14.0/dist/acorn.min.js"></script>
-<script src="{% static 'sketches/js/code-editor-syntax.js' %}"></script>
+<script src="{% static 'sketches/js/code-editor-syntax.js' %}?v=20260706e"></script>
 <script src="{% static 'sketches/js/embed-builder.js' %}"></script>
 <script>window.SketchEmbedBase = "{% static 'sketches/embed/' %}";</script>
 <script src="{% static 'sketches/js/preview-iframe.js' %}"></script>
-<script src="{% static 'sketches/js/create-sketch-preview.js' %}"></script>
+<script src="{% static 'sketches/js/create-sketch-preview.js' %}?v=20260706c"></script>
 {% endif %}
 {% if not is_create and sketch.is_interactive %}
 <script src="{% static 'sketches/js/preview-controls.js' %}"></script>
@@ -181,9 +186,9 @@
 <script src="{% static 'sketches/js/sketch-edit-resize.js' %}"></script>
 <script src="{% static 'sketches/js/sketch-edit-pane-toggle.js' %}?v=20260705b"></script>
 <script src="{% static 'sketches/js/file-tree.js' %}"></script>
-<script src="{% static 'sketches/js/code-editor-ui.js' %}?v=20260705c"></script>
-<script src="{% static 'sketches/js/sketch-edit-draft.js' %}?v=20260705a"></script>
-{% if is_create %}
+<script src="{% static 'sketches/js/code-editor-ui.js' %}?v=20260706g"></script>
+<script src="{% static 'sketches/js/sketch-edit-draft.js' %}?v=20260706a"></script>
+{% if show_sketch_type_picker %}
 <script src="{% static 'sketches/js/sketch-type-fields.js' %}"></script>
 {% endif %}
 {% endblock %}

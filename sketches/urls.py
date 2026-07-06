@@ -37,6 +37,11 @@ urlpatterns = [
         name="sketch_edit",
     ),
     path(
+        "accounts/sketches/<slug:slug>/settings/",
+        views_manage.sketch_settings,
+        name="sketch_settings",
+    ),
+    path(
         "accounts/sketches/<slug:slug>/publish/",
         views_manage.sketch_publish,
         name="sketch_publish",

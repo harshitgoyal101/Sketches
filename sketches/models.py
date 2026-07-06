@@ -122,9 +122,32 @@ class Sketch(models.Model):
     def __str__(self):
         return self.title
 
+    def _author_slug_prefix(self):
+        author = self.author
+        if author is not None:
+            return slugify(author.username) or "user"
+        return "sketches101"
+
+    def _unique_slug(self, base):
+        title_slug = slugify(base) or "sketch"
+        prefix = self._author_slug_prefix()
+        max_title_len = max(1, 200 - len(prefix) - 1)
+        if len(title_slug) > max_title_len:
+            title_slug = title_slug[:max_title_len].rstrip("-")
+        base = f"{prefix}-{title_slug}"
+        slug = base
+        counter = 2
+        queryset = Sketch.objects.all()
+        if self.pk:
+            queryset = queryset.exclude(pk=self.pk)
+        while queryset.filter(slug=slug).exists():
+            slug = f"{base}-{counter}"
+            counter += 1
+        return slug
+
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.title)
+            self.slug = self._unique_slug(self.title)
         if self.is_home_background and not self.is_p5js:
             self.is_home_background = False
         if self.status == self.Status.PUBLISHED and not self.published_at:

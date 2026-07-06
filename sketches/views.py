@@ -15,9 +15,10 @@ from .services.embed_cache import (
 from .services.gallery_filters import (
     active_filter_count,
     active_sketch_formats,
+    active_tags_for_params,
     apply_sketch_filters,
     filter_tag_categories,
-    format_label_for_slug,
+    format_labels_for_slugs,
     published_authors,
     published_tags_queryset,
 )
@@ -73,11 +74,11 @@ def _build_filter_context(request, page_obj, filter_params, active_tag=None):
         "gallery_authors": published_authors(),
         "sketch_formats": active_sketch_formats(),
         "query": filter_params["query"],
-        "tag_slug": filter_params["tag_slug"],
-        "active_tag": active_tag,
-        "sketch_type": filter_params["sketch_type"],
-        "sketch_type_label": format_label_for_slug(filter_params["sketch_type"]),
-        "author_username": filter_params["author_username"],
+        "tag_slugs": filter_params["tag_slugs"],
+        "active_tags": active_tags_for_params(filter_params),
+        "sketch_types": filter_params["sketch_types"],
+        "sketch_type_labels": format_labels_for_slugs(filter_params["sketch_types"]),
+        "author_usernames": filter_params["author_usernames"],
         "active_filter_count": active_filter_count(filter_params),
         "filter_querystring": params.urlencode(),
     }
@@ -103,12 +104,7 @@ def home(request):
 def sketch_list(request):
     queryset, filter_params = apply_sketch_filters(_gallery_sketches(), request)
     page_obj = _paginate_sketches(request, queryset)
-    active_tag = (
-        Tag.objects.filter(slug=filter_params["tag_slug"], is_active=True).first()
-        if filter_params["tag_slug"]
-        else None
-    )
-    context = _build_filter_context(request, page_obj, filter_params, active_tag)
+    context = _build_filter_context(request, page_obj, filter_params)
     context["gallery_show_featured"] = (
         page_obj.number == 1 and active_filter_count(filter_params) == 0
     )
@@ -121,6 +117,7 @@ def tag_detail(request, slug):
     queryset, filter_params = apply_sketch_filters(queryset, request, active_tag=tag)
     page_obj = _paginate_sketches(request, queryset)
     context = _build_filter_context(request, page_obj, filter_params, tag)
+    context["active_tag"] = tag
     context["gallery_show_featured"] = False
     return render(request, "sketches/tag_detail.html", context)
 
