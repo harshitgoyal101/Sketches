@@ -197,6 +197,169 @@ class SketchFilesystemTests(TestCase):
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
+class GalleryFilterTests(TestCase):
+    def setUp(self):
+        from sketches.models import SketchFormat, Tag, TagCategory
+
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(username="filter-user", password="secret")
+        self.category = TagCategory.objects.create(name="Topics", slug="topics")
+        self.tag = Tag.objects.create(name="Particles", slug="particles", category=self.category)
+        self.sketch = Sketch.objects.create(
+            title="Particle Field",
+            slug="particle-field",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            author=self.author,
+            description="Blue dots connected by lines",
+        )
+        self.sketch.tags.add(self.tag)
+        SketchFormat.objects.get_or_create(slug="p5js", defaults={"name": "p5.js"})
+        SketchFormat.objects.get_or_create(slug="processing", defaults={"name": "Processing"})
+        self.client = Client()
+
+    def test_search_filter_finds_sketch_by_author_username(self):
+        response = self.client.get("/sketches/", {"q": "filter-user"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Particle Field")
+
+    def test_at_prefix_search_filters_by_author(self):
+        response = self.client.get("/sketches/", {"q": "@filter"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Particle Field")
+
+    def test_search_filter_finds_sketch_by_title(self):
+        response = self.client.get("/sketches/", {"q": "Particle"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Particle Field")
+
+    def test_type_filter_limits_results(self):
+        Sketch.objects.create(
+            title="Processing Sketch",
+            slug="processing-sketch",
+            sketch_type=Sketch.SketchType.PROCESSING,
+            code="void setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            author=self.author,
+        )
+        response = self.client.get("/sketches/", {"type": "processing"})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Particle Field")
+        self.assertContains(response, "Processing Sketch")
+
+    def test_author_filter_limits_results(self):
+        response = self.client.get("/sketches/", {"author": "filter-user"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Particle Field")
+
+    def test_tag_filter_via_query_param(self):
+        response = self.client.get("/sketches/", {"tag": "particles"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Particle Field")
+
+    def test_inactive_tag_is_ignored(self):
+        self.tag.is_active = False
+        self.tag.save(update_fields=["is_active"])
+        response = self.client.get("/sketches/", {"tag": "particles"})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Particle Field")
+
+    def test_gallery_filter_ui_renders(self):
+        response = self.client.get("/sketches/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "gallery-filters")
+        self.assertContains(response, "Particles")
+        self.assertContains(response, "p5.js")
+        self.assertContains(response, "@filter-user")
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class SketchEditorAccessTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(username="author", password="secret")
+        self.other = user_model.objects.create_user(username="visitor", password="secret")
+        self.sketch = Sketch.objects.create(
+            title="Public Sketch",
+            slug="public-sketch",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            author=self.author,
+        )
+        self.draft = Sketch.objects.create(
+            title="Draft Sketch",
+            slug="draft-sketch",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.DRAFT,
+            author=self.author,
+        )
+        self.client = Client()
+
+    def test_anonymous_user_can_open_published_editor(self):
+        response = self.client.get("/accounts/sketches/public-sketch/edit/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "You can edit code and run a live preview here")
+        self.assertNotContains(response, "Save changes")
+
+    def test_anonymous_user_cannot_open_draft_editor(self):
+        response = self.client.get("/accounts/sketches/draft-sketch/edit/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_anonymous_user_cannot_save_published_sketch(self):
+        response = self.client.post(
+            "/accounts/sketches/public-sketch/edit/",
+            {
+                "title": "Hacked",
+                "entry_filename": "sketch.js",
+                "code": "function setup() {}",
+                "sketch_type": "p5js",
+            },
+        )
+        self.assertEqual(response.status_code, 403)
+        self.sketch.refresh_from_db()
+        self.assertEqual(self.sketch.title, "Public Sketch")
+
+    def test_author_can_save_published_sketch(self):
+        self.client.force_login(self.author)
+        response = self.client.post(
+            "/accounts/sketches/public-sketch/edit/",
+            {
+                "title": "Updated Title",
+                "entry_filename": "sketch.js",
+                "code": "function setup() { createCanvas(100, 100); }",
+                "sketch_type": "p5js",
+                "assets-TOTAL_FORMS": "0",
+                "assets-INITIAL_FORMS": "0",
+                "assets-MIN_NUM_FORMS": "0",
+                "assets-MAX_NUM_FORMS": "1000",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.sketch.refresh_from_db()
+        self.assertEqual(self.sketch.title, "Updated Title")
+
+    def test_anonymous_preview_cache_works(self):
+        response = self.client.post(
+            "/accounts/sketches/preview/",
+            data=json.dumps(
+                {
+                    "sketch_type": "p5js",
+                    "main_code": "function setup() {}",
+                    "assets": [],
+                    "mode": "live",
+                    "run_id": 1,
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("url", response.json())
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
 class ProcessingPreviewViewTests(TestCase):
     def test_preview_cache_returns_embed_url_for_processing(self):
         user_model = get_user_model()
@@ -226,3 +389,80 @@ class ProcessingPreviewViewTests(TestCase):
         self.assertIn('id="sketch-canvas-host"', embed_response.content.decode())
         self.assertIn("new Processing(canvas", embed_response.content.decode())
         self.assertIn("void setup()", embed_response.content.decode())
+
+
+class EmbedCacheTests(TestCase):
+    def test_fingerprint_changes_when_code_changes(self):
+        from sketches.services.embed_cache import embed_content_fingerprint
+
+        sketch = Sketch.objects.create(
+            title="Fingerprint Sketch",
+            slug="fingerprint-sketch",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+        )
+        first = embed_content_fingerprint(sketch)
+        sketch.code = "function setup() { createCanvas(100, 100); }"
+        sketch.save()
+        second = embed_content_fingerprint(sketch)
+        self.assertNotEqual(first, second)
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class SketchEmbedCacheViewTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(username="embed-user", password="secret")
+        self.sketch = Sketch.objects.create(
+            title="Cached Sketch",
+            slug="cached-sketch",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() { createCanvas(100, 100); }",
+            status=Sketch.Status.PUBLISHED,
+            author=self.author,
+        )
+        self.background = Sketch.objects.create(
+            title="Background Sketch",
+            slug="background-sketch",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() { createCanvas(200, 200); }",
+            status=Sketch.Status.PUBLISHED,
+            is_home_background=True,
+            author=self.author,
+        )
+
+    def test_published_embed_has_public_cache_headers(self):
+        response = self.client.get("/sketches/cached-sketch/embed/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("public", response["Cache-Control"])
+        self.assertIn("max-age=300", response["Cache-Control"])
+        self.assertTrue(response["ETag"])
+
+    def test_home_background_embed_has_longer_cache(self):
+        response = self.client.get("/sketches/background-sketch/embed/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("max-age=86400", response["Cache-Control"])
+
+    def test_published_embed_returns_304_when_etag_matches(self):
+        first = self.client.get("/sketches/cached-sketch/embed/")
+        etag = first["ETag"]
+        second = self.client.get(
+            "/sketches/cached-sketch/embed/",
+            HTTP_IF_NONE_MATCH=etag,
+        )
+        self.assertEqual(second.status_code, 304)
+
+    def test_draft_embed_is_not_cached(self):
+        draft = Sketch.objects.create(
+            title="Draft Sketch",
+            slug="draft-sketch",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.DRAFT,
+            author=self.author,
+        )
+        self.client.force_login(self.author)
+        response = self.client.get(f"/sketches/{draft.slug}/embed/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("no-cache", response["Cache-Control"])

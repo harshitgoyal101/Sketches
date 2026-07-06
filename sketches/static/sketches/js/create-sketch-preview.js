@@ -89,6 +89,13 @@ document.addEventListener("DOMContentLoaded", () => {
     return { main, assets };
   }
 
+  function getCsrfToken() {
+    const input = document.querySelector("[name=csrfmiddlewaretoken]");
+    if (input?.value) return input.value;
+    const match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : "";
+  }
+
   async function runPreview() {
     const sketchType = codeSection.dataset.sketchType || "p5js";
     const { main, assets } = getEditorState();
@@ -112,7 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
         {
           embedReady,
           previewUrl: codeSection.dataset.previewUrl,
-          getCsrfToken: () => document.querySelector("[name=csrfmiddlewaretoken]")?.value || "",
+          getCsrfToken,
         },
       );
     } catch (error) {

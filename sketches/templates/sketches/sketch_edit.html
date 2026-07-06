@@ -15,9 +15,29 @@
 {% endblock %}
 
 {% block content %}
-<form method="post" class="themed-form sketch-edit-page relative z-10" enctype="multipart/form-data" novalidate>
+{% if can_edit %}
+<form method="post" class="themed-form sketch-edit-page relative z-10" enctype="multipart/form-data" novalidate
+  data-sketch-edit-draft
+  data-draft-key="{% if is_create %}create{% else %}{{ sketch.slug }}{% endif %}"
+  data-can-save="true"
+  data-login-url="{% url 'login' %}"
+  data-signup-url="{% url 'signup' %}"
+  data-back-url="{% if is_create %}{% url 'account' %}{% else %}{% url 'sketch_detail' sketch.slug %}{% endif %}"
+>
+{% else %}
+<div class="sketch-edit-page sketch-edit-page--readonly relative z-10"
+  data-sketch-edit-draft
+  data-draft-key="{% if is_create %}create{% else %}{{ sketch.slug }}{% endif %}"
+  data-can-save="false"
+  data-login-url="{% url 'login' %}"
+  data-signup-url="{% url 'signup' %}"
+  data-back-url="{% if is_create %}{% url 'account' %}{% else %}{% url 'sketch_detail' sketch.slug %}{% endif %}"
+>
+{% endif %}
   {% csrf_token %}
+  {% if can_edit %}
   {% include "sketches/partials/form_non_field_errors.html" with form=form %}
+  {% endif %}
 
   <div class="sketch-edit-topbar">
     <div class="sketch-edit-topbar-start">
@@ -27,10 +47,14 @@
       <a href="{% url 'sketch_detail' sketch.slug %}" class="sketch-edit-back" aria-label="Back to sketch">←</a>
       {% endif %}
       <div class="sketch-edit-title-field">
+        {% if can_edit %}
         <label class="visually-hidden" for="{{ form.title.id_for_label }}">Title</label>
         {{ form.title }}
         {% if form.title.errors %}
         <span class="field-error">{{ form.title.errors|join:", " }}</span>
+        {% endif %}
+        {% else %}
+        <h1 class="sketch-edit-readonly-title">{{ sketch.title }}</h1>
         {% endif %}
       </div>
       {% if not is_create %}
@@ -63,14 +87,45 @@
       {% endif %}
     </div>
     <div class="sketch-edit-topbar-actions">
+      {% if can_edit %}
       {% if not is_create and sketch.status != "published" %}
       <button type="submit" name="action" value="publish" class="btn btn-publish btn-sm">Publish</button>
       {% endif %}
       <button type="submit" class="btn btn-primary btn-sm">{{ submit_label }}</button>
-      {% if not is_create %}
-      <a href="{% url 'sketch_detail' sketch.slug %}" class="btn btn-secondary btn-sm">{% if sketch.status == "draft" %}Preview{% else %}View{% endif %}</a>
       {% endif %}
     </div>
+    {% if not is_create %}
+    <a href="{% url 'sketch_detail' sketch.slug %}" class="btn btn-secondary btn-sm sketch-edit-view-btn">{% if sketch.status == "draft" %}Preview{% else %}View{% endif %}</a>
+    {% endif %}
+  </div>
+
+  {% if not can_edit and not is_create %}
+  <p class="sketch-edit-readonly-notice">You can edit code and run a live preview here. Only the author or an admin can save changes.</p>
+  {% endif %}
+
+  <div class="sketch-edit-pane-toggle" role="tablist" aria-label="Editor panels" data-edit-pane-toggle>
+    <button
+      type="button"
+      class="sketch-edit-pane-btn is-active"
+      role="tab"
+      data-edit-pane="code"
+      aria-selected="true"
+      aria-controls="source-code"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">code</span>
+      Code
+    </button>
+    <button
+      type="button"
+      class="sketch-edit-pane-btn"
+      role="tab"
+      data-edit-pane="preview"
+      aria-selected="false"
+      aria-controls="sketch-edit-sidebar"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">play_circle</span>
+      Preview
+    </button>
   </div>
 
   <div class="sketch-edit-workspace" data-edit-workspace>
@@ -88,134 +143,47 @@
       tabindex="0"
     ></div>
 
-    <aside class="sketch-edit-sidebar">
+    <aside class="sketch-edit-sidebar" id="sketch-edit-sidebar">
       <section class="edit-card edit-card-preview">
         <header class="edit-card-header">
           <h2 class="edit-card-title">Preview</h2>
         </header>
-        {% if not is_create %}
-        {% include "sketches/partials/sketch_preview.html" %}
-        {% else %}
+        {% if is_create or sketch.is_interactive %}
         {% include "sketches/partials/create_sketch_preview.html" %}
+        {% else %}
+        {% include "sketches/partials/sketch_preview.html" %}
         {% endif %}
       </section>
-
-      <div class="sketch-edit-sidebar-meta">
-      <section class="edit-card edit-card-description">
-        <header class="edit-card-header">
-          <h2 class="edit-card-title">Description</h2>
-          <span class="edit-card-hint">Markdown supported</span>
-        </header>
-        <div class="edit-card-body">
-          <div class="description-editor" data-description-toolbar>
-            <div class="description-toolbar" role="toolbar" aria-label="Description formatting">
-              <button type="button" class="description-toolbar-btn" data-format="bold" title="Bold (**text**)">
-                <strong>B</strong>
-              </button>
-              <button type="button" class="description-toolbar-btn" data-format="underline" title="Underline (&lt;u&gt;text&lt;/u&gt;)">
-                <span class="description-toolbar-underline">U</span>
-              </button>
-              <span class="description-toolbar-hint">Markdown supported</span>
-            </div>
-            <label class="visually-hidden" for="{{ form.description.id_for_label }}">Description</label>
-            {{ form.description }}
-          </div>
-          {% if form.description.errors %}
-          <span class="field-error">{{ form.description.errors|join:", " }}</span>
-          {% endif %}
-        </div>
-      </section>
-
-      <section class="edit-card edit-card-settings">
-        <header class="edit-card-header">
-          <h2 class="edit-card-title">Settings</h2>
-        </header>
-        <div class="edit-card-body edit-settings-grid">
-          {% if is_admin %}
-            {% if form.status %}
-            <div class="edit-settings-field">
-              {% include "sketches/partials/form_field.html" with field=form.status %}
-            </div>
-            {% endif %}
-            {% if form.slug %}
-            <div class="edit-settings-field edit-settings-field-wide">
-              {% include "sketches/partials/form_field.html" with field=form.slug %}
-            </div>
-            {% endif %}
-            {% if form.is_home_background %}
-            <div class="edit-settings-field edit-settings-field-wide">
-              {% include "sketches/partials/form_field.html" with field=form.is_home_background %}
-            </div>
-            {% endif %}
-          {% endif %}
-
-          {% if form.sketch_type and not is_create %}
-          <div class="edit-settings-field edit-settings-field-wide">
-            {% include "sketches/partials/form_field.html" with field=form.sketch_type %}
-          </div>
-          {% endif %}
-
-          {% if form.tags %}
-          <div class="edit-settings-field edit-settings-field-wide">
-            {% include "sketches/partials/form_field.html" with field=form.tags %}
-          </div>
-          {% endif %}
-
-          {% if form.thumbnail %}
-          <div class="edit-settings-field edit-settings-field-wide edit-thumbnail-field">
-            <span class="form-label" id="{{ form.thumbnail.id_for_label }}-label">Thumbnail</span>
-            {% if not is_create and sketch.thumbnail %}
-            <div class="edit-thumbnail-preview edit-thumbnail-preview--has-image" id="edit-thumbnail-preview">
-              {% include "sketches/partials/sketch_thumbnail.html" with extra_class="sketch-thumbnail--settings" %}
-            </div>
-            {% else %}
-            <div class="edit-thumbnail-preview edit-thumbnail-preview--empty" id="edit-thumbnail-preview">
-              <div class="sketch-thumbnail sketch-thumbnail--settings">
-                <span class="sketch-thumbnail-placeholder" aria-hidden="true">◌</span>
-              </div>
-              <span class="edit-thumbnail-empty-label">No thumbnail yet</span>
-            </div>
-            {% endif %}
-            <div class="edit-thumbnail-upload">
-              {{ form.thumbnail }}
-            </div>
-            {% if form.thumbnail.help_text %}
-            <span class="field-help">{{ form.thumbnail.help_text|safe }}</span>
-            {% endif %}
-            {% if form.thumbnail.errors %}
-            <span class="field-error">{{ form.thumbnail.errors|join:", " }}</span>
-            {% endif %}
-          </div>
-          {% endif %}
-        </div>
-      </section>
-      </div>
     </aside>
   </div>
+{% if can_edit %}
 </form>
+{% else %}
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 {% if is_create %}
 {{ sketch_starters|json_script:"sketch-starter-templates" }}
+{% endif %}
+{% if is_create or not is_create and sketch.is_interactive %}
 <script src="https://cdn.jsdelivr.net/npm/acorn@8.14.0/dist/acorn.min.js"></script>
 <script src="{% static 'sketches/js/code-editor-syntax.js' %}"></script>
 <script src="{% static 'sketches/js/embed-builder.js' %}"></script>
 <script>window.SketchEmbedBase = "{% static 'sketches/embed/' %}";</script>
 <script src="{% static 'sketches/js/preview-iframe.js' %}"></script>
 <script src="{% static 'sketches/js/create-sketch-preview.js' %}"></script>
-<script src="{% static 'sketches/js/preview-controls.js' %}"></script>
-{% else %}
-<script src="https://cdn.jsdelivr.net/npm/acorn@8.14.0/dist/acorn.min.js"></script>
-<script src="{% static 'sketches/js/code-editor-syntax.js' %}"></script>
 {% endif %}
 {% if not is_create and sketch.is_interactive %}
 <script src="{% static 'sketches/js/preview-controls.js' %}"></script>
 {% endif %}
 <script src="{% static 'sketches/js/sketch-edit-resize.js' %}"></script>
+<script src="{% static 'sketches/js/sketch-edit-pane-toggle.js' %}?v=20260705b"></script>
 <script src="{% static 'sketches/js/file-tree.js' %}"></script>
-<script src="{% static 'sketches/js/code-editor-ui.js' %}"></script>
+<script src="{% static 'sketches/js/code-editor-ui.js' %}?v=20260705c"></script>
+<script src="{% static 'sketches/js/sketch-edit-draft.js' %}?v=20260705a"></script>
+{% if is_create %}
 <script src="{% static 'sketches/js/sketch-type-fields.js' %}"></script>
-<script src="{% static 'sketches/js/description-toolbar.js' %}"></script>
-<script src="{% static 'sketches/js/edit-thumbnail-preview.js' %}"></script>
+{% endif %}
 {% endblock %}

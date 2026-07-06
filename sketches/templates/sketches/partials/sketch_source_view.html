@@ -13,6 +13,19 @@
     <div class="code-ide-traffic" aria-hidden="true">
       <span></span><span></span><span></span>
     </div>
+    {% if file_tree %}
+    <button
+      type="button"
+      class="code-ide-btn code-ide-tree-toggle"
+      data-editor-tree-toggle
+      title="Show files"
+      aria-label="Show files"
+      aria-expanded="false"
+      aria-controls="code-ide-file-tree"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">folder_open</span>
+    </button>
+    {% endif %}
     <div class="code-section-header-text">
       <h2>Editor{% if can_edit %} <span class="code-save-status is-saved" id="code-save-status" aria-live="polite">Saved</span>{% endif %}</h2>
       {% if can_edit %}
@@ -68,6 +81,9 @@
   {% endif %}
 
   <div class="code-ide-body">
+    {% if file_tree %}
+    <div class="code-ide-tree-backdrop" data-editor-tree-backdrop hidden aria-hidden="true"></div>
+    {% endif %}
     {% include "sketches/partials/file_tree_sidebar.html" with show_add_file=False %}
 
     <div class="code-ide-workspace">

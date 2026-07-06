@@ -1,5 +1,41 @@
 const EDITOR_THEME_KEY = "sketches-code-editor-theme";
 const EDITOR_MIN_HEIGHT = 320;
+const COMPACT_EDITOR_MQ = "(max-width: 1024px)";
+const FULLSCREEN_CHROME_SELECTORS = [
+  "#gallery-site-nav",
+  ".gallery-nav-toggle",
+  ".gallery-mobile-menu",
+  ".gallery-mobile-menu-backdrop",
+  ".sketch-edit-topbar",
+  ".sketch-edit-pane-toggle",
+  ".sketch-edit-readonly-notice",
+];
+
+function isCompactEditorLayout() {
+  return window.matchMedia(COMPACT_EDITOR_MQ).matches;
+}
+
+function setFullscreenChromeHidden(hidden) {
+  document.documentElement.classList.toggle("code-editor-fullscreen", hidden);
+  document.body.classList.toggle("code-editor-fullscreen", hidden);
+
+  FULLSCREEN_CHROME_SELECTORS.forEach((selector) => {
+    document.querySelectorAll(selector).forEach((element) => {
+      if (hidden) {
+        if (element.dataset.fullscreenPrevDisplay === undefined) {
+          element.dataset.fullscreenPrevDisplay = element.style.display || "";
+        }
+        element.style.setProperty("display", "none", "important");
+        return;
+      }
+
+      if (element.dataset.fullscreenPrevDisplay !== undefined) {
+        element.style.display = element.dataset.fullscreenPrevDisplay;
+        delete element.dataset.fullscreenPrevDisplay;
+      }
+    });
+  });
+}
 
 function resolveEditorLanguage(textarea) {
   const stored = textarea.dataset.editorLang;
@@ -29,6 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".code-ide").forEach((container) => {
     container.dataset.theme = savedTheme;
     initEditorChrome(container);
+    initMobileFileTreeToggle(container);
   });
 
   document.querySelectorAll(".code-editor, .sketch-code-input, .form-textarea-code").forEach((textarea) => {
@@ -49,6 +86,77 @@ document.addEventListener("DOMContentLoaded", () => {
 function initEditorChrome(container) {
   const themeBtn = container.querySelector("[data-editor-theme-toggle]");
   const fullscreenBtn = container.querySelector("[data-editor-fullscreen]");
+  let fullscreenPlaceholder = null;
+  let fullscreenParent = null;
+
+  function restoreEditorPlacement() {
+    if (fullscreenPlaceholder && fullscreenParent) {
+      fullscreenParent.insertBefore(container, fullscreenPlaceholder);
+      fullscreenPlaceholder.remove();
+    }
+
+    fullscreenPlaceholder = null;
+    fullscreenParent = null;
+  }
+
+  function refreshFullscreenEditorHeight() {
+    const activePanel = container.querySelector(
+      ".code-ide-panel.is-active, .code-tab-panel.is-active, .code-tab-panel--single"
+    );
+    requestAnimationFrame(() => ensurePanelEditorHeight(activePanel));
+  }
+
+  function updateFullscreenButton(isFullscreen) {
+    if (!fullscreenBtn) return;
+
+    fullscreenBtn.classList.toggle("is-active", isFullscreen);
+    fullscreenBtn.textContent = isFullscreen ? "⤢" : "⛶";
+    fullscreenBtn.title = isFullscreen ? "Exit fullscreen" : "Fullscreen editor";
+    fullscreenBtn.setAttribute("aria-label", isFullscreen ? "Exit fullscreen" : "Fullscreen editor");
+  }
+
+  function closeGalleryNavForFullscreen() {
+    document.body.classList.remove("is-gallery-nav-open");
+
+    const nav = document.getElementById("gallery-site-nav");
+    const navToggle = document.getElementById("gallery-nav-toggle");
+    const mobileMenu = document.getElementById("gallery-mobile-menu");
+    const navBackdrop = document.getElementById("gallery-nav-backdrop");
+
+    if (navToggle) {
+      navToggle.setAttribute("aria-expanded", "false");
+      navToggle.setAttribute("aria-label", "Open menu");
+    }
+    if (mobileMenu) mobileMenu.setAttribute("aria-hidden", "true");
+    if (navBackdrop) navBackdrop.setAttribute("aria-hidden", "true");
+    if (nav) nav.setAttribute("aria-hidden", "true");
+  }
+
+  function exitEditorFullscreen() {
+    if (!container.classList.contains("is-fullscreen")) return;
+
+    container.classList.remove("is-fullscreen");
+    setFullscreenChromeHidden(false);
+    restoreEditorPlacement();
+    updateFullscreenButton(false);
+  }
+
+  function enterEditorFullscreen() {
+    if (container.classList.contains("is-fullscreen")) return;
+
+    container._closeFileTree?.();
+    closeGalleryNavForFullscreen();
+
+    fullscreenParent = container.parentElement;
+    fullscreenPlaceholder = document.createComment("code-editor-fullscreen-placeholder");
+    fullscreenParent.insertBefore(fullscreenPlaceholder, container);
+    document.body.appendChild(container);
+
+    container.classList.add("is-fullscreen");
+    setFullscreenChromeHidden(true);
+    updateFullscreenButton(true);
+    refreshFullscreenEditorHeight();
+  }
 
   if (themeBtn) {
     themeBtn.addEventListener("click", () => {
@@ -58,35 +166,193 @@ function initEditorChrome(container) {
       });
       localStorage.setItem(EDITOR_THEME_KEY, nextTheme);
       themeBtn.classList.toggle("is-active", nextTheme === "light");
+      document.querySelectorAll(".code-ide").forEach((editor) => {
+        editor._syncTreePortalTheme?.();
+      });
     });
     themeBtn.classList.toggle("is-active", container.dataset.theme === "light");
   }
 
   if (fullscreenBtn) {
-    fullscreenBtn.addEventListener("click", () => {
-      const isFullscreen = container.classList.toggle("is-fullscreen");
-      fullscreenBtn.classList.toggle("is-active", isFullscreen);
-      fullscreenBtn.textContent = isFullscreen ? "⤢" : "⛶";
-      fullscreenBtn.title = isFullscreen ? "Exit fullscreen" : "Fullscreen editor";
-      fullscreenBtn.setAttribute("aria-label", isFullscreen ? "Exit fullscreen" : "Fullscreen editor");
-      document.body.classList.toggle("code-editor-fullscreen", isFullscreen);
+    const toggleFullscreen = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
 
-      const activePanel = container.querySelector(
-        ".code-ide-panel.is-active, .code-tab-panel.is-active, .code-tab-panel--single"
-      );
-      ensurePanelEditorHeight(activePanel);
-    });
+      if (container.classList.contains("is-fullscreen")) {
+        exitEditorFullscreen();
+        return;
+      }
+
+      enterEditorFullscreen();
+    };
+
+    fullscreenBtn.addEventListener("click", toggleFullscreen);
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && container.classList.contains("is-fullscreen")) {
-        container.classList.remove("is-fullscreen");
-        fullscreenBtn.classList.remove("is-active");
-        fullscreenBtn.title = "Fullscreen editor";
-        fullscreenBtn.setAttribute("aria-label", "Fullscreen editor");
-        document.body.classList.remove("code-editor-fullscreen");
+        exitEditorFullscreen();
       }
     });
   }
+}
+
+function initMobileFileTreeToggle(container) {
+  const toggleBtn = container.querySelector("[data-editor-tree-toggle]");
+  const backdrop = container.querySelector("[data-editor-tree-backdrop]");
+  const fileTree = container.querySelector(".code-ide-file-tree");
+  if (!toggleBtn || !fileTree) return;
+
+  const compactQuery = window.matchMedia(COMPACT_EDITOR_MQ);
+  let treeAnchor = null;
+  let portalHost = null;
+
+  function ensurePortalHost() {
+    if (portalHost) return portalHost;
+
+    portalHost = document.createElement("div");
+    portalHost.className = "code-ide code-ide-tree-portal";
+    portalHost.setAttribute("role", "presentation");
+    portalHost.hidden = true;
+    document.body.appendChild(portalHost);
+    return portalHost;
+  }
+
+  function refreshEditorLayoutAfterTreeChange() {
+    container.querySelectorAll(".code-editor-shell").forEach((shell) => {
+      shell.style.minHeight = "";
+    });
+    const activePanel = container.querySelector(
+      ".code-ide-panel.is-active, .code-tab-panel.is-active, .code-tab-panel--single"
+    );
+    requestAnimationFrame(() => {
+      ensurePanelEditorHeight(activePanel);
+      requestAnimationFrame(() => ensurePanelEditorHeight(activePanel));
+    });
+  }
+
+  function syncPortalTheme() {
+    if (!portalHost) return;
+    portalHost.dataset.theme = container.dataset.theme || "dark";
+  }
+
+  function mountDrawerToPortal() {
+    ensurePortalHost();
+    syncPortalTheme();
+
+    if (!treeAnchor) {
+      treeAnchor = document.createComment("code-ide-tree-anchor");
+      fileTree.before(treeAnchor);
+    }
+
+    if (backdrop && backdrop.parentElement !== portalHost) {
+      portalHost.appendChild(backdrop);
+    }
+
+    if (fileTree.parentElement !== portalHost) {
+      portalHost.appendChild(fileTree);
+    }
+  }
+
+  function restoreDrawerToEditor() {
+    fileTree.classList.remove("is-tree-drawer-open");
+
+    if (fileTree.parentElement === portalHost) {
+      if (treeAnchor?.parentElement) {
+        treeAnchor.parentElement.insertBefore(fileTree, treeAnchor);
+        treeAnchor.remove();
+        treeAnchor = null;
+      } else {
+        const body = container.querySelector(".code-ide-body");
+        const workspace = container.querySelector(".code-ide-workspace");
+        if (body && workspace) {
+          body.insertBefore(fileTree, workspace);
+        }
+      }
+    }
+
+    if (portalHost) {
+      portalHost.hidden = true;
+      portalHost.classList.remove("is-tree-drawer-open");
+    }
+  }
+
+  function setTreeOpen(open) {
+    if (!compactQuery.matches) {
+      if (backdrop) {
+        backdrop.classList.remove("is-tree-drawer-open");
+        backdrop.setAttribute("aria-hidden", "true");
+      }
+      restoreDrawerToEditor();
+      container.classList.remove("is-tree-open");
+      toggleBtn.classList.remove("is-active");
+      toggleBtn.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("code-ide-tree-open");
+      document.documentElement.classList.remove("code-ide-tree-open");
+      refreshEditorLayoutAfterTreeChange();
+      return;
+    }
+
+    const isOpen = Boolean(open);
+
+    if (isOpen) {
+      mountDrawerToPortal();
+      portalHost.hidden = false;
+      portalHost.classList.add("is-tree-drawer-open");
+      fileTree.classList.add("is-tree-drawer-open");
+      if (backdrop) {
+        backdrop.classList.add("is-tree-drawer-open");
+        backdrop.removeAttribute("hidden");
+        backdrop.setAttribute("aria-hidden", "false");
+      }
+    } else {
+      if (backdrop) {
+        backdrop.classList.remove("is-tree-drawer-open");
+        backdrop.setAttribute("aria-hidden", "true");
+      }
+      restoreDrawerToEditor();
+    }
+
+    container.classList.toggle("is-tree-open", isOpen);
+    toggleBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    toggleBtn.classList.toggle("is-active", isOpen);
+    toggleBtn.title = isOpen ? "Hide files" : "Show files";
+    toggleBtn.setAttribute("aria-label", isOpen ? "Hide files" : "Show files");
+
+    document.body.classList.toggle("code-ide-tree-open", isOpen);
+    document.documentElement.classList.toggle("code-ide-tree-open", isOpen);
+    refreshEditorLayoutAfterTreeChange();
+  }
+
+  function closeTree() {
+    setTreeOpen(false);
+  }
+
+  container._closeFileTree = closeTree;
+  container._syncTreePortalTheme = syncPortalTheme;
+
+  const toggleTree = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setTreeOpen(!container.classList.contains("is-tree-open"));
+  };
+
+  toggleBtn.addEventListener("click", toggleTree);
+
+  backdrop?.addEventListener("click", closeTree);
+
+  compactQuery.addEventListener("change", () => {
+    if (!compactQuery.matches) closeTree();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (
+      event.key === "Escape"
+      && container.classList.contains("is-tree-open")
+      && !container.classList.contains("is-fullscreen")
+    ) {
+      closeTree();
+    }
+  });
 }
 
 function ensurePanelEditorHeight(panel) {

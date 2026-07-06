@@ -17,203 +17,51 @@
 <meta name="twitter:description" content="{{ meta_description|striptags|truncatechars:160 }}">
 {% endblock %}
 
-{% block page_class %}gallery-detail-page{% endblock %}
-{% block main_class %}xl:ml-sidebar-width relative z-10{% endblock %}
+{% block page_class %}gallery-detail-page gallery-detail-page--minimal{% endblock %}
+{% block main_class %}xl:ml-sidebar-width relative z-10 p-0{% endblock %}
 
 {% block page_background %}
 <div class="fixed inset-0 network-grid pointer-events-none z-0" aria-hidden="true"></div>
 {% endblock %}
 
-{% block extra_head %}
-{% endblock %}
-
 {% block content %}
-<div class="max-w-[1440px] mx-auto p-6 md:p-margin-desktop relative z-10">
-  {% csrf_token %}
-
-  {% if can_edit and sketch.status == "draft" %}
-  <div class="mb-6 px-4 py-3 rounded-lg bg-primary-fixed border border-primary/20 text-on-primary-fixed-variant text-sm font-medium" role="status">
-    This sketch is a draft — only you can see it until you publish.
-  </div>
-  {% endif %}
-
-  <nav class="flex items-center gap-2 text-xs font-bold text-outline mb-6 uppercase tracking-wider flex-wrap" aria-label="Breadcrumb">
-    <a class="link-subtle" href="{% url 'sketch_list' %}">Gallery</a>
-    {% if breadcrumb_tag %}
-    <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-    <a class="link-subtle" href="{% url 'tag_detail' breadcrumb_tag.slug %}">{{ breadcrumb_tag.name }}</a>
+<div class="sketch-detail-minimal">
+  <header class="sketch-detail-topbar">
+    <div class="sketch-detail-topbar-info">
+      <h1 class="sketch-detail-title">{{ sketch.title }}</h1>
+      {% if sketch.author %}
+      <p class="sketch-detail-author">
+        <a href="{% url 'sketch_list' %}?author={{ sketch.author.username|urlencode }}" class="sketch-detail-author-link">
+          @{{ sketch.author.username }}
+        </a>
+      </p>
+      {% endif %}
+    </div>
+    {% if sketch.status == "published" or can_edit %}
+    <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-primary sketch-detail-edit-btn">
+      <span class="material-symbols-outlined">edit</span>
+      Open in Editor
+    </a>
     {% endif %}
-    <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-    <span class="text-on-surface">{{ sketch.title }}</span>
-  </nav>
+  </header>
 
-  <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
-    <div class="xl:col-span-8 space-y-8">
+  <div class="sketch-detail-body">
+    <div class="sketch-detail-main">
       {% include "sketches/partials/sketch_detail_preview.html" %}
-
-      <div class="space-y-4">
-        <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-          <h1 class="font-display-lg text-4xl font-bold text-on-surface">{{ sketch.title }}</h1>
-          {% if can_edit %}
-          <a href="{% url 'sketch_edit' sketch.slug %}" class="link-action">
-            <span class="material-symbols-outlined text-base">edit</span>
-            Edit
-          </a>
-          {% endif %}
-        </div>
-
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full border border-primary/20 overflow-hidden bg-primary-fixed flex items-center justify-center text-on-primary-fixed-variant font-bold">
-            {% if sketch.author %}{{ sketch.author.username|slice:":1"|upper }}{% else %}?{% endif %}
-          </div>
-          <div>
-            {% if sketch.author %}
-            <p class="text-on-surface font-semibold">@{{ sketch.author.username }}</p>
-            {% endif %}
-            {% if sketch.published_at %}
-            <p class="text-xs text-outline font-medium">Published {{ sketch.published_at|date:"M j, Y" }}</p>
-            {% elif sketch.created_at %}
-            <p class="text-xs text-outline font-medium">Created {{ sketch.created_at|date:"M j, Y" }}</p>
-            {% endif %}
-          </div>
-        </div>
-
-        {% if sketch.description %}
-        <p class="text-on-surface-variant text-lg max-w-2xl leading-relaxed font-body-md">
-          {{ sketch.description|striptags|truncatewords:48 }}
-        </p>
-        {% endif %}
-
-        <div class="flex flex-wrap gap-2">
-          {% if sketch.sketch_type == "p5js" %}
-          <span class="px-3 py-1 bg-primary-fixed border border-primary/10 rounded-full text-xs font-bold text-primary">p5.js</span>
-          {% else %}
-          <span class="px-3 py-1 bg-primary-fixed border border-primary/10 rounded-full text-xs font-bold text-primary">Processing</span>
-          {% endif %}
-          {% if sketch.status == "draft" %}
-          <span class="px-3 py-1 bg-surface-container border border-outline-variant rounded-full text-xs font-bold text-on-surface-variant">Draft</span>
-          {% endif %}
-          {% for tag in sketch.tags.all %}
-          <a href="{% url 'tag_detail' tag.slug %}" class="link-chip">{{ tag.name }}</a>
-          {% endfor %}
-        </div>
-      </div>
-
-      {% if description_html %}
-      <section class="space-y-4">
-        <h2 class="text-2xl font-bold text-on-surface">About this sketch</h2>
-        <div class="bg-white p-6 rounded-xl border border-outline-variant shadow-sm markdown-body">
-          {{ description_html|safe }}
-        </div>
-      </section>
-      {% endif %}
-
-      {% if related_sketches %}
-      <section class="space-y-4">
-        <h2 class="text-2xl font-bold text-on-surface">Related sketches</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {% for related in related_sketches %}
-          <a href="{% url 'sketch_detail' related.slug %}" class="bg-white p-4 rounded-xl flex items-center gap-4 border border-outline-variant hover:border-primary hover:shadow-md transition-all group">
-            <div class="w-16 h-12 bg-primary-fixed/30 rounded-lg overflow-hidden border border-outline-variant shrink-0 flex items-center justify-center">
-              {% if related.thumbnail %}
-              <img src="{{ related.thumbnail.url }}" alt="" class="w-full h-full object-cover">
-              {% else %}
-              <span class="material-symbols-outlined text-primary text-lg">grid_view</span>
-              {% endif %}
-            </div>
-            <div class="flex-1 min-w-0">
-              <h4 class="font-bold text-on-surface group-hover:text-primary transition-colors truncate">{{ related.title }}</h4>
-              {% if related.author %}
-              <p class="text-xs text-outline">@{{ related.author.username }}</p>
-              {% endif %}
-            </div>
-            <span class="material-symbols-outlined text-outline group-hover:translate-x-1 group-hover:text-primary transition-all">arrow_forward</span>
-          </a>
-          {% endfor %}
-        </div>
-      </section>
-      {% endif %}
     </div>
-
-    <div class="xl:col-span-4 space-y-6">
-      <div class="bg-white p-6 rounded-xl border border-outline-variant shadow-sm space-y-4">
-        {% if can_edit and sketch.status == "draft" %}
-        <form method="post" action="{% url 'sketch_publish' sketch.slug %}">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-primary btn-full btn-lg">
-            <span class="material-symbols-outlined">publish</span>
-            Publish sketch
-          </button>
-        </form>
-        {% endif %}
-
-        <a href="#source-code" id="view-source-btn" class="btn btn-primary btn-full btn-lg">
-          <span class="material-symbols-outlined">code</span>
-          View Source
-        </a>
-
-        {% if can_edit %}
-        <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-secondary btn-full btn-lg">
-          <span class="material-symbols-outlined">edit</span>
-          Open in Editor
-        </a>
-        {% endif %}
-
-        <button type="button" id="share-sketch" class="btn btn-secondary btn-full">
-          <span class="material-symbols-outlined">share</span>
-          <span class="share-label">Share</span>
-        </button>
+    {% if sketch.description %}
+    <aside class="sketch-detail-sidebar" aria-label="Sketch description">
+      <div class="sketch-detail-description markdown-body">
+        {{ description_html|safe }}
       </div>
-
-      <div class="bg-white p-6 rounded-xl border border-outline-variant shadow-sm">
-        <h3 class="font-bold text-on-surface mb-4 flex items-center gap-2">
-          <span class="material-symbols-outlined text-primary text-lg">info</span>
-          Technical Details
-        </h3>
-        <div class="space-y-3">
-          <div class="flex justify-between items-center py-2 border-b border-outline-variant gap-4">
-            <span class="text-xs text-outline font-bold uppercase shrink-0">Runtime</span>
-            <span class="font-bold text-primary text-right">{% if sketch.sketch_type == "p5js" %}p5.js{% else %}Processing{% endif %}</span>
-          </div>
-          <div class="flex justify-between items-center py-2 border-b border-outline-variant gap-4">
-            <span class="text-xs text-outline font-bold uppercase shrink-0">Entry file</span>
-            <span class="font-code-md text-code-md text-on-surface text-right">{{ sketch.entry_filename }}</span>
-          </div>
-          <div class="flex justify-between items-center py-2 border-b border-outline-variant gap-4">
-            <span class="text-xs text-outline font-bold uppercase shrink-0">Source files</span>
-            <span class="font-medium text-on-surface">{{ source_files|length }}</span>
-          </div>
-          <div class="flex justify-between items-center py-2 border-b border-outline-variant gap-4">
-            <span class="text-xs text-outline font-bold uppercase shrink-0">Preview</span>
-            <span class="font-medium text-on-surface">{% if sketch.is_interactive %}Interactive{% else %}Static{% endif %}</span>
-          </div>
-          <div class="flex justify-between items-center py-2 gap-4">
-            <span class="text-xs text-outline font-bold uppercase shrink-0">Status</span>
-            <span class="font-medium text-on-surface capitalize">{{ sketch.status }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="mt-12 relative z-10">
-    {% include "sketches/partials/sketch_source_view.html" %}
+    </aside>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 {% if sketch.is_interactive %}
-<script src="{% static 'sketches/js/preview-controls.js' %}"></script>
+<script src="{% static 'sketches/js/preview-controls.js' %}?v=20260704b"></script>
 {% endif %}
-<script src="https://cdn.jsdelivr.net/npm/acorn@8.14.0/dist/acorn.min.js"></script>
-<script src="{% static 'sketches/js/code-editor-syntax.js' %}"></script>
-<script src="{% static 'sketches/js/embed-builder.js' %}"></script>
-<script>window.SketchEmbedBase = "{% static 'sketches/embed/' %}";</script>
-<script src="{% static 'sketches/js/preview-iframe.js' %}"></script>
-<script src="{% static 'sketches/js/file-tree.js' %}"></script>
-<script src="{% static 'sketches/js/code-editor-ui.js' %}"></script>
-<script src="{% static 'sketches/js/sketch-live-editor.js' %}"></script>
-<script src="{% static 'sketches/js/copy-code.js' %}"></script>
-<script src="{% static 'sketches/js/sketch-detail.js' %}"></script>
 {% endblock %}

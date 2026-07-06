@@ -1,5 +1,5 @@
 {% extends "sketches/base.html" %}
-{% load static %}
+{% load static gallery_filters %}
 
 {% block title %}Sketches101 — Creative Coding{% endblock %}
 
@@ -15,7 +15,7 @@
 <div class="gallery-home-bg" aria-hidden="true">
   <iframe
     id="home-bg-sketch"
-    src="{% url 'sketch_embed' background_sketch.slug %}"
+    src="{% url 'sketch_embed' background_sketch.slug %}?v={{ background_sketch|embed_cache_version }}"
     sandbox="allow-scripts allow-same-origin"
     loading="eager"
     title=""

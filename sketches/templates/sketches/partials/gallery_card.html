@@ -1,34 +1,66 @@
-<a href="{% url 'sketch_detail' sketch.slug %}" class="group glass-panel rounded-xl overflow-hidden hover:border-primary transition-all duration-500 flex flex-col bg-white shadow-sm">
-  <div class="h-48 relative overflow-hidden bg-surface-container-highest">
-    {% if sketch.thumbnail %}
-      <img alt="{{ sketch.title }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src="{{ sketch.thumbnail.url }}" loading="lazy">
+{% if card_manage %}
+<article class="gallery-sketch-card group glass-panel">
+  <a
+    href="{% if sketch.status == 'published' %}{% url 'sketch_detail' sketch.slug %}{% else %}{% url 'sketch_edit' sketch.slug %}{% endif %}"
+    class="gallery-sketch-card-link"
+  >
+{% else %}
+<article class="gallery-sketch-card group glass-panel">
+  <a href="{% url 'sketch_detail' sketch.slug %}" class="gallery-sketch-card-link">
+{% endif %}
+    <div class="gallery-sketch-card-media">
+      {% if sketch.thumbnail %}
+        <img alt="{{ sketch.title }}" class="gallery-sketch-card-image" src="{{ sketch.thumbnail.url }}" loading="lazy">
+      {% else %}
+        <div class="gallery-sketch-card-placeholder">
+          <span class="material-symbols-outlined" aria-hidden="true">grid_view</span>
+        </div>
+      {% endif %}
+      {% if card_manage and sketch.status != "published" %}
+      <span class="gallery-sketch-card-badge gallery-sketch-card-badge--draft">Draft</span>
+      {% endif %}
+      <span class="gallery-sketch-card-badge gallery-sketch-card-badge--type">
+        {% if sketch.sketch_type == "p5js" %}p5.js{% else %}Processing{% endif %}
+      </span>
+    </div>
+    <div class="gallery-sketch-card-body">
+      <h3 class="gallery-sketch-card-title">{{ sketch.title }}</h3>
+      {% if sketch.description %}
+      <p class="gallery-sketch-card-description">{{ sketch.description|striptags|truncatewords:20 }}</p>
+      {% endif %}
+    </div>
+  </a>
+  <div class="gallery-sketch-card-footer">
+    {% if card_manage %}
+    <span class="gallery-sketch-card-status{% if sketch.status == 'published' %} gallery-sketch-card-status--published{% endif %}">
+      {% if sketch.status == "published" %}Published{% else %}Draft{% endif %}
+    </span>
+    <time class="gallery-sketch-card-date" datetime="{{ sketch.updated_at|date:'c' }}">{{ sketch.updated_at|date:"M j" }}</time>
     {% else %}
-      <div class="w-full h-full flex items-center justify-center bg-primary-fixed">
-        <span class="material-symbols-outlined text-primary text-5xl">grid_view</span>
-      </div>
-    {% endif %}
-    <div class="absolute bottom-2 right-2">
-      {% if sketch.sketch_type == "p5js" %}
-      <span class="bg-white/90 text-on-surface text-[10px] px-2 py-0.5 rounded-full uppercase border border-primary/10">p5.js</span>
-      {% else %}
-      <span class="bg-white/90 text-on-surface text-[10px] px-2 py-0.5 rounded-full uppercase border border-primary/10">Processing</span>
-      {% endif %}
-    </div>
-  </div>
-  <div class="p-5 flex flex-col flex-1">
-    <h3 class="font-bold text-lg text-on-surface group-hover:text-primary transition-colors">{{ sketch.title }}</h3>
-    {% if sketch.description %}
-    <p class="text-sm text-on-surface-variant mt-2 line-clamp-2">{{ sketch.description|striptags|truncatewords:16 }}</p>
-    {% endif %}
-    <div class="mt-auto pt-4 flex items-center justify-between gap-2">
+    <div class="gallery-sketch-card-author-row">
       {% if sketch.author %}
-      <span class="text-xs font-code-md text-primary">@{{ sketch.author.username }}</span>
+      <a href="{% url 'sketch_list' %}?author={{ sketch.author.username|urlencode }}" class="gallery-sketch-card-author-link">
+        <span class="gallery-sketch-card-avatar" aria-hidden="true">{{ sketch.author.username|slice:":1"|upper }}</span>
+        <span class="gallery-sketch-card-author">@{{ sketch.author.username }}</span>
+      </a>
       {% else %}
-      <span class="text-xs font-code-md text-outline">sketches101</span>
-      {% endif %}
-      {% if sketch.published_at %}
-      <span class="text-xs text-outline font-code-md">{{ sketch.published_at|date:"M j" }}</span>
+      <span class="gallery-sketch-card-avatar gallery-sketch-card-avatar--muted" aria-hidden="true">?</span>
+      <span class="gallery-sketch-card-author gallery-sketch-card-author--muted">sketches101</span>
       {% endif %}
     </div>
+    {% if sketch.published_at %}
+    <time class="gallery-sketch-card-date" datetime="{{ sketch.published_at|date:'c' }}">{{ sketch.published_at|date:"M j" }}</time>
+    {% endif %}
+    {% endif %}
   </div>
-</a>
+{% if card_manage %}
+  <div class="gallery-sketch-card-actions">
+    {% if sketch.status != "published" %}
+    {% include "sketches/partials/sketch_publish_form.html" with sketch=sketch %}
+    {% else %}
+    <a href="{% url 'sketch_detail' sketch.slug %}" class="link-action link-action--sm">View</a>
+    {% endif %}
+    <a href="{% url 'sketch_edit' sketch.slug %}" class="link-action link-action--sm">Edit</a>
+  </div>
+{% endif %}
+</article>

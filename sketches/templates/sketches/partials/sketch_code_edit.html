@@ -4,13 +4,26 @@
     data-editor-tabs
     data-formset-prefix="{{ formset.prefix }}"
     data-sketch-type="{% if is_create %}{{ form.sketch_type.value|default:'p5js' }}{% else %}{{ sketch.sketch_type }}{% endif %}"
-    {% if is_create %}data-preview-url="{% url 'sketch_preview_cache' %}"{% endif %}
+    data-preview-url="{% url 'sketch_preview_cache' %}"
     data-theme="dark"
   >
     <div class="code-ide-titlebar">
       <div class="code-ide-traffic" aria-hidden="true">
         <span></span><span></span><span></span>
       </div>
+      {% if file_tree %}
+      <button
+        type="button"
+        class="code-ide-btn code-ide-tree-toggle"
+        data-editor-tree-toggle
+        title="Show files"
+        aria-label="Show files"
+        aria-expanded="false"
+        aria-controls="code-ide-file-tree"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">folder_open</span>
+      </button>
+      {% endif %}
       <span class="code-ide-title">Source code</span>
       <div class="code-ide-titlebar-actions">
         {% include "sketches/partials/code_ide_footer_controls.html" %}
@@ -48,6 +61,9 @@
     {% endif %}
 
     <div class="code-ide-body">
+      {% if file_tree %}
+      <div class="code-ide-tree-backdrop" data-editor-tree-backdrop aria-hidden="true"></div>
+      {% endif %}
       {% include "sketches/partials/file_tree_sidebar.html" with show_add_file=True %}
 
       <div class="code-ide-workspace">
@@ -136,7 +152,7 @@
     </template>
 
     <div class="code-ide-footer">
-      <span class="code-ide-status" id="code-ide-status-label">
+      <span class="code-ide-status code-ide-status--full" id="code-ide-status-label">
         {% if is_create %}
           {% if form.sketch_type.value == "processing" %}Processing{% else %}p5.js{% endif %}
         {% elif sketch.is_processing %}
@@ -145,6 +161,16 @@
           p5.js
         {% endif %}
         · UTF-8 · Spaces: 2 · Tab indent · ⌘/ Ctrl+/ comment
+      </span>
+      <span class="code-ide-status code-ide-status--compact" aria-hidden="true">
+        {% if is_create %}
+          {% if form.sketch_type.value == "processing" %}Processing{% else %}p5.js{% endif %}
+        {% elif sketch.is_processing %}
+          Processing
+        {% else %}
+          p5.js
+        {% endif %}
+        · UTF-8 · Tab: 2
       </span>
     </div>
   </section>

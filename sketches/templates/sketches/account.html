@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="relative z-10 max-w-[960px] mx-auto">
+<div class="relative z-10">
   <header class="mb-10">
     <h1 class="font-display-lg text-headline-lg text-on-surface mb-2">Hello, {{ user.username }}</h1>
     <p class="text-on-surface-variant font-body-md">
@@ -28,31 +28,9 @@
   {% if sketches %}
   <section>
     <h2 class="text-xl font-bold text-on-surface mb-4">Your sketches</h2>
-    <div class="space-y-3">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-gutter">
       {% for sketch in sketches %}
-      <article class="bg-white p-4 md:p-5 rounded-xl border border-outline-variant shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-primary/30 transition-colors">
-        <div class="min-w-0">
-          <h3 class="font-bold text-lg text-on-surface truncate">
-            {% if sketch.status == "published" %}
-            <a href="{% url 'sketch_detail' sketch.slug %}" class="link-title">{{ sketch.title }}</a>
-            {% else %}
-            <a href="{% url 'sketch_edit' sketch.slug %}" class="link-title">{{ sketch.title }}</a>
-            {% endif %}
-          </h3>
-          <div class="flex flex-wrap items-center gap-2 mt-2 text-sm text-outline">
-            {% include "sketches/partials/sketch_status_badges.html" with sketch=sketch %}
-            <span>Updated {{ sketch.updated_at|date:"M j, Y" }}</span>
-          </div>
-        </div>
-        <div class="flex flex-wrap gap-2 shrink-0">
-          {% if sketch.status != "published" %}
-          {% include "sketches/partials/sketch_publish_form.html" with sketch=sketch %}
-          {% else %}
-          <a href="{% url 'sketch_detail' sketch.slug %}" class="link-action link-action--sm">View</a>
-          {% endif %}
-          <a href="{% url 'sketch_edit' sketch.slug %}" class="link-action link-action--sm">Edit</a>
-        </div>
-      </article>
+      {% include "sketches/partials/gallery_card.html" with card_manage=True %}
       {% endfor %}
     </div>
   </section>

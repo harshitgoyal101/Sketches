@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Sketch, SketchAsset, Tag
+from .models import Sketch, SketchAsset, SketchFormat, Tag, TagCategory
 
 
 class SketchAssetInline(admin.TabularInline):
@@ -10,10 +10,41 @@ class SketchAssetInline(admin.TabularInline):
     ordering = ["order"]
 
 
+class TagInline(admin.TabularInline):
+    model = Tag
+    extra = 0
+    fields = ["name", "slug", "sort_order", "is_active"]
+    prepopulated_fields = {"slug": ("name",)}
+    ordering = ["sort_order", "name"]
+
+
+@admin.register(TagCategory)
+class TagCategoryAdmin(admin.ModelAdmin):
+    list_display = ["name", "slug", "sort_order", "is_active"]
+    list_editable = ["sort_order", "is_active"]
+    list_filter = ["is_active"]
+    search_fields = ["name", "description"]
+    prepopulated_fields = {"slug": ("name",)}
+    inlines = [TagInline]
+
+
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
+    list_display = ["name", "category", "sort_order", "is_active"]
+    list_editable = ["category", "sort_order", "is_active"]
+    list_filter = ["is_active", "category"]
+    search_fields = ["name", "description"]
     prepopulated_fields = {"slug": ("name",)}
-    search_fields = ["name"]
+    ordering = ["category__sort_order", "sort_order", "name"]
+
+
+@admin.register(SketchFormat)
+class SketchFormatAdmin(admin.ModelAdmin):
+    list_display = ["name", "slug", "sort_order", "is_active"]
+    list_editable = ["sort_order", "is_active"]
+    list_filter = ["is_active"]
+    search_fields = ["name", "description"]
+    prepopulated_fields = {"slug": ("name",)}
 
 
 @admin.register(Sketch)

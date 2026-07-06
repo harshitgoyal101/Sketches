@@ -1,12 +1,26 @@
-from django.db.models import Q
 from django.core.paginator import Paginator
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.clickjacking import xframe_options_sameorigin
+from django.views.decorators.http import condition
 
 from .models import Sketch, Tag
 from .permissions import can_edit_sketch
 from .services.embed_builder import build_embed_html
+from .services.embed_cache import (
+    apply_embed_cache_headers,
+    embed_content_fingerprint,
+    embed_last_modified,
+)
+from .services.gallery_filters import (
+    active_filter_count,
+    active_sketch_formats,
+    apply_sketch_filters,
+    filter_tag_categories,
+    format_label_for_slug,
+    published_authors,
+    published_tags_queryset,
+)
 from .services.highlighter import get_highlight_css
 from .services.sketch_context import build_sketch_detail_context
 
@@ -42,49 +56,29 @@ def _get_sketch_file_content(sketch, filename):
     return None
 
 
-def _apply_sketch_filters(queryset, request):
-    query = request.GET.get("q", "").strip()
-    tag_slug = request.GET.get("tag", "").strip()
-    sketch_type = request.GET.get("type", "").strip()
-
-    if tag_slug:
-        queryset = queryset.filter(tags__slug=tag_slug)
-
-    if sketch_type in (Sketch.SketchType.P5JS, Sketch.SketchType.PROCESSING):
-        queryset = queryset.filter(sketch_type=sketch_type)
-
-    if query:
-        queryset = queryset.filter(
-            Q(title__icontains=query)
-            | Q(description__icontains=query)
-            | Q(code__icontains=query)
-            | Q(tags__name__icontains=query)
-        ).distinct()
-
-    return queryset, query, tag_slug, sketch_type
-
-
 def _paginate_sketches(request, queryset, per_page=12):
     paginator = Paginator(queryset, per_page)
     page_obj = paginator.get_page(request.GET.get("page"))
     return page_obj
 
 
-def _filter_tags():
-    return Tag.objects.filter(sketches__status=PUBLISHED).distinct().order_by("name")
-
-
-def _build_filter_context(request, page_obj, query="", tag_slug="", active_tag=None, sketch_type=""):
+def _build_filter_context(request, page_obj, filter_params, active_tag=None):
     params = request.GET.copy()
     if "page" in params:
         del params["page"]
     return {
         "page_obj": page_obj,
-        "tags": _filter_tags(),
-        "query": query,
-        "tag_slug": tag_slug,
+        "tags": published_tags_queryset(),
+        "tag_groups": filter_tag_categories(),
+        "gallery_authors": published_authors(),
+        "sketch_formats": active_sketch_formats(),
+        "query": filter_params["query"],
+        "tag_slug": filter_params["tag_slug"],
         "active_tag": active_tag,
-        "sketch_type": sketch_type,
+        "sketch_type": filter_params["sketch_type"],
+        "sketch_type_label": format_label_for_slug(filter_params["sketch_type"]),
+        "author_username": filter_params["author_username"],
+        "active_filter_count": active_filter_count(filter_params),
         "filter_querystring": params.urlencode(),
     }
 
@@ -107,22 +101,26 @@ def home(request):
 
 
 def sketch_list(request):
-    queryset, query, tag_slug, sketch_type = _apply_sketch_filters(_gallery_sketches(), request)
+    queryset, filter_params = apply_sketch_filters(_gallery_sketches(), request)
     page_obj = _paginate_sketches(request, queryset)
-    active_tag = Tag.objects.filter(slug=tag_slug).first() if tag_slug else None
-    context = _build_filter_context(request, page_obj, query, tag_slug, active_tag, sketch_type)
+    active_tag = (
+        Tag.objects.filter(slug=filter_params["tag_slug"], is_active=True).first()
+        if filter_params["tag_slug"]
+        else None
+    )
+    context = _build_filter_context(request, page_obj, filter_params, active_tag)
     context["gallery_show_featured"] = (
-        page_obj.number == 1 and not query and not tag_slug and not sketch_type
+        page_obj.number == 1 and active_filter_count(filter_params) == 0
     )
     return render(request, "sketches/sketch_list.html", context)
 
 
 def tag_detail(request, slug):
-    tag = get_object_or_404(Tag, slug=slug)
+    tag = get_object_or_404(Tag, slug=slug, is_active=True)
     queryset = _gallery_sketches().filter(tags=tag)
-    queryset, query, tag_slug, sketch_type = _apply_sketch_filters(queryset, request)
+    queryset, filter_params = apply_sketch_filters(queryset, request, active_tag=tag)
     page_obj = _paginate_sketches(request, queryset)
-    context = _build_filter_context(request, page_obj, query, slug, tag, sketch_type)
+    context = _build_filter_context(request, page_obj, filter_params, tag)
     context["gallery_show_featured"] = False
     return render(request, "sketches/tag_detail.html", context)
 
@@ -154,7 +152,26 @@ def pygments_css(request):
     return HttpResponse(get_highlight_css(), content_type="text/css; charset=utf-8")
 
 
+def _embed_sketch_for_cache(slug):
+    return Sketch.objects.prefetch_related("assets").filter(slug=slug).first()
+
+
+def sketch_embed_etag(request, slug):
+    sketch = _embed_sketch_for_cache(slug)
+    if not sketch or sketch.status != PUBLISHED or not sketch.is_interactive:
+        return None
+    return embed_content_fingerprint(sketch)
+
+
+def sketch_embed_last_modified(request, slug):
+    sketch = _embed_sketch_for_cache(slug)
+    if not sketch or sketch.status != PUBLISHED or not sketch.is_interactive:
+        return None
+    return embed_last_modified(sketch)
+
+
 @xframe_options_sameorigin
+@condition(etag_func=sketch_embed_etag, last_modified_func=sketch_embed_last_modified)
 def sketch_embed(request, slug):
     sketch = get_object_or_404(
         Sketch.objects.prefetch_related("assets"),
@@ -166,5 +183,6 @@ def sketch_embed(request, slug):
         raise Http404("This sketch has no interactive preview.")
     fullscreen = sketch.is_home_background
     html = build_embed_html(sketch, fullscreen=fullscreen)
-    return HttpResponse(html, content_type="text/html; charset=utf-8")
+    response = HttpResponse(html, content_type="text/html; charset=utf-8")
+    return apply_embed_cache_headers(response, sketch)
 

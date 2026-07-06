@@ -188,19 +188,27 @@ class SketchEditForm(ThemedModelForm):
             ),
         }
 
-    def __init__(self, *args, is_admin=False, **kwargs):
+    def __init__(self, *args, is_admin=False, editor_mode=False, **kwargs):
         super().__init__(*args, **kwargs)
+        if editor_mode:
+            allowed = {"title", "entry_filename", "code", "sketch_type"}
+            for name in list(self.fields):
+                if name not in allowed:
+                    self.fields.pop(name, None)
         if not is_admin:
             for name in ("slug", "status", "is_home_background"):
                 self.fields.pop(name, None)
-        else:
+        elif "slug" in self.fields:
             self.fields["slug"].required = False
-            self.fields["is_home_background"].help_text = (
-                "Only one p5.js sketch can be the home page background."
-            )
-        self.fields["tags"].queryset = Tag.objects.order_by("name")
-        self.fields["tags"].required = False
-        self.fields["entry_filename"].required = False
+            if "is_home_background" in self.fields:
+                self.fields["is_home_background"].help_text = (
+                    "Only one p5.js sketch can be the home page background."
+                )
+        if "tags" in self.fields:
+            self.fields["tags"].queryset = Tag.objects.order_by("name")
+            self.fields["tags"].required = False
+        if "entry_filename" in self.fields:
+            self.fields["entry_filename"].required = False
         if not self.instance.pk and not self.is_bound:
             sketch_type = normalize_sketch_type(self.initial.get("sketch_type"))
             self.initial.setdefault("sketch_type", sketch_type)

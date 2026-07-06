@@ -135,6 +135,10 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Browser cache for published sketch embed iframes (seconds).
+PUBLISHED_EMBED_MAX_AGE = int(os.environ.get("PUBLISHED_EMBED_MAX_AGE", "300"))
+HOME_BACKGROUND_EMBED_MAX_AGE = int(os.environ.get("HOME_BACKGROUND_EMBED_MAX_AGE", "86400"))
+
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 

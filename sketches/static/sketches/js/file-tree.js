@@ -234,6 +234,7 @@ function activateLivePanel(container, tabIndex) {
 
   setActiveKey(container, String(tabIndex));
   scrollActiveIntoView(container);
+  container._closeFileTree?.();
 }
 
 function activateEditPanel(container, panelId) {
@@ -260,6 +261,7 @@ function activateEditPanel(container, panelId) {
 
   setActiveKey(container, panelId);
   scrollActiveIntoView(container);
+  container._closeFileTree?.();
 
   container.querySelectorAll(".code-ide-tree-file-btn").forEach((btn) => {
     if (btn.dataset.panel === panelId) {

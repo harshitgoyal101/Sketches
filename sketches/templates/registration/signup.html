@@ -46,7 +46,7 @@
 
   <div class="auth-switch auth-switch-action">
     <p class="auth-switch-label">Already have an account?</p>
-    <a href="{% url 'login' %}" class="btn btn-secondary btn-full">Log in</a>
+    <a href="{% url 'login' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="btn btn-secondary btn-full">Log in</a>
   </div>
 </section>
 {% endblock %}

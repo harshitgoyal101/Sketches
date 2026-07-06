@@ -1,8 +1,9 @@
-<nav class="gallery-home-nav" aria-label="Site">
+<header class="gallery-home-nav" id="gallery-site-nav">
   <a href="{% url 'home' %}" class="gallery-home-nav-brand" aria-label="Sketches101">
     {% include "sketches/partials/site_logo.html" %}
   </a>
-  <div class="gallery-home-nav-links">
+
+  <div class="gallery-home-nav-links gallery-home-nav-links--desktop">
     {% if user.is_authenticated %}
     <form method="post" action="{% url 'logout' %}" class="gallery-home-nav-logout-form">
       {% csrf_token %}
@@ -13,4 +14,17 @@
     {% endif %}
     <a href="{% url 'sketch_list' %}" class="gallery-home-nav-btn gallery-home-nav-btn--accent">Gallery</a>
   </div>
-</nav>
+
+  <button
+    type="button"
+    class="gallery-nav-toggle"
+    id="gallery-nav-toggle"
+    aria-expanded="false"
+    aria-controls="gallery-mobile-menu"
+    aria-label="Open menu"
+  >
+    <span class="gallery-nav-toggle-bar" aria-hidden="true"></span>
+    <span class="gallery-nav-toggle-bar" aria-hidden="true"></span>
+    <span class="gallery-nav-toggle-bar" aria-hidden="true"></span>
+  </button>
+</header>

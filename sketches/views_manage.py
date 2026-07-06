@@ -13,7 +13,7 @@ from django.views.decorators.http import require_POST
 
 from .forms import SketchAssetFormSet, SketchEditForm
 from .models import Sketch, SketchAsset
-from .permissions import can_edit_sketch
+from .permissions import can_access_sketch_editor, can_edit_sketch
 from .services.embed_builder import build_p5_embed_html, build_processing_embed_html
 from .services.file_tree import build_file_tree
 from .services.sketch_context import build_sketch_detail_context
@@ -24,15 +24,20 @@ from .services.sketch_starters import (
     normalize_sketch_type,
 )
 
-
+PUBLISHED = Sketch.Status.PUBLISHED
 PREVIEW_CACHE_TIMEOUT = 120
 
 
-def _preview_cache_key(user_id, preview_id):
-    return f"sketch_preview:{user_id}:{preview_id}"
+def _preview_cache_key(request, preview_id):
+    if request.user.is_authenticated:
+        owner = str(request.user.pk)
+    else:
+        if not request.session.session_key:
+            request.session.create()
+        owner = f"anon:{request.session.session_key}"
+    return f"sketch_preview:{owner}:{preview_id}"
 
 
-@login_required
 @require_POST
 def sketch_preview_cache(request):
     try:
@@ -63,17 +68,16 @@ def sketch_preview_cache(request):
 
     preview_id = uuid.uuid4().hex
     cache.set(
-        _preview_cache_key(request.user.pk, preview_id),
+        _preview_cache_key(request, preview_id),
         html,
         PREVIEW_CACHE_TIMEOUT,
     )
     return JsonResponse({"url": reverse("sketch_preview_embed", kwargs={"preview_id": preview_id})})
 
 
-@login_required
 @xframe_options_sameorigin
 def sketch_preview_embed(request, preview_id):
-    html = cache.get(_preview_cache_key(request.user.pk, preview_id))
+    html = cache.get(_preview_cache_key(request, preview_id))
     if html is None:
         raise Http404
     return HttpResponse(html, content_type="text/html; charset=utf-8")
@@ -82,6 +86,13 @@ def sketch_preview_embed(request, preview_id):
 def _get_editable_sketch(request, slug):
     sketch = get_object_or_404(Sketch.objects.prefetch_related("tags", "assets"), slug=slug)
     if not can_edit_sketch(request.user, sketch):
+        raise PermissionDenied
+    return sketch
+
+
+def _get_editor_sketch(request, slug):
+    sketch = get_object_or_404(Sketch.objects.prefetch_related("tags", "assets"), slug=slug)
+    if not can_access_sketch_editor(request.user, sketch):
         raise PermissionDenied
     return sketch
 
@@ -100,7 +111,7 @@ def sketch_create(request):
     is_admin = request.user.is_staff
 
     if request.method == "POST":
-        form = SketchEditForm(request.POST, request.FILES, is_admin=is_admin)
+        form = SketchEditForm(request.POST, request.FILES, is_admin=is_admin, editor_mode=True)
         formset = SketchAssetFormSet(request.POST)
         if form.is_valid() and formset.is_valid():
             sketch = form.save(commit=False)
@@ -117,6 +128,7 @@ def sketch_create(request):
         sketch_type = normalize_sketch_type(request.GET.get("type"))
         form = SketchEditForm(
             is_admin=is_admin,
+            editor_mode=True,
             initial={
                 "sketch_type": sketch_type,
                 "entry_filename": get_default_filename(sketch_type),
@@ -134,6 +146,7 @@ def sketch_create(request):
             "file_tree": _build_edit_file_tree(form, formset),
             "is_create": True,
             "is_admin": is_admin,
+            "can_edit": True,
             "submit_label": "Create sketch",
             "sketch_starters": get_starter_payload(),
             "body_class": "edit-page",
@@ -141,17 +154,20 @@ def sketch_create(request):
     )
 
 
-@login_required
 def sketch_edit(request, slug):
-    sketch = _get_editable_sketch(request, slug)
-    is_admin = request.user.is_staff
+    sketch = _get_editor_sketch(request, slug)
+    can_save = can_edit_sketch(request.user, sketch)
+    is_admin = request.user.is_authenticated and request.user.is_staff
 
     if request.method == "POST":
+        if not can_save:
+            raise PermissionDenied
         form = SketchEditForm(
             request.POST,
             request.FILES,
             instance=sketch,
             is_admin=is_admin,
+            editor_mode=True,
         )
         formset = SketchAssetFormSet(request.POST, instance=sketch)
         if form.is_valid() and formset.is_valid():
@@ -168,7 +184,7 @@ def sketch_edit(request, slug):
             messages.success(request, f"“{sketch.title}” saved.")
             return redirect("sketch_edit", slug=sketch.slug)
     else:
-        form = SketchEditForm(instance=sketch, is_admin=is_admin)
+        form = SketchEditForm(instance=sketch, is_admin=is_admin, editor_mode=True)
         formset = SketchAssetFormSet(instance=sketch)
 
     context = build_sketch_detail_context(sketch)
@@ -179,7 +195,7 @@ def sketch_edit(request, slug):
             "file_tree": _build_edit_file_tree(form, formset, sketch=sketch),
             "is_create": False,
             "is_admin": is_admin,
-            "can_edit": True,
+            "can_edit": can_save,
             "submit_label": "Save changes",
             "body_class": "edit-page",
         }
