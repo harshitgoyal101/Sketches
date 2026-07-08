@@ -236,6 +236,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   initRuntimeHint();
 
+  const previewWrap = document.getElementById("preview-frame-wrap");
+  if (iframe && previewWrap && window.SketchPointerForward) {
+    window.SketchPointerForward.bind({
+      iframe,
+      previewWrap,
+      clickRestart: true,
+    });
+  }
+
   runPreview().catch((error) => {
     console.error(error);
   });

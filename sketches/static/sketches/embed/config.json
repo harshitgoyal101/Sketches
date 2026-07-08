@@ -3,12 +3,12 @@
   "processingjs_cdn": "/static/sketches/embed/processing.min.js",
   "page_styles": {
     "fullscreen": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n  background: #ffffff;\n  touch-action: none;\n  overscroll-behavior: none;\n}\ncanvas {\n  display: block;\n  touch-action: none;\n}",
-    "preview": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  min-height: 100%;\n  overflow: hidden;\n  background: #eff6ff;\n  cursor: pointer;\n}\ncanvas {\n  display: block;\n  cursor: auto;\n}",
-    "live": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  min-height: 100%;\n  overflow: hidden;\n  background: #eff6ff;\n}\ncanvas {\n  display: block;\n}"
+    "preview": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  min-height: 100%;\n  overflow: hidden;\n  background: #eff6ff;\n  cursor: pointer;\n  touch-action: none;\n}\ncanvas {\n  display: block;\n  cursor: auto;\n  touch-action: none;\n}",
+    "live": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  min-height: 100%;\n  overflow: hidden;\n  background: #eff6ff;\n  touch-action: none;\n}\ncanvas {\n  display: block;\n  touch-action: none;\n}"
   },
   "head_snippets": {
     "fullscreen": ["mouse-bridge.js", "sketch-restart-handler.js"],
-    "preview": ["restart-background.js"],
+    "preview": ["restart-background.js", "mouse-bridge.js"],
     "live": ["error-reporter.js", "mouse-bridge.js", "sketch-restart-handler.js"]
   },
   "processing_snippets": ["processing-bootstrap.js"]

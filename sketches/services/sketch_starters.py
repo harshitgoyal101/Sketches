@@ -1,26 +1,56 @@
 from ..models import Sketch
 
-P5JS_STARTER_CODE = """function setup() {
-  createCanvas(400, 300);
+P5JS_STARTER_CODE = """
+function pointerX() {
+  if (touches.length > 0) return touches[0].x;
+  if (typeof window._parentMouseX === "number") return window._parentMouseX;
+  return mouseX;
+}
+
+function pointerY() {
+  if (touches.length > 0) return touches[0].y;
+  if (typeof window._parentMouseY === "number") return window._parentMouseY;
+  return mouseY;
+}
+
+function setup() {
+  let canvas = createCanvas(windowWidth, windowHeight);
+  canvas.elt.style.touchAction = "none";
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
 }
 
 function draw() {
-  background(248, 250, 252);
-  noStroke();
-  fill(59, 130, 246);
-  circle(mouseX, mouseY, 48);
+  background(255);
+  let mx = pointerX();
+  let my = pointerY();
+  fill(55);
+  ellipse(mx, my, 20, 20);
 }
 """
 
-PROCESSING_STARTER_CODE = """void setup() {
-  size(400, 300);
+PROCESSING_STARTER_CODE = """
+float pointerX() {
+  return mouseX;
+}
+
+float pointerY() {
+  return mouseY;
+}
+
+void setup() {
+  size(screenWidth, screenHeight);
+  noStroke();
 }
 
 void draw() {
-  background(248, 250, 252);
-  noStroke();
-  fill(59, 130, 246);
-  ellipse(mouseX, mouseY, 48, 48);
+  background(255);
+  float mx = pointerX();
+  float my = pointerY();
+  fill(55);
+  ellipse(mx, my, 20, 20);
 }
 """
 

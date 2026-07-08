@@ -205,10 +205,11 @@
 <script src="{% static 'sketches/js/embed-builder.js' %}"></script>
 <script>window.SketchEmbedBase = "{% static 'sketches/embed/' %}";</script>
 <script src="{% static 'sketches/js/preview-iframe.js' %}"></script>
-<script src="{% static 'sketches/js/create-sketch-preview.js' %}?v=20260706c"></script>
+<script src="{% static 'sketches/js/sketch-pointer-forward.js' %}?v=20260708b"></script>
+<script src="{% static 'sketches/js/create-sketch-preview.js' %}?v=20260708b"></script>
 {% endif %}
-{% if not is_create and sketch.is_interactive %}
-<script src="{% static 'sketches/js/preview-controls.js' %}"></script>
+{% if is_create or not is_create and sketch.is_interactive %}
+<script src="{% static 'sketches/js/preview-controls.js' %}?v=20260708b"></script>
 {% endif %}
 <script src="{% static 'sketches/js/sketch-edit-resize.js' %}"></script>
 <script src="{% static 'sketches/js/sketch-edit-pane-toggle.js' %}?v=20260705b"></script>

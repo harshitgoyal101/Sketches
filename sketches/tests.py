@@ -99,7 +99,9 @@ class SketchStarterTests(SimpleTestCase):
         self.assertEqual(get_default_filename(Sketch.SketchType.PROCESSING), "sketch.pde")
         code = get_starter_code(Sketch.SketchType.PROCESSING)
         self.assertIn("void setup()", code)
-        self.assertIn("size(400, 300)", code)
+        self.assertIn("pointerX()", code)
+        self.assertIn("pointerY()", code)
+        self.assertIn("size(screenWidth, screenHeight)", code)
 
     def test_create_form_prefills_processing_defaults(self):
         form = SketchEditForm(

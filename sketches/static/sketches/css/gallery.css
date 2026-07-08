@@ -1217,6 +1217,10 @@ body.gallery-page.gallery-detail-page--minimal main {
   display: block;
 }
 
+.gallery-detail-page .sketch-detail-preview--interactive .sketch-detail-preview-stage iframe {
+  pointer-events: none;
+}
+
 .gallery-detail-page .sketch-detail-preview-hint {
   display: flex;
   align-items: center;

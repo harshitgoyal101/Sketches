@@ -6,7 +6,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const mobileFullscreenExit = document.getElementById("mobile-fullscreen-exit");
   const liveEditor = document.querySelector(".code-section-live");
   const createPreview = document.getElementById("create-preview-panel");
-  const interactivePreview = liveEditor || createPreview;
+  const detailInteractivePreview = previewWrap?.classList.contains("sketch-detail-preview--interactive");
+  const interactivePreview = liveEditor || createPreview || detailInteractivePreview;
 
   function isMobileViewport() {
     return window.matchMedia("(max-width: 767px)").matches;
@@ -63,7 +64,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   if (interactivePreview && iframe) {
-    previewWrap.classList.add("is-click-restart");
+    if (window.SketchPointerForward) {
+      window.SketchPointerForward.bind({
+        iframe,
+        previewWrap,
+        clickRestart: Boolean(liveEditor || createPreview),
+      });
+    }
 
     previewWrap.addEventListener("click", (event) => {
       if (event.target.closest(
@@ -72,26 +79,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       restartPreview();
-    });
-
-    document.addEventListener("mousemove", (event) => {
-      const rect = previewWrap.getBoundingClientRect();
-      const insidePreview = (
-        event.clientX >= rect.left &&
-        event.clientX <= rect.right &&
-        event.clientY >= rect.top &&
-        event.clientY <= rect.bottom
-      );
-      if (!insidePreview || !iframe.contentWindow) return;
-
-      iframe.contentWindow.postMessage(
-        {
-          type: "sketch-mouse",
-          x: event.clientX - rect.left,
-          y: event.clientY - rect.top,
-        },
-        "*"
-      );
     });
   }
 

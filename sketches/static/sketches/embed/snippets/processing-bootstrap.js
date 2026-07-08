@@ -25,6 +25,44 @@
     window.__processingInstance = null;
   }
 
+  function applyParentPointer(instance) {
+    if (!instance || typeof window._parentMouseX !== "number") {
+      return;
+    }
+
+    instance.mouseX = window._parentMouseX;
+    instance.mouseY = window._parentMouseY;
+  }
+
+  function patchProcessingPointer(instance, canvas) {
+    if (!instance || instance.__sketchPointerFallback) {
+      return;
+    }
+
+    var draw = instance.draw;
+    if (typeof draw !== "function") {
+      return;
+    }
+
+    instance.draw = function () {
+      applyParentPointer(instance);
+      draw.apply(instance, arguments);
+    };
+    instance.__sketchPointerFallback = true;
+
+    if (canvas) {
+      canvas.style.touchAction = "none";
+    }
+
+    function syncParentPointer() {
+      if (window.__processingInstance === instance) {
+        applyParentPointer(instance);
+        window.requestAnimationFrame(syncParentPointer);
+      }
+    }
+    window.requestAnimationFrame(syncParentPointer);
+  }
+
   function start() {
     if (typeof Processing === "undefined") {
       report({ message: "Processing.js failed to load." });
@@ -44,6 +82,7 @@
 
     try {
       window.__processingInstance = new Processing(canvas, getCombinedSource());
+      patchProcessingPointer(window.__processingInstance, canvas);
     } catch (error) {
       report({
         message: error && error.message ? error.message : String(error),
