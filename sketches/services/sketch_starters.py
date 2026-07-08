@@ -32,14 +32,6 @@ function draw() {
 """
 
 PROCESSING_STARTER_CODE = """
-float pointerX() {
-  return mouseX;
-}
-
-float pointerY() {
-  return mouseY;
-}
-
 void setup() {
   size(screenWidth, screenHeight);
   noStroke();
@@ -47,10 +39,8 @@ void setup() {
 
 void draw() {
   background(255);
-  float mx = pointerX();
-  float my = pointerY();
   fill(55);
-  ellipse(mx, my, 20, 20);
+  ellipse(mouseX, mouseY, 20, 20);
 }
 """
 
