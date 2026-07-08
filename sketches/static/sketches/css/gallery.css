@@ -214,15 +214,19 @@ body.gallery-page.gallery-edit-page main .themed-form.sketch-edit-page {
 
 .gallery-sketch-card-media {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 12rem;
   overflow: hidden;
-  background: #f1f5f9;
+  background: #eff6ff;
 }
 
 .gallery-sketch-card-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   display: block;
   transition: transform 0.7s ease;
 }
@@ -857,6 +861,44 @@ body.gallery-page.gallery-edit-page main .themed-form.sketch-edit-page {
   color: #131b2e;
 }
 
+.sketch-fork-attribution {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  color: #5f6b7a;
+}
+
+.sketch-fork-attribution .material-symbols-outlined {
+  font-size: 1rem;
+  color: var(--gallery-primary);
+}
+
+.sketch-fork-attribution a {
+  color: var(--gallery-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sketch-fork-attribution a:hover {
+  text-decoration: underline;
+}
+
+.sketch-fork-form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.sketch-detail-topbar-actions .sketch-fork-form {
+  flex-shrink: 0;
+}
+
+.sketch-edit-page--fork .sketch-edit-readonly-notice strong {
+  color: var(--gallery-primary);
+}
+
 .sketch-detail-author {
   margin: 0.35rem 0 0;
 }
@@ -1214,12 +1256,17 @@ body.gallery-page.gallery-detail-page--minimal main {
 
 .gallery-detail-page .sketch-detail-preview:not(.sketch-detail-preview--interactive) {
   aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
 }
 
 .gallery-detail-page .sketch-detail-preview-thumb {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
 }
 
 .gallery-detail-page .sketch-detail-preview-placeholder {
@@ -3073,7 +3120,61 @@ body.code-editor-fullscreen .sketch-edit-pane-toggle {
 }
 
 .sketch-settings-card .edit-thumbnail-preview {
-  max-width: 16rem;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: #eff6ff;
+  border: 1px solid var(--gallery-outline-variant, #e2e8f0);
+}
+
+.sketch-settings-card .edit-thumbnail-preview--empty {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border: 1px dashed var(--gallery-outline-variant, #e2e8f0);
+  border-radius: 0.5rem;
+  background: #eff6ff;
+}
+
+.sketch-settings-card .edit-thumbnail-preview .sketch-thumbnail,
+.sketch-settings-card .edit-thumbnail-preview .sketch-thumbnail--settings {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  background: #eff6ff;
+}
+
+.sketch-settings-card .edit-thumbnail-preview .sketch-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sketch-settings-card .edit-thumbnail-generate-form,
+.sketch-settings-card #generate-thumbnail-btn {
+  margin-top: 0.65rem;
+}
+
+.sketch-settings-card #generate-thumbnail-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sketch-settings-card #generate-thumbnail-btn .material-symbols-outlined {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.sketch-settings-card #generate-thumbnail-btn[aria-busy="true"] {
+  opacity: 0.75;
 }
 
 .sketch-settings-slug {

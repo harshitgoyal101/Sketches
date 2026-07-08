@@ -23,7 +23,21 @@
   data-login-url="{% url 'login' %}"
   data-signup-url="{% url 'signup' %}"
   data-back-url="{% if is_create %}{% url 'account' %}{% else %}{% url 'sketch_detail' sketch.slug %}{% endif %}"
+  {% if not is_create %}data-thumbnail-upload-url="{% url 'sketch_upload_thumbnail' sketch.slug %}"{% endif %}
 >
+{% elif can_fork %}
+<form method="post" action="{% url 'sketch_fork' sketch.slug %}" class="themed-form sketch-edit-page sketch-edit-page--fork relative z-10" novalidate
+  data-sketch-edit-draft
+  data-draft-key="{{ sketch.slug }}"
+  data-can-save="false"
+  data-can-fork="true"
+  data-fork-url="{% url 'sketch_fork' sketch.slug %}"
+  data-login-url="{% url 'login' %}"
+  data-signup-url="{% url 'signup' %}"
+  data-back-url="{% url 'sketch_detail' sketch.slug %}"
+>
+  <input type="hidden" name="title" value="{{ sketch.title }} (fork)">
+  <input type="hidden" name="sketch_type" value="{{ sketch.sketch_type }}">
 {% else %}
 <div class="sketch-edit-page sketch-edit-page--readonly relative z-10"
   data-sketch-edit-draft
@@ -98,6 +112,8 @@
       <button type="submit" name="action" value="publish" class="btn btn-publish btn-sm">Publish</button>
       {% endif %}
       <button type="submit" class="btn btn-primary btn-sm">{{ submit_label }}</button>
+      {% elif can_fork %}
+      <button type="submit" class="btn btn-primary btn-sm">Save fork</button>
       {% endif %}
     </div>
     {% if not is_create %}
@@ -106,7 +122,16 @@
   </div>
 
   {% if not can_edit and not is_create %}
-  <p class="sketch-edit-readonly-notice">You can edit code and run a live preview here. Only the author or an admin can save changes.</p>
+  <p class="sketch-edit-readonly-notice">
+    You can edit code and run a live preview here.
+    {% if can_fork %}
+    Save your changes as a <strong>fork</strong> — the original stays unchanged{% if sketch.author %}, and @{{ sketch.author.username }} is credited{% endif %}.
+    {% elif user.is_authenticated %}
+    Only the author or an admin can save changes.
+    {% else %}
+    <a href="{% url 'login' %}?next={{ request.path|urlencode }}">Log in</a> to save a fork in your account.
+    {% endif %}
+  </p>
   {% endif %}
 
   <div class="sketch-edit-pane-toggle" role="tablist" aria-label="Editor panels" data-edit-pane-toggle>
@@ -164,6 +189,8 @@
   </div>
 {% if can_edit %}
 </form>
+{% elif can_fork %}
+</form>
 {% else %}
 </div>
 {% endif %}
@@ -187,8 +214,12 @@
 <script src="{% static 'sketches/js/sketch-edit-pane-toggle.js' %}?v=20260705b"></script>
 <script src="{% static 'sketches/js/file-tree.js' %}"></script>
 <script src="{% static 'sketches/js/code-editor-ui.js' %}?v=20260706g"></script>
-<script src="{% static 'sketches/js/sketch-edit-draft.js' %}?v=20260706a"></script>
+<script src="{% static 'sketches/js/sketch-edit-draft.js' %}?v=20260707c"></script>
 {% if show_sketch_type_picker %}
 <script src="{% static 'sketches/js/sketch-type-fields.js' %}"></script>
+{% endif %}
+{% if not is_create and can_edit and sketch.is_interactive %}
+<script src="{% static 'sketches/js/thumbnail-capture.js' %}?v=20260707c"></script>
+<script src="{% static 'sketches/js/sketch-edit-publish-thumbnail.js' %}?v=20260706a"></script>
 {% endif %}
 {% endblock %}

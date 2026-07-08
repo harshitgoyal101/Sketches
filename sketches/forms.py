@@ -122,7 +122,7 @@ class SignUpForm(UserCreationForm):
                 errors.append("Password should not be your username.")
         if errors:
             raise ValidationError(errors)
-        return super().clean_password1()
+        return password
 
     def save(self, commit=True):
         user = super().save(commit=False)

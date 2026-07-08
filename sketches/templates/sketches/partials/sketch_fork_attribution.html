@@ -1,0 +1,13 @@
+{% if sketch.forked_from %}
+<p class="sketch-fork-attribution">
+  <span class="material-symbols-outlined" aria-hidden="true">fork_right</span>
+  Forked from
+  <a href="{% url 'sketch_detail' sketch.forked_from.slug %}">{{ sketch.forked_from.title }}</a>
+  {% if sketch.forked_from.author %}
+  by
+  <a href="{% url 'sketch_list' %}?author={{ sketch.forked_from.author.username|urlencode }}">
+    @{{ sketch.forked_from.author.username }}
+  </a>
+  {% endif %}
+</p>
+{% endif %}

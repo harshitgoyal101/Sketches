@@ -37,9 +37,19 @@ urlpatterns = [
         name="sketch_edit",
     ),
     path(
+        "accounts/sketches/<slug:slug>/fork/",
+        views_manage.sketch_fork,
+        name="sketch_fork",
+    ),
+    path(
         "accounts/sketches/<slug:slug>/settings/",
         views_manage.sketch_settings,
         name="sketch_settings",
+    ),
+    path(
+        "accounts/sketches/<slug:slug>/settings/upload-thumbnail/",
+        views_manage.sketch_upload_thumbnail,
+        name="sketch_upload_thumbnail",
     ),
     path(
         "accounts/sketches/<slug:slug>/publish/",

@@ -3,4 +3,5 @@ Markdown>=3.5
 Pygments>=2.17
 bleach>=6.0
 Pillow>=10.0
+playwright>=1.40
 python-dotenv>=1.0

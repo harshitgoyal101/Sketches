@@ -29,6 +29,7 @@
   <header class="sketch-detail-topbar">
     <div class="sketch-detail-topbar-info">
       <h1 class="sketch-detail-title">{{ sketch.title }}</h1>
+      {% include "sketches/partials/sketch_fork_attribution.html" %}
       {% if sketch.author %}
       <p class="sketch-detail-author">
         <a href="{% url 'sketch_list' %}?author={{ sketch.author.username|urlencode }}" class="sketch-detail-author-link">
@@ -49,6 +50,15 @@
         <span class="material-symbols-outlined">edit</span>
         Open in Editor
       </a>
+      {% if can_fork %}
+      <form method="post" action="{% url 'sketch_fork' sketch.slug %}" class="sketch-fork-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary sketch-detail-edit-btn">
+          <span class="material-symbols-outlined">fork_right</span>
+          Fork
+        </button>
+      </form>
+      {% endif %}
     </div>
     {% endif %}
   </header>

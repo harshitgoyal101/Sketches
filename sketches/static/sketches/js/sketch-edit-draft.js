@@ -126,11 +126,13 @@
     if (!page) return;
 
     const draftKey = page.dataset.draftKey || "unknown";
+    const isCreatePage = draftKey === "create";
     const storageKey = STORAGE_PREFIX + draftKey;
     const canSave = page.dataset.canSave === "true";
+    const canFork = page.dataset.canFork === "true";
     const loginUrl = page.dataset.loginUrl || "/accounts/login/";
     const signupUrl = page.dataset.signupUrl || "/accounts/signup/";
-    const form = page.closest("form.themed-form");
+    const form = page.matches("form") ? page : page.closest("form.themed-form");
     const codeSection = page.querySelector("#source-code");
 
     let savedSnapshot = "";
@@ -139,19 +141,31 @@
     let pendingNavigationUrl = null;
     let draftSaveTimer = null;
 
-    const banner = document.createElement("div");
-    banner.className = "sketch-edit-unsaved-banner";
-    banner.hidden = true;
-    banner.setAttribute("role", "status");
-    banner.innerHTML = `
-      <p class="sketch-edit-unsaved-banner-text" data-unsaved-banner-text></p>
-      <div class="sketch-edit-unsaved-banner-actions">
-        <button type="button" class="btn btn-primary btn-sm" data-unsaved-action="save" hidden>Save changes</button>
-        <a class="btn btn-secondary btn-sm" data-unsaved-action="login" hidden>Log in</a>
-        <a class="btn btn-secondary btn-sm" data-unsaved-action="signup" hidden>Create account</a>
-      </div>
-    `;
-    page.insertBefore(banner, page.firstChild);
+    let banner = null;
+    let bannerText = null;
+    let bannerSave = null;
+    let bannerLogin = null;
+    let bannerSignup = null;
+
+    if (!isCreatePage) {
+      banner = document.createElement("div");
+      banner.className = "sketch-edit-unsaved-banner";
+      banner.hidden = true;
+      banner.setAttribute("role", "status");
+      banner.innerHTML = `
+        <p class="sketch-edit-unsaved-banner-text" data-unsaved-banner-text></p>
+        <div class="sketch-edit-unsaved-banner-actions">
+          <button type="button" class="btn btn-primary btn-sm" data-unsaved-action="save" hidden>Save changes</button>
+          <a class="btn btn-secondary btn-sm" data-unsaved-action="login" hidden>Log in</a>
+          <a class="btn btn-secondary btn-sm" data-unsaved-action="signup" hidden>Create account</a>
+        </div>
+      `;
+      page.insertBefore(banner, page.firstChild);
+      bannerText = banner.querySelector("[data-unsaved-banner-text]");
+      bannerSave = banner.querySelector('[data-unsaved-action="save"]');
+      bannerLogin = banner.querySelector('[data-unsaved-action="login"]');
+      bannerSignup = banner.querySelector('[data-unsaved-action="signup"]');
+    }
 
     const modal = createModal();
     const modalText = modal.querySelector("[data-leave-dialog-text]");
@@ -160,10 +174,6 @@
     const modalLogin = modal.querySelector('[data-leave-action="login"]');
     const modalSignup = modal.querySelector('[data-leave-action="signup"]');
     const modalLeave = modal.querySelector('[data-leave-action="leave"]');
-    const bannerText = banner.querySelector("[data-unsaved-banner-text]");
-    const bannerSave = banner.querySelector('[data-unsaved-action="save"]');
-    const bannerLogin = banner.querySelector('[data-unsaved-action="login"]');
-    const bannerSignup = banner.querySelector('[data-unsaved-action="signup"]');
 
     function loadDraft() {
       try {
@@ -189,24 +199,37 @@
     function updateDirtyState() {
       const current = serializeState(captureEditState(page));
       hasUnsavedChanges = current !== savedSnapshot;
-      page.classList.toggle("has-unsaved-edits", hasUnsavedChanges);
-      banner.hidden = !hasUnsavedChanges;
+      page.classList.toggle("has-unsaved-edits", hasUnsavedChanges && !isCreatePage);
+      if (banner) {
+        banner.hidden = !hasUnsavedChanges;
+
+        if (hasUnsavedChanges) {
+          if (canSave) {
+            bannerText.textContent = "You have unsaved changes.";
+            bannerSave.textContent = "Save changes";
+            bannerSave.hidden = false;
+            bannerLogin.hidden = true;
+            bannerSignup.hidden = true;
+          } else if (canFork) {
+            bannerText.textContent =
+              "You have unsaved changes. Save them as a fork in your account.";
+            bannerSave.textContent = "Save fork";
+            bannerSave.hidden = false;
+            bannerLogin.hidden = true;
+            bannerSignup.hidden = true;
+          } else {
+            bannerText.textContent =
+              "You have unsaved changes. Log in to save a fork in your account.";
+            bannerSave.hidden = true;
+            bannerLogin.hidden = false;
+            bannerSignup.hidden = false;
+            bannerLogin.href = buildAuthUrl(loginUrl);
+            bannerSignup.href = buildAuthUrl(signupUrl);
+          }
+        }
+      }
 
       if (hasUnsavedChanges) {
-        if (canSave) {
-          bannerText.textContent = "You have unsaved changes.";
-          bannerSave.hidden = false;
-          bannerLogin.hidden = true;
-          bannerSignup.hidden = true;
-        } else {
-          bannerText.textContent =
-            "You have unsaved changes. Log in as the author to save them.";
-          bannerSave.hidden = true;
-          bannerLogin.hidden = false;
-          bannerSignup.hidden = false;
-          bannerLogin.href = buildAuthUrl(loginUrl);
-          bannerSignup.href = buildAuthUrl(signupUrl);
-        }
         scheduleDraftSave();
       } else {
         clearDraft();
@@ -243,12 +266,20 @@
       if (canSave) {
         modalText.textContent =
           "You have unsaved changes. Save before leaving, or discard your edits.";
+        modalSave.textContent = "Save changes";
+        modalSave.hidden = false;
+        modalLogin.hidden = true;
+        modalSignup.hidden = true;
+      } else if (canFork) {
+        modalText.textContent =
+          "You have unsaved changes. Save as a fork or leave without saving.";
+        modalSave.textContent = "Save fork";
         modalSave.hidden = false;
         modalLogin.hidden = true;
         modalSignup.hidden = true;
       } else {
         modalText.textContent =
-          "You have unsaved changes. Log in as the author to save them, or leave without saving.";
+          "You have unsaved changes. Log in to save a fork, or leave without saving.";
         modalSave.hidden = true;
         modalLogin.hidden = false;
         modalSignup.hidden = false;
@@ -349,6 +380,8 @@
     }
 
     function configureBanner() {
+      if (!banner) return;
+
       bannerSave?.addEventListener("click", () => {
         if (!form) return;
         navigationAllowed = true;

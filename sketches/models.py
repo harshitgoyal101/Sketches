@@ -106,6 +106,23 @@ class Sketch(models.Model):
         blank=True,
         related_name="sketches",
     )
+    forked_from = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="forks",
+        help_text="Original sketch this copy was forked from.",
+    )
+    fork_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sketch_forks_created",
+        editable=False,
+        help_text="User who created this fork.",
+    )
     thumbnail = models.ImageField(upload_to="thumbnails/", blank=True, null=True)
     is_home_background = models.BooleanField(
         default=False,

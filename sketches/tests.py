@@ -1,11 +1,15 @@
 import json
+from io import BytesIO
 from pathlib import Path
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, SimpleTestCase, TestCase, override_settings
+from PIL import Image
 
 from sketches.forms import SketchDetailsForm, SketchEditForm
-from sketches.models import Sketch
+from sketches.models import Sketch, SketchAsset
 from sketches.services.embed_builder import (
     EMBED_ROOT,
     build_p5_embed_html,
@@ -15,6 +19,12 @@ from sketches.services.sketch_starters import (
     get_default_filename,
     get_starter_code,
     normalize_sketch_type,
+)
+from sketches.services.thumbnail_generator import (
+    _prepare_embed_html_for_capture,
+    _prepare_thumbnail_image,
+    generate_sketch_thumbnail,
+    save_sketch_thumbnail_bytes,
 )
 
 
@@ -452,6 +462,153 @@ class SketchEditorAccessTests(TestCase):
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
+class SketchForkTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(username="fork-author", password="secret")
+        self.visitor = user_model.objects.create_user(username="fork-visitor", password="secret")
+        self.sketch = Sketch.objects.create(
+            title="Original Sketch",
+            slug="fork-author-original-sketch",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() { createCanvas(200, 120); background(255); }",
+            description="Original description",
+            status=Sketch.Status.PUBLISHED,
+            author=self.author,
+        )
+        SketchAsset.objects.create(
+            sketch=self.sketch,
+            filename="helper.js",
+            content="const helper = true;",
+            asset_type=SketchAsset.AssetType.JS,
+            order=0,
+        )
+        self.client = Client()
+
+    def test_visitor_sees_save_fork_in_editor(self):
+        self.client.force_login(self.visitor)
+        response = self.client.get(f"/accounts/sketches/{self.sketch.slug}/edit/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Save fork")
+        self.assertNotContains(response, "Save changes")
+
+    def test_visitor_can_fork_without_edits(self):
+        self.client.force_login(self.visitor)
+        response = self.client.post(f"/accounts/sketches/{self.sketch.slug}/fork/")
+        self.assertEqual(response.status_code, 302)
+        fork = Sketch.objects.exclude(pk=self.sketch.pk).get(author=self.visitor)
+        self.assertEqual(fork.forked_from, self.sketch)
+        self.assertEqual(fork.fork_by, self.visitor)
+        self.assertEqual(fork.status, Sketch.Status.DRAFT)
+        self.assertEqual(fork.code, self.sketch.code)
+        self.assertEqual(fork.assets.count(), 1)
+        self.assertIn("Forked from", fork.description)
+        self.assertIn("@fork-author", fork.description)
+        self.sketch.refresh_from_db()
+        self.assertEqual(self.sketch.title, "Original Sketch")
+
+    def test_visitor_can_fork_with_edited_code(self):
+        self.client.force_login(self.visitor)
+        response = self.client.post(
+            f"/accounts/sketches/{self.sketch.slug}/fork/",
+            {
+                "title": "Original Sketch (fork)",
+                "entry_filename": "sketch.js",
+                "code": "function setup() { createCanvas(400, 300); background(0, 0, 255); }",
+                "sketch_type": "p5js",
+                "assets-TOTAL_FORMS": "1",
+                "assets-INITIAL_FORMS": "0",
+                "assets-MIN_NUM_FORMS": "0",
+                "assets-MAX_NUM_FORMS": "1000",
+                "assets-0-filename": "helper.js",
+                "assets-0-content": "const helper = false;",
+                "assets-0-asset_type": "js",
+                "assets-0-order": "0",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        fork = Sketch.objects.exclude(pk=self.sketch.pk).get(author=self.visitor)
+        self.assertIn("createCanvas(400, 300)", fork.code)
+        self.assertEqual(fork.assets.get().content, "const helper = false;")
+        self.sketch.refresh_from_db()
+        self.assertIn("createCanvas(200, 120)", self.sketch.code)
+
+    def test_author_cannot_fork_own_sketch(self):
+        self.client.force_login(self.author)
+        response = self.client.post(f"/accounts/sketches/{self.sketch.slug}/fork/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_visitor_cannot_fork_draft(self):
+        draft = Sketch.objects.create(
+            title="Private Draft",
+            slug="fork-author-private-draft",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.DRAFT,
+            author=self.author,
+        )
+        self.client.force_login(self.visitor)
+        response = self.client.post(f"/accounts/sketches/{draft.slug}/fork/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_detail_page_shows_fork_button_for_visitor(self):
+        self.client.force_login(self.visitor)
+        response = self.client.get(f"/sketches/{self.sketch.slug}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Fork")
+
+    def test_forked_sketch_shows_attribution_on_detail_page(self):
+        self.client.force_login(self.visitor)
+        self.client.post(f"/accounts/sketches/{self.sketch.slug}/fork/")
+        fork = Sketch.objects.exclude(pk=self.sketch.pk).get(author=self.visitor)
+        fork.status = Sketch.Status.PUBLISHED
+        fork.save()
+        response = self.client.get(f"/sketches/{fork.slug}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Forked from")
+        self.assertContains(response, "Original Sketch")
+        self.assertContains(response, "@fork-author")
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class SketchCreateTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(username="create-author", password="secret")
+        self.client = Client()
+
+    def test_create_page_shows_setup_step_one(self):
+        self.client.force_login(self.author)
+        response = self.client.get("/accounts/sketches/new/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Continue to settings")
+        self.assertContains(response, "sketch-setup-steps")
+
+    def test_create_redirects_to_settings_setup(self):
+        self.client.force_login(self.author)
+        response = self.client.post(
+            "/accounts/sketches/new/",
+            {
+                "title": "Brand New Sketch",
+                "entry_filename": "sketch.js",
+                "code": "function setup() { createCanvas(100, 100); }",
+                "sketch_type": "p5js",
+                "assets-TOTAL_FORMS": "0",
+                "assets-INITIAL_FORMS": "0",
+                "assets-MIN_NUM_FORMS": "0",
+                "assets-MAX_NUM_FORMS": "1000",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertRegex(response.url, r"/accounts/sketches/.+/settings/\?setup=1$")
+        sketch = Sketch.objects.get(title="Brand New Sketch")
+        self.assertEqual(sketch.author, self.author)
+        follow = self.client.get(response.url)
+        self.assertEqual(follow.status_code, 200)
+        self.assertContains(follow, "Step 2 · Sketch details")
+        self.assertContains(follow, 'data-auto-generate-thumbnail="true"')
+
+
 class SketchSettingsTests(TestCase):
     def setUp(self):
         user_model = get_user_model()
@@ -481,7 +638,8 @@ class SketchSettingsTests(TestCase):
         response = self.client.get("/accounts/sketches/my-sketch/settings/")
         self.assertEqual(response.status_code, 403)
 
-    def test_author_can_save_description(self):
+    @patch("sketches.views_manage.schedule_sketch_thumbnail_generation")
+    def test_author_can_save_description(self, schedule_mock):
         self.client.force_login(self.author)
         response = self.client.post(
             "/accounts/sketches/my-sketch/settings/",
@@ -505,6 +663,40 @@ class SketchSettingsTests(TestCase):
         form = SketchDetailsForm(instance=self.sketch, is_admin=True)
         self.assertNotIn("slug", form.fields)
         self.assertIn("status", form.fields)
+
+    @patch("sketches.views_manage.schedule_sketch_thumbnail_generation")
+    def test_save_settings_generates_thumbnail_when_missing(self, schedule_mock):
+        self.client.force_login(self.author)
+        response = self.client.post(
+            "/accounts/sketches/my-sketch/settings/",
+            {
+                "title": "My Sketch",
+                "description": "Updated description",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        schedule_mock.assert_called_once_with(self.sketch)
+
+    def test_upload_thumbnail_endpoint(self):
+        self.client.force_login(self.author)
+        buffer = BytesIO()
+        Image.new("RGB", (200, 120), color="#3B82F6").save(buffer, format="PNG")
+        buffer.seek(0)
+        response = self.client.post(
+            "/accounts/sketches/my-sketch/settings/upload-thumbnail/",
+            {"image": SimpleUploadedFile("thumb.png", buffer.read(), content_type="image/png")},
+            HTTP_ACCEPT="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.sketch.refresh_from_db()
+        self.assertTrue(self.sketch.thumbnail)
+
+    def test_settings_page_shows_generate_thumbnail_button(self):
+        self.client.force_login(self.author)
+        response = self.client.get("/accounts/sketches/my-sketch/settings/")
+        self.assertContains(response, "Generate from preview")
 
 
 class SketchSlugTests(TestCase):
@@ -671,3 +863,123 @@ class SketchEmbedCacheViewTests(TestCase):
         response = self.client.get(f"/sketches/{draft.slug}/embed/")
         self.assertEqual(response.status_code, 200)
         self.assertIn("no-cache", response["Cache-Control"])
+
+
+class ThumbnailGeneratorTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(username="thumb-user", password="secret")
+        self.sketch = Sketch.objects.create(
+            title="Thumb Sketch",
+            slug="thumb-user-thumb-sketch",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() { createCanvas(200, 120); background(255); }",
+            status=Sketch.Status.DRAFT,
+            author=self.author,
+        )
+
+    def _sample_png(self):
+        buffer = BytesIO()
+        Image.new("RGB", (200, 120), color="#3B82F6").save(buffer, format="PNG")
+        return buffer.getvalue()
+
+    def test_prepare_embed_html_injects_capture_script(self):
+        html = _prepare_embed_html_for_capture(self.sketch)
+        self.assertIn("__SKETCH_THUMBNAIL_READY__", html)
+        self.assertIn("function setup()", html)
+
+    def test_prepare_thumbnail_image_keeps_canvas_dimensions(self):
+        processed = _prepare_thumbnail_image(self._sample_png(), (1280, 720))
+        image = Image.open(BytesIO(processed))
+        self.assertEqual(image.size, (200, 120))
+
+    def test_prepare_thumbnail_image_scales_down_large_canvas(self):
+        buffer = BytesIO()
+        Image.new("RGB", (2400, 1200), color="#3B82F6").save(buffer, format="PNG")
+        processed = _prepare_thumbnail_image(buffer.getvalue(), (1280, 720))
+        image = Image.open(BytesIO(processed))
+        self.assertEqual(image.size, (1280, 640))
+
+    @patch("sketches.services.thumbnail_generator._capture_canvas_png")
+    def test_generate_sketch_thumbnail_saves_image(self, capture_mock):
+        capture_mock.return_value = self._sample_png()
+        generated = generate_sketch_thumbnail(self.sketch)
+        self.assertTrue(generated)
+        self.sketch.refresh_from_db()
+        self.assertTrue(self.sketch.thumbnail)
+        self.assertTrue(self.sketch.thumbnail.name.endswith(".png"))
+
+    def test_save_sketch_thumbnail_bytes(self):
+        saved = save_sketch_thumbnail_bytes(self.sketch, self._sample_png(), force=True)
+        self.assertTrue(saved)
+        self.sketch.refresh_from_db()
+        self.assertTrue(self.sketch.thumbnail)
+
+    @patch("sketches.services.thumbnail_generator._capture_canvas_png")
+    def test_generate_sketch_thumbnail_skips_existing_thumbnail(self, capture_mock):
+        self.sketch.thumbnail.save(
+            "existing.png",
+            SimpleUploadedFile("existing.png", self._sample_png(), content_type="image/png"),
+            save=True,
+        )
+        generated = generate_sketch_thumbnail(self.sketch)
+        self.assertFalse(generated)
+        capture_mock.assert_not_called()
+
+    @patch("sketches.services.thumbnail_generator._capture_canvas_png")
+    def test_generate_sketch_thumbnail_force_regenerates(self, capture_mock):
+        capture_mock.return_value = self._sample_png()
+        self.sketch.thumbnail.save(
+            "existing.png",
+            SimpleUploadedFile("existing.png", self._sample_png(), content_type="image/png"),
+            save=True,
+        )
+        generated = generate_sketch_thumbnail(self.sketch, force=True)
+        self.assertTrue(generated)
+        capture_mock.assert_called_once()
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class SketchPublishThumbnailTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(username="publisher", password="secret")
+        self.sketch = Sketch.objects.create(
+            title="Publish Me",
+            slug="publisher-publish-me",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() { createCanvas(100, 100); }",
+            status=Sketch.Status.DRAFT,
+            author=self.author,
+        )
+        self.client = Client()
+        self.client.force_login(self.author)
+
+    @patch("sketches.services.sketch_publish.schedule_sketch_thumbnail_generation")
+    def test_publish_endpoint_generates_thumbnail(self, schedule_mock):
+        response = self.client.post(f"/accounts/sketches/{self.sketch.slug}/publish/")
+        self.assertEqual(response.status_code, 302)
+        self.sketch.refresh_from_db()
+        self.assertEqual(self.sketch.status, Sketch.Status.PUBLISHED)
+        schedule_mock.assert_called_once_with(self.sketch)
+
+    @patch("sketches.views_manage.schedule_sketch_thumbnail_generation")
+    def test_edit_publish_action_generates_thumbnail(self, schedule_mock):
+        response = self.client.post(
+            f"/accounts/sketches/{self.sketch.slug}/edit/",
+            {
+                "action": "publish",
+                "title": "Publish Me",
+                "entry_filename": "sketch.js",
+                "code": "function setup() { createCanvas(100, 100); }",
+                "sketch_type": "p5js",
+                "assets-TOTAL_FORMS": "0",
+                "assets-INITIAL_FORMS": "0",
+                "assets-MIN_NUM_FORMS": "0",
+                "assets-MAX_NUM_FORMS": "1000",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.sketch.refresh_from_db()
+        self.assertEqual(self.sketch.status, Sketch.Status.PUBLISHED)
+        schedule_mock.assert_called_once_with(self.sketch)

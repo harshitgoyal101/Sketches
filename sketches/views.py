@@ -5,7 +5,7 @@ from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import condition
 
 from .models import Sketch, Tag
-from .permissions import can_edit_sketch
+from .permissions import can_edit_sketch, can_fork_sketch
 from .services.embed_builder import build_embed_html
 from .services.embed_cache import (
     apply_embed_cache_headers,
@@ -124,7 +124,9 @@ def tag_detail(request, slug):
 
 def sketch_detail(request, slug):
     sketch = get_object_or_404(
-        Sketch.objects.prefetch_related("tags", "author", "assets"),
+        Sketch.objects.select_related("forked_from", "forked_from__author", "fork_by").prefetch_related(
+            "tags", "author", "assets"
+        ),
         slug=slug,
     )
     if sketch.status != PUBLISHED:
@@ -132,6 +134,7 @@ def sketch_detail(request, slug):
             raise Http404
     context = build_sketch_detail_context(sketch)
     context["can_edit"] = can_edit_sketch(request.user, sketch)
+    context["can_fork"] = can_fork_sketch(request.user, sketch)
     first_tag = sketch.tags.first()
     if first_tag:
         context["related_sketches"] = (

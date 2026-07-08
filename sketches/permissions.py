@@ -15,3 +15,12 @@ def can_access_sketch_editor(user, sketch):
     if sketch.status == Sketch.Status.PUBLISHED:
         return True
     return can_edit_sketch(user, sketch)
+
+
+def can_fork_sketch(user, sketch):
+    """Logged-in non-authors may fork published sketches into their own account."""
+    if not user.is_authenticated:
+        return False
+    if can_edit_sketch(user, sketch):
+        return False
+    return sketch.status == Sketch.Status.PUBLISHED

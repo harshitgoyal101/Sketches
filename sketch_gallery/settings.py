@@ -144,6 +144,14 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 SKETCH_PROJECTS_ROOT = BASE_DIR / 'sketch_projects'
 
+# Auto-generated gallery thumbnails (requires: pip install playwright && playwright install chromium)
+SKETCH_THUMBNAIL_AUTO_GENERATE = os.environ.get(
+    "SKETCH_THUMBNAIL_AUTO_GENERATE", "true"
+).lower() in ("true", "1", "yes")
+SKETCH_THUMBNAIL_SIZE = (1280, 720)
+SKETCH_THUMBNAIL_CAPTURE_TIMEOUT_MS = 15000
+SKETCH_THUMBNAIL_SETTLE_MS = 2000
+
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 LOGIN_URL = 'login'

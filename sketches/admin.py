@@ -54,10 +54,10 @@ class SketchAdmin(admin.ModelAdmin):
     search_fields = ["title", "description", "code"]
     prepopulated_fields = {"slug": ("title",)}
     filter_horizontal = ["tags"]
-    readonly_fields = ["created_at", "updated_at"]
+    readonly_fields = ["created_at", "updated_at", "forked_from", "fork_by"]
     inlines = [SketchAssetInline]
     fieldsets = (
-        (None, {"fields": ("title", "slug", "sketch_type", "status", "is_home_background", "author")}),
+        (None, {"fields": ("title", "slug", "sketch_type", "status", "is_home_background", "author", "forked_from", "fork_by")}),
         (
             "Content",
             {

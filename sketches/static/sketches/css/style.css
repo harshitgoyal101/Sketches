@@ -841,7 +841,7 @@ body.home-page .hero.home-hero {
 }
 
 .sketch-card-thumb {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 9;
   background: var(--surface-2);
   display: flex;
   align-items: center;
@@ -852,7 +852,8 @@ body.home-page .hero.home-hero {
 .sketch-card-thumb img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
 }
 
 .sketch-card-placeholder {
@@ -2118,9 +2119,18 @@ body.preview-fullscreen-open {
 }
 
 .preview-thumbnail-wrap {
-  aspect-ratio: 4 / 3;
-  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 9;
+  background: #eff6ff;
   overflow: hidden;
+}
+
+.preview-thumbnail-wrap .sketch-thumbnail {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
 }
 
 .preview-thumbnail-wrap--empty {
@@ -2153,12 +2163,19 @@ body.preview-fullscreen-open {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   display: block;
+}
+
+.sketch-thumbnail--preview img,
+.sketch-thumbnail--settings img {
+  object-fit: contain;
 }
 
 .sketch-thumbnail--preview,
 .sketch-thumbnail--settings {
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
+  background: #eff6ff;
 }
 
 .sketch-thumbnail-placeholder {
@@ -2190,6 +2207,8 @@ body.preview-fullscreen-open {
 }
 
 .edit-thumbnail-preview--has-image .sketch-thumbnail {
+  width: 100%;
+  height: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
 }
@@ -4629,6 +4648,93 @@ body.code-editor-fullscreen {
 
 .password-reset-step.is-complete .password-reset-step-label {
   color: var(--accent);
+}
+
+.sketch-setup-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  max-width: 20rem;
+}
+
+.sketch-setup-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  cursor: default;
+}
+
+.sketch-setup-step-marker {
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.sketch-setup-step-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.sketch-setup-step.is-active .sketch-setup-step-marker {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+
+.sketch-setup-step.is-active .sketch-setup-step-label {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sketch-setup-step.is-complete .sketch-setup-step-marker {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+
+.sketch-setup-step.is-complete .sketch-setup-step-label {
+  color: var(--accent);
+}
+
+.sketch-setup-banner {
+  margin: 0 0 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: rgba(59, 130, 246, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  text-align: center;
+}
+
+.sketch-setup-banner--settings {
+  margin-bottom: 1.25rem;
+}
+
+.sketch-setup-lead {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  max-width: 36rem;
 }
 
 .password-reset-card .auth-switch .btn {

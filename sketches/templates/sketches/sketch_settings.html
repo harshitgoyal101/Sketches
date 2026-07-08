@@ -10,12 +10,15 @@
 {% endblock %}
 
 {% block content %}
-<div class="relative z-10 sketch-settings-page">
+<div
+  class="relative z-10 sketch-settings-page"
+  {% if is_setup %}data-setup-step="2" data-auto-generate-thumbnail="true"{% endif %}
+>
   <header class="sketch-settings-header">
     <div class="sketch-settings-header-start">
-      <a href="{% url 'sketch_detail' sketch.slug %}" class="sketch-settings-back" aria-label="Back to sketch">←</a>
+      <a href="{% if is_setup %}{% url 'sketch_edit' sketch.slug %}{% else %}{% url 'sketch_detail' sketch.slug %}{% endif %}" class="sketch-settings-back" aria-label="{% if is_setup %}Back to editor{% else %}Back to sketch{% endif %}">←</a>
       <div>
-        <p class="sketch-settings-eyebrow">Sketch settings</p>
+        <p class="sketch-settings-eyebrow">{% if is_setup %}Step 2 · Sketch details{% else %}Sketch settings{% endif %}</p>
         <h1 class="sketch-settings-title">{{ sketch.title }}</h1>
       </div>
     </div>
@@ -44,6 +47,26 @@
           <p class="sketch-settings-slug" aria-readonly="true">{{ sketch.slug }}</p>
           <span class="field-help">Set when the sketch is created. Includes your username and the sketch title.</span>
         </div>
+
+        {% if sketch.forked_from %}
+        <div class="form-field">
+          <span class="form-label">Forked from</span>
+          <p class="sketch-settings-slug" aria-readonly="true">
+            <a href="{% url 'sketch_detail' sketch.forked_from.slug %}">{{ sketch.forked_from.title }}</a>
+            {% if sketch.forked_from.author %}
+            by @{{ sketch.forked_from.author.username }}
+            {% endif %}
+          </p>
+          <span class="field-help">Original sketch this copy was based on. Cannot be changed.</span>
+        </div>
+        {% if sketch.fork_by %}
+        <div class="form-field">
+          <span class="form-label">Forked by</span>
+          <p class="sketch-settings-slug" aria-readonly="true">@{{ sketch.fork_by.username }}</p>
+          <span class="field-help">Set automatically when the fork was created. Cannot be changed.</span>
+        </div>
+        {% endif %}
+        {% endif %}
 
         <div class="form-field">
           <span class="form-label" id="{{ form.description.id_for_label }}-label">{{ form.description.label }}</span>
@@ -83,9 +106,19 @@
           <div class="edit-thumbnail-upload">
             {{ form.thumbnail }}
           </div>
-          {% if form.thumbnail.help_text %}
-          <span class="field-help">{{ form.thumbnail.help_text|safe }}</span>
-          {% endif %}
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm"
+            id="generate-thumbnail-btn"
+            data-embed-url="{% url 'sketch_embed' sketch.slug %}"
+            data-upload-url="{% url 'sketch_upload_thumbnail' sketch.slug %}"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">photo_camera</span>
+            {% if sketch.thumbnail %}Regenerate from preview{% else %}Generate from preview{% endif %}
+          </button>
+          <span class="field-help">
+            Captures a still from your sketch preview in the browser. You can also upload your own image above.
+          </span>
           {% if form.thumbnail.errors %}
           <span class="field-error">{{ form.thumbnail.errors|join:", " }}</span>
           {% endif %}
@@ -108,8 +141,11 @@
     </div>
 
     <div class="sketch-settings-actions">
-      <button type="submit" class="btn btn-primary">Save settings</button>
+      <button type="submit" class="btn btn-primary">{% if is_setup %}Save and finish{% else %}Save settings{% endif %}</button>
+      <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-secondary">Open editor</a>
+      {% if not is_setup %}
       <a href="{% url 'account' %}" class="btn btn-secondary">Back to account</a>
+      {% endif %}
     </div>
   </form>
 </div>
@@ -118,4 +154,6 @@
 {% block extra_js %}
 <script src="{% static 'sketches/js/description-toolbar.js' %}"></script>
 <script src="{% static 'sketches/js/edit-thumbnail-preview.js' %}"></script>
+<script src="{% static 'sketches/js/thumbnail-capture.js' %}?v=20260707c"></script>
+<script src="{% static 'sketches/js/thumbnail-settings.js' %}?v=20260707d"></script>
 {% endblock %}
