@@ -181,7 +181,7 @@ def sketch_embed(request, slug):
         raise Http404
     if not sketch.is_interactive:
         raise Http404("This sketch has no interactive preview.")
-    fullscreen = sketch.is_home_background
+    fullscreen = sketch.is_home_background or request.GET.get("fullscreen") in ("1", "true", "yes")
     html = build_embed_html(sketch, fullscreen=fullscreen)
     response = HttpResponse(html, content_type="text/html; charset=utf-8")
     return apply_embed_cache_headers(response, sketch)

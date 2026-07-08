@@ -132,14 +132,16 @@ window.SketchThumbnailCapture = (function () {
 
   async function captureFromEmbedUrl(embedUrl) {
     const iframe = document.createElement("iframe");
+    const captureWidth = 1280;
+    const captureHeight = 720;
     iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
     iframe.setAttribute("title", "Thumbnail capture");
     iframe.style.cssText = [
       "position:fixed",
       "left:-10000px",
       "top:0",
-      "width:1280px",
-      "height:720px",
+      `width:${captureWidth}px`,
+      `height:${captureHeight}px`,
       "border:0",
       "opacity:0",
       "pointer-events:none",

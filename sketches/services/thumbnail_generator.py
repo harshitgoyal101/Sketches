@@ -38,9 +38,16 @@ CAPTURE_READY_SCRIPT = """
     return null;
   }
 
+  function processingReady() {
+    if (typeof Processing === "undefined") {
+      return true;
+    }
+    return Boolean(window.__processingInstance);
+  }
+
   function check() {
     var canvas = findCanvas();
-    if (canvas) {
+    if (canvas && processingReady()) {
       settleFrames += 1;
       if (settleFrames >= requiredFrames) {
         window.__SKETCH_THUMBNAIL_READY__ = true;
@@ -64,6 +71,10 @@ def _thumbnail_size():
     return getattr(settings, "SKETCH_THUMBNAIL_SIZE", (1280, 720))
 
 
+def _thumbnail_background():
+    return getattr(settings, "SKETCH_THUMBNAIL_BACKGROUND", (239, 246, 255))
+
+
 def _capture_timeout_ms():
     return int(getattr(settings, "SKETCH_THUMBNAIL_CAPTURE_TIMEOUT_MS", 20000))
 
@@ -73,7 +84,7 @@ def _settle_ms():
 
 
 def _prepare_embed_html_for_capture(sketch):
-    html = build_embed_html(sketch, mode="preview")
+    html = build_embed_html(sketch, mode="fullscreen")
     static_path = "/static/sketches/embed/processing.min.js"
     found = finders.find("sketches/embed/processing.min.js")
     if found:
@@ -141,12 +152,29 @@ def _capture_canvas_png(html):
             browser.close()
 
 
+def _fit_image_to_box(image, box_w, box_h):
+    src_w, src_h = image.size
+    if src_w < 1 or src_h < 1:
+        raise ValueError("Thumbnail source image has invalid dimensions.")
+    scale = min(box_w / src_w, box_h / src_h)
+    new_w = max(1, round(src_w * scale))
+    new_h = max(1, round(src_h * scale))
+    if (new_w, new_h) == image.size:
+        return image
+    return image.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+
 def _prepare_thumbnail_image(png_bytes, size):
-    max_w, max_h = size
+    box_w, box_h = size
     image = Image.open(BytesIO(png_bytes)).convert("RGBA")
-    image.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+    fitted = _fit_image_to_box(image, box_w, box_h)
+
+    background = Image.new("RGBA", (box_w, box_h), (*_thumbnail_background(), 255))
+    offset_x = (box_w - fitted.width) // 2
+    offset_y = (box_h - fitted.height) // 2
+    background.paste(fitted, (offset_x, offset_y), fitted)
     output = BytesIO()
-    image.save(output, format="PNG", optimize=True)
+    background.convert("RGB").save(output, format="PNG", optimize=True)
     return output.getvalue()
 
 

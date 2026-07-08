@@ -110,7 +110,7 @@
             type="button"
             class="btn btn-secondary btn-sm"
             id="generate-thumbnail-btn"
-            data-embed-url="{% url 'sketch_embed' sketch.slug %}"
+            data-embed-url="{% url 'sketch_embed' sketch.slug %}?fullscreen=1"
             data-upload-url="{% url 'sketch_upload_thumbnail' sketch.slug %}"
           >
             <span class="material-symbols-outlined" aria-hidden="true">photo_camera</span>
@@ -154,6 +154,6 @@
 {% block extra_js %}
 <script src="{% static 'sketches/js/description-toolbar.js' %}"></script>
 <script src="{% static 'sketches/js/edit-thumbnail-preview.js' %}"></script>
-<script src="{% static 'sketches/js/thumbnail-capture.js' %}?v=20260707c"></script>
-<script src="{% static 'sketches/js/thumbnail-settings.js' %}?v=20260707d"></script>
+<script src="{% static 'sketches/js/thumbnail-capture.js' %}?v=20260708c"></script>
+<script src="{% static 'sketches/js/thumbnail-settings.js' %}?v=20260708c"></script>
 {% endblock %}

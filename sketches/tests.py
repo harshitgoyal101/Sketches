@@ -889,18 +889,29 @@ class ThumbnailGeneratorTests(TestCase):
         html = _prepare_embed_html_for_capture(self.sketch)
         self.assertIn("__SKETCH_THUMBNAIL_READY__", html)
         self.assertIn("function setup()", html)
+        self.assertIn("background: #ffffff", html)
 
-    def test_prepare_thumbnail_image_keeps_canvas_dimensions(self):
+    def test_prepare_thumbnail_image_letterboxes_to_target_size(self):
         processed = _prepare_thumbnail_image(self._sample_png(), (1280, 720))
         image = Image.open(BytesIO(processed))
-        self.assertEqual(image.size, (200, 120))
+        self.assertEqual(image.size, (1280, 720))
+
+    def test_prepare_thumbnail_image_scales_up_small_canvas(self):
+        buffer = BytesIO()
+        Image.new("RGB", (200, 120), color="#3B82F6").save(buffer, format="PNG")
+        processed = _prepare_thumbnail_image(buffer.getvalue(), (1280, 720))
+        image = Image.open(BytesIO(processed))
+        self.assertEqual(image.size, (1280, 720))
+        # Sketch should be scaled up, not a tiny strip in the corner.
+        pixels = image.load()
+        self.assertNotEqual(pixels[0, 0], pixels[640, 360])
 
     def test_prepare_thumbnail_image_scales_down_large_canvas(self):
         buffer = BytesIO()
         Image.new("RGB", (2400, 1200), color="#3B82F6").save(buffer, format="PNG")
         processed = _prepare_thumbnail_image(buffer.getvalue(), (1280, 720))
         image = Image.open(BytesIO(processed))
-        self.assertEqual(image.size, (1280, 640))
+        self.assertEqual(image.size, (1280, 720))
 
     @patch("sketches.services.thumbnail_generator._capture_canvas_png")
     def test_generate_sketch_thumbnail_saves_image(self, capture_mock):
