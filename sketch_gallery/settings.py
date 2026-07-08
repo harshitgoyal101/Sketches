@@ -59,6 +59,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -132,19 +133,30 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Browser cache for published sketch embed iframes (seconds).
 PUBLISHED_EMBED_MAX_AGE = int(os.environ.get("PUBLISHED_EMBED_MAX_AGE", "300"))
 HOME_BACKGROUND_EMBED_MAX_AGE = int(os.environ.get("HOME_BACKGROUND_EMBED_MAX_AGE", "86400"))
 
-MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+if not DEBUG:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+    WHITENOISE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
 
 SKETCH_PROJECTS_ROOT = BASE_DIR / 'sketch_projects'
 
-# Auto-generated gallery thumbnails (requires: pip install playwright && playwright install chromium)
+# Auto-generated gallery thumbnails
 SKETCH_THUMBNAIL_AUTO_GENERATE = os.environ.get(
     "SKETCH_THUMBNAIL_AUTO_GENERATE", "true"
 ).lower() in ("true", "1", "yes")
