@@ -1,0 +1,13 @@
+<section class="landing-cta">
+  <div class="landing-container landing-cta-inner">
+    <h2 class="landing-cta-title">Ready to create something beautiful?</h2>
+    <p class="landing-cta-sub">
+      Join artists and technical pioneers sketching inside our visual playground.
+    </p>
+    {% if user.is_authenticated %}
+    <a href="{% url 'sketch_create' %}" class="landing-btn landing-btn--light">Get Started Now — It's Free</a>
+    {% else %}
+    <a href="{% url 'signup' %}" class="landing-btn landing-btn--light">Get Started Now — It's Free</a>
+    {% endif %}
+  </div>
+</section>

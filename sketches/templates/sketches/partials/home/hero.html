@@ -1,0 +1,20 @@
+<section class="landing-hero">
+  <div class="landing-hero-inner">
+    <p class="landing-eyebrow">Gaming &amp; Learning with Live Sandbox</p>
+    <h1 class="landing-hero-title">
+      Sketches <span class="landing-accent">101</span>
+    </h1>
+    <p class="landing-hero-sub">
+      The creative coding playground for artists and developers. </br>
+      Build, run, and share.
+    </p>
+    <div class="landing-hero-actions">
+      {% if user.is_authenticated %}
+      <a href="{% url 'sketch_create' %}" class="landing-btn landing-btn--primary">Start Creating</a>
+      {% else %}
+      <a href="{% url 'signup' %}" class="landing-btn landing-btn--primary">Start Creating</a>
+      {% endif %}
+      <a href="{% url 'sketch_list' %}" class="landing-btn landing-btn--ghost">Browse Gallery</a>
+    </div>
+  </div>
+</section>

@@ -1,70 +1,118 @@
+{% load gallery_filters %}
+
+<button
+  type="button"
+  class="gallery-workspace-sidebar-backdrop"
+  id="gallery-workspace-sidebar-backdrop"
+  aria-hidden="true"
+  tabindex="-1"
+  hidden
+></button>
+
+<button
+  type="button"
+  class="gallery-sidebar-show-btn"
+  id="gallery-workspace-sidebar-show"
+  aria-controls="gallery-workspace-sidebar"
+  aria-expanded="false"
+  title="Show workspace sidebar"
+  hidden
+>
+  <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+  <span class="sr-only">Show sidebar</span>
+</button>
+
 <aside
   id="gallery-workspace-sidebar"
-  class="gallery-workspace-sidebar fixed left-0 bottom-0 flex flex-col w-sidebar-width z-40 bg-white border-r border-primary/5 hidden xl:flex overflow-hidden"
+  class="gallery-workspace-sidebar fixed left-0 bottom-0 flex flex-col w-sidebar-width z-40 overflow-hidden pt-4"
   aria-label="Workspace"
 >
-  <div class="gallery-workspace-sidebar-inner p-6 flex flex-col h-full min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain">
+  <a href="{% url 'home' %}" class="gallery-sidebar-brand mx-4" aria-label="sketches101">
+    {% include "sketches/partials/site_logo.html" %}
+  </a> 
+  <div class="gallery-workspace-sidebar-inner">
+    
+    <div class="gallery-sidebar-toolbar">
+      <span class="gallery-sidebar-toolbar-label mt-2">Workspace</span>
+      <button
+        type="button"
+        class="gallery-sidebar-collapse-btn"
+        id="gallery-workspace-sidebar-hide"
+        aria-controls="gallery-workspace-sidebar"
+        aria-expanded="true"
+        title="Hide workspace sidebar"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+        <span class="sr-only">Hide sidebar</span>
+      </button>
+    </div>
 
-    {% if user.is_authenticated %}
-    <a href="{% url 'sketch_create' %}" class="btn btn-primary btn-full btn-lg mb-4">
-      <span class="material-symbols-outlined">add</span>
-      New Sketch
-    </a>
-    {% else %}
-    <a href="{% url 'signup' %}" class="btn btn-primary btn-full btn-lg mb-8">
-      <span class="material-symbols-outlined">add</span>
-      Get Started
-    </a>
+    {% if sketch_formats %}
+    {% if not active_tag %}
+    <section class="gallery-sidebar-section">
+      <header class="gallery-sidebar-section-head">
+        <h2 class="gallery-sidebar-section-label">Sort</h2>
+      </header>
+      <nav class="gallery-sidebar-nav" aria-label="Gallery sort">
+        <a
+          href="{% gallery_filter_url sort='all' %}"
+          class="gallery-sidebar-nav-link{% if gallery_sort == 'all' %} is-active{% endif %}"
+        >
+          <span class="material-symbols-outlined{% if gallery_sort == 'all' %} is-filled{% endif %}" aria-hidden="true">grid_view</span>
+          <span>All</span>
+        </a>
+        <a
+          href="{% gallery_filter_url sort='featured' %}"
+          class="gallery-sidebar-nav-link{% if gallery_sort == 'featured' or not gallery_sort %} is-active{% endif %}"
+        >
+          <span class="material-symbols-outlined{% if gallery_sort == 'featured' or not gallery_sort %} is-filled{% endif %}" aria-hidden="true">star</span>
+          <span>Staff picks</span>
+        </a>
+        <a
+          href="{% gallery_filter_url sort='recent' %}"
+          class="gallery-sidebar-nav-link{% if gallery_sort == 'recent' %} is-active{% endif %}"
+        >
+          <span class="material-symbols-outlined{% if gallery_sort == 'recent' %} is-filled{% endif %}" aria-hidden="true">schedule</span>
+          <span>Recent</span>
+        </a>
+      </nav>
+    </section>
     {% endif %}
 
-    <nav class="space-y-1">
-      <a
-        href="{% url 'sketch_list' %}"
-        class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all group {% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'tag_detail' or request.resolver_match.url_name == 'sketch_detail' %}bg-primary-fixed text-on-primary-fixed-variant border-l-4 border-primary rounded-r-lg{% else %}text-outline hover:text-primary hover:bg-primary/5{% endif %}"
-      >
-        <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'tag_detail' or request.resolver_match.url_name == 'sketch_detail' %} is-filled{% endif %}">folder_open</span>
-        <span class="font-code-md text-code-md{% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'tag_detail' or request.resolver_match.url_name == 'sketch_detail' %} font-bold{% endif %}">Discovery</span>
-      </a>
-      {% if user.is_authenticated %}
-      <a
-        href="{% url 'account' %}"
-        class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' or request.resolver_match.url_name == 'sketch_settings' %}bg-primary-fixed text-on-primary-fixed-variant border-l-4 border-primary rounded-r-lg{% else %}text-outline hover:text-primary hover:bg-primary/5{% endif %}"
-      >
-        <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' or request.resolver_match.url_name == 'sketch_settings' %} is-filled{% endif %}">code_blocks</span>
-        <span class="font-code-md text-code-md{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' or request.resolver_match.url_name == 'sketch_settings' %} font-bold{% endif %}">My Sketches</span>
-      </a>
-      {% endif %}
-    </nav>
+    <section class="gallery-sidebar-section gallery-sidebar-section--filters">
+      <header class="gallery-sidebar-section-head">
+        <h2 class="gallery-sidebar-section-label">Filters</h2>
+        {% if active_filter_count %}
+        <span class="gallery-sidebar-filter-count">{{ active_filter_count }}</span>
+        {% endif %}
+      </header>
+      {% include "sketches/partials/gallery_filters_sidebar.html" %}
+    </section>
+    {% endif %}
 
-    <div class="mt-auto pt-6">
-      <div class="pt-6 border-t border-primary/5">
-        <p class="px-4 text-label-sm font-label-sm text-outline uppercase tracking-widest">Sketches101</p>
-        <p class="px-4 mt-2 text-sm text-on-surface-variant">Interactive p5.js &amp; Processing gallery.</p>
-      </div>
-    </div>
+    <section class="gallery-sidebar-section">
+      <header class="gallery-sidebar-section-head">
+        <h2 class="gallery-sidebar-section-label">Technologies</h2>
+      </header>
+      <nav class="gallery-sidebar-tech" aria-label="Filter by technology">
+        {% published_format_counts as format_counts %}
+        {% for item in format_counts %}
+        <a
+          href="{% url 'sketch_list' %}?type={{ item.format.slug }}"
+          class="gallery-sidebar-tech-link{% if sketch_types and item.format.slug in sketch_types %} is-active{% endif %}"
+        >
+          <span class="gallery-sidebar-tech-name">{{ item.format.name }}</span>
+          <span class="gallery-sidebar-tech-count">{{ item.count }}</span>
+        </a>
+        {% empty %}
+        <p class="gallery-sidebar-empty">No formats yet</p>
+        {% endfor %}
+      </nav>
+    </section>
+
+    <footer class="gallery-sidebar-footer">
+      <p class="gallery-sidebar-footer-brand">sketches101</p>
+      <p class="gallery-sidebar-footer-copy">Interactive p5.js &amp; Processing gallery.</p>
+    </footer>
   </div>
 </aside>
-
-<div class="gallery-workspace-sidebar-toggle-rail">
-  <button
-    type="button"
-    class="gallery-workspace-sidebar-toggle"
-    id="gallery-workspace-sidebar-hide"
-    aria-controls="gallery-workspace-sidebar"
-    aria-expanded="true"
-    title="Hide workspace sidebar"
-  >
-    <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
-  </button>
-  <button
-    type="button"
-    class="gallery-workspace-sidebar-toggle gallery-workspace-sidebar-toggle--show"
-    id="gallery-workspace-sidebar-show"
-    aria-controls="gallery-workspace-sidebar"
-    aria-expanded="false"
-    title="Show workspace sidebar"
-    hidden
-  >
-    <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
-  </button>
-</div>

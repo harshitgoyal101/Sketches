@@ -100,6 +100,9 @@ def parse_filter_params(request, active_tag=None):
     tag_slugs = _parse_multi_param(request, "tag")
     sketch_types = _parse_multi_param(request, "type")
     author_usernames = _parse_multi_param(request, "author")
+    sort = request.GET.get("sort", "featured").strip().lower()
+    if sort not in ("featured", "recent", "all"):
+        sort = "featured"
 
     if active_tag and active_tag.slug not in tag_slugs:
         tag_slugs.insert(0, active_tag.slug)
@@ -109,6 +112,7 @@ def parse_filter_params(request, active_tag=None):
         "tag_slugs": tag_slugs,
         "sketch_types": sketch_types,
         "author_usernames": author_usernames,
+        "sort": sort,
     }
 
 
@@ -154,6 +158,12 @@ def apply_sketch_filters(queryset, request, active_tag=None):
                 | Q(author__username__icontains=query)
             ).distinct()
 
+    sort = params["sort"]
+    if sort == "recent":
+        queryset = queryset.order_by("-published_at", "-updated_at", "-pk")
+    else:
+        queryset = queryset.order_by("-updated_at", "-pk")
+
     return queryset, params
 
 
@@ -176,6 +186,7 @@ def build_filter_url(
     tag_slugs=None,
     sketch_types=None,
     author_usernames=None,
+    sort="featured",
     remove_tag=False,
     remove_type=False,
     remove_author=False,
@@ -213,6 +224,8 @@ def build_filter_url(
         params["type"] = sketch_types
     if author_usernames:
         params["author"] = author_usernames
+    if sort and sort != "featured":
+        params["sort"] = sort
 
     base_url = reverse("sketch_list")
     if not params:

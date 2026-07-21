@@ -9,8 +9,28 @@
 <div
   class="gallery-mobile-menu"
   id="gallery-mobile-menu"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Navigation menu"
   aria-hidden="true"
 >
+  <div class="gallery-mobile-menu-header">
+    <a href="{% url 'home' %}" class="gallery-mobile-menu-brand" aria-label="sketches101">
+      {% include "sketches/partials/site_logo.html" %}
+    </a>
+    <div class="gallery-mobile-menu-header-actions">
+      {% include "sketches/partials/theme_toggle.html" %}
+      <button
+        type="button"
+        class="gallery-mobile-menu-close"
+        id="gallery-nav-close"
+        aria-label="Close navigation menu"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+      </button>
+    </div>
+  </div>
+
   <nav class="gallery-mobile-menu-nav" aria-label="Mobile navigation">
     <a
       href="{% url 'home' %}"
@@ -23,8 +43,8 @@
       href="{% url 'sketch_list' %}"
       class="gallery-mobile-menu-link{% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'tag_detail' or request.resolver_match.url_name == 'sketch_detail' %} is-active{% endif %}"
     >
-      <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'tag_detail' or request.resolver_match.url_name == 'sketch_detail' %} is-filled{% endif %}">folder_open</span>
-      <span>Discovery</span>
+      <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'tag_detail' or request.resolver_match.url_name == 'sketch_detail' %} is-filled{% endif %}">explore</span>
+      <span>Explore</span>
     </a>
     {% if user.is_authenticated %}
     <a
@@ -41,27 +61,28 @@
       <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'sketch_create' %} is-filled{% endif %}">add_box</span>
       <span>New Sketch</span>
     </a>
-    {% else %}
-    <a
-      href="{% url 'signup' %}"
-      class="gallery-mobile-menu-link{% if request.resolver_match.url_name == 'signup' %} is-active{% endif %}"
-    >
-      <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'signup' %} is-filled{% endif %}">person_add</span>
-      <span>Get Started</span>
-    </a>
     {% endif %}
   </nav>
 
   <div class="gallery-mobile-menu-actions">
     {% if user.is_authenticated %}
-    <p class="gallery-mobile-menu-user">{{ user.username }}</p>
+    <div class="gallery-mobile-menu-user-card">
+      <span class="gallery-mobile-menu-avatar" aria-hidden="true">{{ user.username|slice:":2"|upper }}</span>
+      <div class="gallery-mobile-menu-user-meta">
+        <p class="gallery-mobile-menu-user-name">{{ user.username }}</p>
+        {% if user.email %}
+        <p class="gallery-mobile-menu-user-email">{{ user.email }}</p>
+        {% endif %}
+      </div>
+    </div>
+    <a href="{% url 'account' %}" class="btn btn-secondary btn-full">My Sketches</a>
     <form method="post" action="{% url 'logout' %}" class="gallery-mobile-menu-logout-form">
       {% csrf_token %}
-      <button type="submit" class="btn btn-secondary btn-full">Log out</button>
+      <button type="submit" class="btn btn-full gallery-mobile-menu-logout-btn">Log out</button>
     </form>
     {% else %}
     <a href="{% url 'login' %}" class="btn btn-secondary btn-full">Log in</a>
-    <a href="{% url 'signup' %}" class="btn btn-primary btn-full">Sign up</a>
+    <a href="{% url 'signup' %}" class="btn btn-primary btn-full">Get started</a>
     {% endif %}
   </div>
 </div>

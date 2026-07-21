@@ -2,7 +2,7 @@
   "p5js_cdn": "https://cdn.jsdelivr.net/npm/p5@1.11.0/lib/p5.min.js",
   "processingjs_cdn": "/static/sketches/embed/processing.min.js",
   "page_styles": {
-    "fullscreen": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n  background: #ffffff;\n  touch-action: none;\n  overscroll-behavior: none;\n}\ncanvas {\n  display: block;\n  touch-action: none;\n}",
+    "fullscreen": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n  background: transparent;\n  touch-action: none;\n  overscroll-behavior: none;\n}\ncanvas {\n  display: block;\n  touch-action: none;\n}",
     "preview": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  min-height: 100%;\n  overflow: hidden;\n  background: #eff6ff;\n  cursor: pointer;\n  touch-action: none;\n}\ncanvas {\n  display: block;\n  cursor: auto;\n  touch-action: none;\n}",
     "live": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  min-height: 100%;\n  overflow: hidden;\n  background: #eff6ff;\n  touch-action: none;\n}\ncanvas {\n  display: block;\n  touch-action: none;\n}"
   },

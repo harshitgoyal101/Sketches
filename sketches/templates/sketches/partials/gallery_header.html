@@ -1,28 +1,66 @@
-<header class="gallery-page-header mb-10 relative z-10">
-  <div class="gallery-page-header-main">
-    <div>
+{% load gallery_filters %}
+<header class="gallery-page-header relative z-10">
+  <div class="gallery-page-header-top">
+    <div class="gallery-page-header-intro mx-6 my-2">
+      <p class="gallery-page-kicker">Discovery</p>
       <h1 class="gallery-page-title">
-        {% if active_tag %}{{ active_tag.name }} <span class="text-primary">Gallery</span>
-        {% elif author_usernames|length == 1 %}<span class="text-primary">@{{ author_usernames.0 }}</span>
-        {% elif author_usernames|length > 1 %}<span class="text-primary">Authors</span>
-        {% else %}Discovery <span class="text-primary">Gallery</span>{% endif %}
+        {% if active_tag %}{{ active_tag.name }}
+        {% elif author_usernames|length == 1 %}@{{ author_usernames.0 }}
+        {% elif author_usernames|length > 1 %}Authors
+        {% else %}Explore Gallery{% endif %}
       </h1>
-      <p class="gallery-page-lead">
-        {% if active_tag %}
-        Sketches tagged <strong>{{ active_tag.name }}</strong> — generative art, simulations, and creative coding experiments.
-        {% elif author_usernames|length == 1 %}
-        Published sketches by <strong>@{{ author_usernames.0 }}</strong>.
-        {% elif author_usernames|length > 1 %}
-        Published sketches by <strong>{{ author_usernames|length }} selected authors</strong>.
+    </div>
+
+    <div class="gallery-page-header-actions">
+      <div class="gallery-page-header-cta">
+        {% if user.is_authenticated %}
+        <a href="{% url 'sketch_create' %}" class="gallery-sidebar-cta-btn">
+          <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          <span>New Sketch</span>
+        </a>
         {% else %}
-        Explore generative art, interactive simulations, and creative experiments from the Sketches101 community.
+        <a href="{% url 'signup' %}" class="gallery-sidebar-cta-btn">
+          <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          <span>Get started</span>
+        </a>
         {% endif %}
-      </p>
-      {% if page_obj.paginator.count %}
-      <p class="gallery-page-count">{{ page_obj.paginator.count }} published sketch{{ page_obj.paginator.count|pluralize }}</p>
-      {% endif %}
+      </div>
+
+      <nav class="gallery-page-header-nav" aria-label="Workspace navigation">
+        <a
+          href="{% url 'sketch_list' %}"
+          class="gallery-sidebar-nav-link{% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'tag_detail' or request.resolver_match.url_name == 'sketch_detail' %} is-active{% endif %}"
+        >
+          <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'tag_detail' or request.resolver_match.url_name == 'sketch_detail' %} is-filled{% endif %}" aria-hidden="true">explore</span>
+          <span>Explore</span>
+        </a>
+        {% if user.is_authenticated %}
+        <a
+          href="{% url 'account' %}"
+          class="gallery-sidebar-nav-link{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' or request.resolver_match.url_name == 'sketch_settings' %} is-active{% endif %}"
+        >
+          <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'account' or request.resolver_match.url_name == 'sketch_edit' or request.resolver_match.url_name == 'sketch_create' or request.resolver_match.url_name == 'sketch_settings' %} is-filled{% endif %}" aria-hidden="true">code_blocks</span>
+          <span>My Sketches</span>
+        </a>
+        {% endif %}
+      </nav>
     </div>
   </div>
 
-  {% include "sketches/partials/gallery_filters.html" %}
+  <div class="gallery-page-header-meta">
+    <p class="gallery-page-lead">
+      {% if active_tag %}
+      Sketches tagged <strong>{{ active_tag.name }}</strong> — generative art, simulations, and creative coding experiments.
+      {% elif author_usernames|length == 1 %}
+      Published sketches by <strong>@{{ author_usernames.0 }}</strong>.
+      {% elif author_usernames|length > 1 %}
+      Published sketches by <strong>{{ author_usernames|length }} selected authors</strong>.
+      {% else %}
+      Generative art, interactive simulations, and creative experiments from the sketches101 community.
+      {% endif %}
+    </p>
+    {% if page_obj.paginator.count %}
+    <p class="gallery-page-count">{{ page_obj.paginator.count }} published sketch{{ page_obj.paginator.count|pluralize }}</p>
+    {% endif %}
+  </div>
 </header>

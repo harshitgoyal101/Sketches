@@ -1,30 +1,89 @@
 <header class="gallery-home-nav" id="gallery-site-nav">
-  <a href="{% url 'home' %}" class="gallery-home-nav-brand" aria-label="Sketches101">
+  <a href="{% url 'home' %}" class="gallery-home-nav-brand" aria-label="sketches101">
     {% include "sketches/partials/site_logo.html" %}
   </a>
 
+  <form
+    class="gallery-nav-search gallery-home-nav-links--desktop"
+    method="get"
+    action="{% url 'sketch_list' %}"
+    role="search"
+  >
+    <label class="sr-only" for="gallery-nav-search-input">Search sketches</label>
+    <span class="material-symbols-outlined gallery-nav-search-icon" aria-hidden="true">search</span>
+    <input
+      type="search"
+      id="gallery-nav-search-input"
+      name="q"
+      value="{{ query|default:'' }}"
+      placeholder="Search sketches, makers, tags…"
+      autocomplete="off"
+    >
+  </form>
+
+  <nav class="gallery-home-nav-center gallery-home-nav-links--desktop" aria-label="Main">
+    <a
+      href="{% url 'home' %}"
+      class="gallery-home-nav-link{% if request.resolver_match.url_name == 'home' %} is-active{% endif %}"
+    >Home</a>
+    <a
+      href="{% url 'sketch_list' %}"
+      class="gallery-home-nav-link{% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'tag_detail' or request.resolver_match.url_name == 'sketch_detail' %} is-active{% endif %}"
+    >Explore</a>
+  </nav>
+
   <div class="gallery-home-nav-links gallery-home-nav-links--desktop">
+    {% include "sketches/partials/theme_toggle.html" %}
     {% if user.is_authenticated %}
-    <form method="post" action="{% url 'logout' %}" class="gallery-home-nav-logout-form">
-      {% csrf_token %}
-      <button type="submit" class="gallery-home-nav-btn">Log out</button>
-    </form>
+    <div class="gallery-nav-avatar-menu" id="gallery-nav-avatar-menu">
+      <button
+        type="button"
+        class="gallery-nav-avatar-btn"
+        id="gallery-nav-avatar-toggle"
+        aria-expanded="false"
+        aria-haspopup="true"
+        aria-controls="gallery-nav-avatar-dropdown"
+      >
+        <span class="gallery-nav-avatar" aria-hidden="true">{{ user.username|slice:":2"|upper }}</span>
+        <span class="sr-only">Account menu</span>
+      </button>
+      <div
+        class="gallery-nav-avatar-dropdown"
+        id="gallery-nav-avatar-dropdown"
+        role="menu"
+        hidden
+      >
+        <p class="gallery-nav-avatar-meta">
+          <span class="gallery-nav-avatar-name">{{ user.username }}</span>
+          {% if user.email %}<span class="gallery-nav-avatar-email">{{ user.email }}</span>{% endif %}
+        </p>
+        <a href="{% url 'account' %}" class="gallery-nav-avatar-item" role="menuitem">My Sketches</a>
+        <a href="{% url 'sketch_create' %}" class="gallery-nav-avatar-item" role="menuitem">New Sketch</a>
+        <form method="post" action="{% url 'logout' %}" class="gallery-nav-avatar-logout">
+          {% csrf_token %}
+          <button type="submit" class="gallery-nav-avatar-item gallery-nav-avatar-item--danger" role="menuitem">Log out</button>
+        </form>
+      </div>
+    </div>
     {% else %}
     <a href="{% url 'login' %}" class="gallery-home-nav-btn">Log in</a>
+    <a href="{% url 'signup' %}" class="gallery-home-nav-btn gallery-home-nav-btn--accent">Get started</a>
     {% endif %}
-    <a href="{% url 'sketch_list' %}" class="gallery-home-nav-btn gallery-home-nav-btn--accent">Gallery</a>
   </div>
 
-  <button
-    type="button"
-    class="gallery-nav-toggle"
-    id="gallery-nav-toggle"
-    aria-expanded="false"
-    aria-controls="gallery-mobile-menu"
-    aria-label="Open menu"
-  >
-    <span class="gallery-nav-toggle-bar" aria-hidden="true"></span>
-    <span class="gallery-nav-toggle-bar" aria-hidden="true"></span>
-    <span class="gallery-nav-toggle-bar" aria-hidden="true"></span>
-  </button>
+  <div class="gallery-nav-mobile-tools">
+    {% include "sketches/partials/theme_toggle.html" %}
+    <button
+      type="button"
+      class="gallery-nav-toggle"
+      id="gallery-nav-toggle"
+      aria-expanded="false"
+      aria-controls="gallery-mobile-menu"
+      aria-label="Open navigation menu"
+    >
+      <span class="gallery-nav-toggle-bar" aria-hidden="true"></span>
+      <span class="gallery-nav-toggle-bar" aria-hidden="true"></span>
+      <span class="gallery-nav-toggle-bar" aria-hidden="true"></span>
+    </button>
+  </div>
 </header>

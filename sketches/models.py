@@ -126,7 +126,30 @@ class Sketch(models.Model):
     thumbnail = models.ImageField(upload_to="thumbnails/", blank=True, null=True)
     is_home_background = models.BooleanField(
         default=False,
-        help_text="Use this sketch as the animated background on the home page.",
+        help_text="Use this sketch as an animated home-page background (see theme).",
+    )
+
+    class HomeBackgroundTheme(models.TextChoices):
+        DARK = "dark", "Dark theme"
+        LIGHT = "light", "Light theme"
+
+    home_background_theme = models.CharField(
+        max_length=10,
+        blank=True,
+        default="",
+        choices=[("", "—")] + list(HomeBackgroundTheme.choices),
+        help_text="When set, this sketch is the home hero background for that theme.",
+    )
+    is_landing_ide = models.BooleanField(
+        default=False,
+        help_text="Link this sketch from the home page Interactive IDE section.",
+    )
+    landing_ide_theme = models.CharField(
+        max_length=10,
+        blank=True,
+        default="",
+        choices=[("", "—")] + list(HomeBackgroundTheme.choices),
+        help_text="When set, this sketch opens from the home Interactive IDE section for that theme.",
     )
     tags = models.ManyToManyField(Tag, blank=True, related_name="sketches")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -165,16 +188,56 @@ class Sketch(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = self._unique_slug(self.title)
+        if self.home_background_theme and not self.is_p5js:
+            self.home_background_theme = ""
+        if self.home_background_theme:
+            self.is_home_background = True
         if self.is_home_background and not self.is_p5js:
             self.is_home_background = False
+            self.home_background_theme = ""
+        if self.is_home_background and not self.home_background_theme:
+            # Legacy single-flag sketches default to the dark hero.
+            self.home_background_theme = self.HomeBackgroundTheme.DARK
+        if self.landing_ide_theme and not self.is_p5js:
+            self.landing_ide_theme = ""
+        if self.landing_ide_theme:
+            self.is_landing_ide = True
+        if self.is_landing_ide and not self.is_p5js:
+            self.is_landing_ide = False
+            self.landing_ide_theme = ""
         if self.status == self.Status.PUBLISHED and not self.published_at:
             self.published_at = timezone.now()
         if self.status == self.Status.DRAFT:
             self.published_at = None
         super().save(*args, **kwargs)
-        if self.is_home_background:
+        if self.home_background_theme:
+            Sketch.objects.filter(
+                home_background_theme=self.home_background_theme
+            ).exclude(pk=self.pk).update(
+                home_background_theme="",
+                is_home_background=False,
+            )
+            # Drop legacy unthemed home backgrounds once a themed one exists.
+            Sketch.objects.filter(
+                is_home_background=True,
+                home_background_theme="",
+            ).exclude(pk=self.pk).update(is_home_background=False)
+        elif self.is_home_background:
             Sketch.objects.filter(is_home_background=True).exclude(pk=self.pk).update(
-                is_home_background=False
+                is_home_background=False,
+                home_background_theme="",
+            )
+        if self.landing_ide_theme:
+            Sketch.objects.filter(
+                landing_ide_theme=self.landing_ide_theme
+            ).exclude(pk=self.pk).update(
+                landing_ide_theme="",
+                is_landing_ide=False,
+            )
+        elif self.is_landing_ide:
+            Sketch.objects.filter(is_landing_ide=True).exclude(pk=self.pk).update(
+                is_landing_ide=False,
+                landing_ide_theme="",
             )
 
     @property

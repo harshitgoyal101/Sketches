@@ -1,13 +1,61 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const iframe = document.getElementById("home-bg-sketch");
-  if (!iframe) return;
+  const frames = Array.from(document.querySelectorAll(".home-bg-sketch"));
+  if (!frames.length) return;
 
   let touchStartX = 0;
   let touchStartY = 0;
   let touchStartTime = 0;
 
+  function currentTheme() {
+    return document.documentElement.classList.contains("theme-light") ? "light" : "dark";
+  }
+
+  function activeIframe() {
+    const theme = currentTheme();
+    const match = frames.find((el) => el.dataset.themeBg === theme);
+    if (match) return match;
+    return frames.find((el) => el.classList.contains("is-active")) || frames[0];
+  }
+
+  function ensureSrc(iframe) {
+    if (!iframe || iframe.getAttribute("src")) return;
+    const src = iframe.dataset.src;
+    if (src) iframe.src = src;
+  }
+
+  function wakeSketch(iframe) {
+    if (!iframe || !iframe.contentWindow) return;
+    try {
+      iframe.contentWindow.dispatchEvent(new Event("resize"));
+    } catch (e) {
+      /* ignore */
+    }
+    iframe.contentWindow.postMessage({ type: "sketch-restart" }, "*");
+  }
+
+  function syncThemeBackgrounds() {
+    const theme = currentTheme();
+    let active = frames.find((el) => el.dataset.themeBg === theme) || frames[0];
+
+    frames.forEach((frame) => {
+      const on = frame === active;
+      frame.classList.toggle("is-active", on);
+      if (on) ensureSrc(frame);
+    });
+
+    // Give the newly shown iframe a beat to layout, then resize/restart.
+    if (active) {
+      ensureSrc(active);
+      requestAnimationFrame(() => {
+        wakeSketch(active);
+        setTimeout(() => wakeSketch(active), 120);
+      });
+    }
+  }
+
   function restartBackgroundSketch() {
-    if (!iframe.contentWindow) return;
+    const iframe = activeIframe();
+    if (!iframe || !iframe.contentWindow) return;
     iframe.contentWindow.postMessage({ type: "sketch-restart" }, "*");
   }
 
@@ -18,7 +66,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function sendSketchPointer(clientX, clientY, phase) {
-    if (!iframe.contentWindow) return;
+    const iframe = activeIframe();
+    if (!iframe || !iframe.contentWindow) return;
     const rect = iframe.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
 
@@ -35,6 +84,9 @@ document.addEventListener("DOMContentLoaded", () => {
       "*"
     );
   }
+
+  syncThemeBackgrounds();
+  document.addEventListener("sketches101:themechange", syncThemeBackgrounds);
 
   document.addEventListener("mousemove", (event) => {
     sendSketchPointer(event.clientX, event.clientY, "move");

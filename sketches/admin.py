@@ -49,15 +49,42 @@ class SketchFormatAdmin(admin.ModelAdmin):
 
 @admin.register(Sketch)
 class SketchAdmin(admin.ModelAdmin):
-    list_display = ["title", "sketch_type", "status", "is_home_background", "author", "published_at"]
-    list_filter = ["status", "sketch_type", "tags"]
+    list_display = [
+        "title",
+        "sketch_type",
+        "status",
+        "home_background_theme",
+        "is_home_background",
+        "landing_ide_theme",
+        "is_landing_ide",
+        "author",
+        "published_at",
+    ]
+    list_filter = ["status", "sketch_type", "home_background_theme", "tags"]
     search_fields = ["title", "description", "code"]
     prepopulated_fields = {"slug": ("title",)}
     filter_horizontal = ["tags"]
     readonly_fields = ["created_at", "updated_at", "forked_from", "fork_by"]
     inlines = [SketchAssetInline]
     fieldsets = (
-        (None, {"fields": ("title", "slug", "sketch_type", "status", "is_home_background", "author", "forked_from", "fork_by")}),
+        (
+            None,
+            {
+                "fields": (
+                    "title",
+                    "slug",
+                    "sketch_type",
+                    "status",
+                    "home_background_theme",
+                    "is_home_background",
+                    "landing_ide_theme",
+                    "is_landing_ide",
+                    "author",
+                    "forked_from",
+                    "fork_by",
+                )
+            },
+        ),
         (
             "Content",
             {

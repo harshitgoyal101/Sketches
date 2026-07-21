@@ -1,0 +1,40 @@
+{% load gallery_filters %}
+<section class="gallery-filters gallery-filters--sidebar" aria-label="Filter sketches">
+  <form
+    class="gallery-filters-search gallery-filters-search--sidebar"
+    method="get"
+    action="{% url 'sketch_list' %}"
+    role="search"
+  >
+    {% for tag in active_tags %}
+    <input type="hidden" name="tag" value="{{ tag.slug }}">
+    {% endfor %}
+    {% for type_slug in sketch_types %}
+    <input type="hidden" name="type" value="{{ type_slug }}">
+    {% endfor %}
+    {% for username in author_usernames %}
+    <input type="hidden" name="author" value="{{ username }}">
+    {% endfor %}
+    {% if gallery_sort and gallery_sort != 'featured' %}
+    <input type="hidden" name="sort" value="{{ gallery_sort }}">
+    {% endif %}
+    <label class="sr-only" for="gallery-sidebar-filter-search">Search sketches</label>
+    <span class="material-symbols-outlined gallery-filters-search-icon" aria-hidden="true">search</span>
+    <input
+      type="search"
+      id="gallery-sidebar-filter-search"
+      name="q"
+      value="{{ query }}"
+      placeholder="Search sketches"
+      autocomplete="off"
+    >
+    {% if query %}
+    <a href="{% gallery_filter_url remove_query=True %}" class="gallery-filters-search-clear" aria-label="Clear search">
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </a>
+    {% endif %}
+  </form>
+
+  {% include "sketches/partials/gallery_filters_active.html" %}
+  {% include "sketches/partials/gallery_filters_body.html" %}
+</section>

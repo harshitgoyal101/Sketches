@@ -1,0 +1,30 @@
+{% load gallery_filters %}
+{% if active_filter_count %}
+<div class="gallery-filters-active" aria-label="Active filters">
+  {% if query %}
+  <a href="{% gallery_filter_url remove_query=True %}" class="gallery-filter-pill gallery-filter-pill--active">
+    <span>Search: “{{ query|truncatechars:28 }}”</span>
+    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+  </a>
+  {% endif %}
+  {% for tag in active_tags %}
+  <a href="{% gallery_filter_url remove_tag=tag.slug %}" class="gallery-filter-pill gallery-filter-pill--active">
+    <span>{{ tag.name }}</span>
+    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+  </a>
+  {% endfor %}
+  {% for type_slug, type_label in sketch_type_labels %}
+  <a href="{% gallery_filter_url remove_type=type_slug %}" class="gallery-filter-pill gallery-filter-pill--active">
+    <span>{{ type_label }}</span>
+    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+  </a>
+  {% endfor %}
+  {% for username in author_usernames %}
+  <a href="{% gallery_filter_url remove_author=username %}" class="gallery-filter-pill gallery-filter-pill--active">
+    <span>@{{ username }}</span>
+    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+  </a>
+  {% endfor %}
+  <a href="{% url 'sketch_list' %}" class="gallery-filter-clear">Clear all</a>
+</div>
+{% endif %}

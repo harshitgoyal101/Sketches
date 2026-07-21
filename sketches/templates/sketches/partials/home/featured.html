@@ -1,0 +1,33 @@
+<section class="landing-section landing-featured">
+  <div class="landing-container">
+    <p class="landing-kicker">Curated Gallery</p>
+    <h2 class="landing-section-title">Featured Sketches</h2>
+    <p class="landing-section-sub">
+      Explore interactive generative art pieces crafted by the sketches101 community.
+    </p>
+    {% if featured_sketches %}
+    <div class="landing-featured-grid">
+      {% for sketch in featured_sketches %}
+      <a href="{% url 'sketch_detail' sketch.slug %}" class="landing-featured-card">
+        <div class="landing-featured-media">
+          {% if sketch.thumbnail %}
+          <img src="{{ sketch.thumbnail.url }}" alt="" loading="lazy">
+          {% else %}
+          <div class="landing-featured-placeholder" aria-hidden="true"></div>
+          {% endif %}
+        </div>
+        <div class="landing-featured-body">
+          <h3 class="landing-featured-title">{{ sketch.title }}</h3>
+          <p class="landing-featured-meta">
+            {% if sketch.sketch_type == "p5js" %}p5.js{% else %}Processing{% endif %}
+            {% if sketch.author %} · {{ sketch.author.username }}{% endif %}
+          </p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="landing-section-sub">Published sketches will appear here.</p>
+    {% endif %}
+  </div>
+</section>

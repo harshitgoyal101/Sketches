@@ -1,0 +1,11 @@
+{% if sketch.sketch_type == "processing" %}
+<span class="gallery-sketch-type-icon gallery-sketch-type-icon--processing" title="Processing" aria-label="Processing">
+  <span class="material-symbols-outlined" aria-hidden="true">memory</span>
+  <span class="gallery-sketch-type-icon-label">Processing</span>
+</span>
+{% else %}
+<span class="gallery-sketch-type-icon gallery-sketch-type-icon--p5js" title="p5.js" aria-label="p5.js">
+  <span class="material-symbols-outlined" aria-hidden="true">gesture</span>
+  <span class="gallery-sketch-type-icon-label">p5.js</span>
+</span>
+{% endif %}

@@ -1,27 +1,29 @@
 {% if card_manage %}
-<article class="gallery-sketch-card group glass-panel">
+<article class="gallery-sketch-card group" data-sketch-type="{{ sketch.sketch_type }}">
   <a
     href="{% if sketch.status == 'published' %}{% url 'sketch_detail' sketch.slug %}{% else %}{% url 'sketch_edit' sketch.slug %}{% endif %}"
     class="gallery-sketch-card-link"
   >
 {% else %}
-<article class="gallery-sketch-card group glass-panel">
+<article class="gallery-sketch-card group" data-sketch-type="{{ sketch.sketch_type }}">
   <a href="{% url 'sketch_detail' sketch.slug %}" class="gallery-sketch-card-link">
 {% endif %}
     <div class="gallery-sketch-card-media">
       {% if sketch.thumbnail %}
         <img alt="{{ sketch.title }}" class="gallery-sketch-card-image" src="{{ sketch.thumbnail.url }}" loading="lazy">
       {% else %}
-        <div class="gallery-sketch-card-placeholder">
-          <span class="material-symbols-outlined" aria-hidden="true">grid_view</span>
+        <div class="gallery-sketch-card-placeholder gallery-sketch-card-placeholder--{{ sketch.sketch_type }}">
+          {% if sketch.sketch_type == "processing" %}
+          <span class="material-symbols-outlined" aria-hidden="true">memory</span>
+          {% else %}
+          <span class="material-symbols-outlined" aria-hidden="true">gesture</span>
+          {% endif %}
         </div>
       {% endif %}
       {% if card_manage and sketch.status != "published" %}
       <span class="gallery-sketch-card-badge gallery-sketch-card-badge--draft">Draft</span>
       {% endif %}
-      <span class="gallery-sketch-card-badge gallery-sketch-card-badge--type">
-        {% if sketch.sketch_type == "p5js" %}p5.js{% else %}Processing{% endif %}
-      </span>
+      {% include "sketches/partials/gallery_sketch_type_icon.html" %}
     </div>
     <div class="gallery-sketch-card-body">
       <h3 class="gallery-sketch-card-title">{{ sketch.title }}</h3>

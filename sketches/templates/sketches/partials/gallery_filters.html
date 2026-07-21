@@ -2,7 +2,7 @@
 <section class="gallery-filters" aria-label="Filter sketches">
   <div class="gallery-filters-toolbar">
     <form
-      class="gallery-filters-search"
+      class="gallery-filters-search gallery-filters-search--mobile"
       method="get"
       action="{% url 'sketch_list' %}"
       role="search"
@@ -16,6 +16,9 @@
       {% for username in author_usernames %}
       <input type="hidden" name="author" value="{{ username }}">
       {% endfor %}
+      {% if gallery_sort and gallery_sort != 'featured' %}
+      <input type="hidden" name="sort" value="{{ gallery_sort }}">
+      {% endif %}
       <label class="sr-only" for="gallery-filter-search">Search sketches</label>
       <span class="material-symbols-outlined gallery-filters-search-icon" aria-hidden="true">search</span>
       <input
@@ -48,102 +51,29 @@
     </button>
   </div>
 
-  {% if active_filter_count %}
-  <div class="gallery-filters-active" aria-label="Active filters">
-    {% if query %}
-    <a href="{% gallery_filter_url remove_query=True %}" class="gallery-filter-pill gallery-filter-pill--active">
-      <span>Search: “{{ query|truncatechars:28 }}”</span>
-      <span class="material-symbols-outlined" aria-hidden="true">close</span>
-    </a>
-    {% endif %}
-    {% for tag in active_tags %}
-    <a href="{% gallery_filter_url remove_tag=tag.slug %}" class="gallery-filter-pill gallery-filter-pill--active">
-      <span>{{ tag.name }}</span>
-      <span class="material-symbols-outlined" aria-hidden="true">close</span>
-    </a>
-    {% endfor %}
-    {% for type_slug, type_label in sketch_type_labels %}
-    <a href="{% gallery_filter_url remove_type=type_slug %}" class="gallery-filter-pill gallery-filter-pill--active">
-      <span>{{ type_label }}</span>
-      <span class="material-symbols-outlined" aria-hidden="true">close</span>
-    </a>
-    {% endfor %}
-    {% for username in author_usernames %}
-    <a href="{% gallery_filter_url remove_author=username %}" class="gallery-filter-pill gallery-filter-pill--active">
-      <span>@{{ username }}</span>
-      <span class="material-symbols-outlined" aria-hidden="true">close</span>
-    </a>
-    {% endfor %}
-    <a href="{% url 'sketch_list' %}" class="gallery-filter-clear">Clear all</a>
-  </div>
-  {% endif %}
+  {% include "sketches/partials/gallery_filters_active.html" %}
 
   <div class="gallery-filters-panel" id="gallery-filters-panel" hidden>
     <div class="gallery-filters-panel-inner">
-      <section class="gallery-filter-group">
-        <h2 class="gallery-filter-group-title">Format</h2>
-        <p class="gallery-filter-group-desc">Select one or more sketch runtimes.</p>
-        <div class="gallery-filter-chips">
-          <a
-            href="{% gallery_filter_url remove_type=True %}"
-            class="gallery-filter-chip{% if not sketch_types %} is-active{% endif %}"
-          >All formats</a>
-          {% for fmt in sketch_formats %}
-          <a
-            href="{% gallery_filter_url toggle_type=fmt.slug %}"
-            class="gallery-filter-chip{% if fmt.slug in sketch_types %} is-active{% endif %}"
-            title="{{ fmt.description }}"
-            aria-pressed="{% if fmt.slug in sketch_types %}true{% else %}false{% endif %}"
-          >{{ fmt.name }}</a>
-          {% endfor %}
+      <header class="gallery-filters-panel-head">
+        <div>
+          <h2 class="gallery-filters-panel-title">Refine results</h2>
+          <p class="gallery-filters-panel-lead">Combine formats, authors, and tags to narrow the gallery.</p>
         </div>
-      </section>
-
-      {% if gallery_authors %}
-      <section class="gallery-filter-group">
-        <h2 class="gallery-filter-group-title">Authors</h2>
-        <p class="gallery-filter-group-desc">Select one or more creators, or type <strong>@username</strong> in search.</p>
+      </header>
+      {% if not active_tag %}
+      <section class="gallery-filter-group gallery-filter-group--sort">
+        <div class="gallery-filter-group-head">
+          <h3 class="gallery-filter-group-title">Sort</h3>
+        </div>
         <div class="gallery-filter-chips">
-          {% for author in gallery_authors %}
-          <a
-            href="{% gallery_filter_url toggle_author=author.username %}"
-            class="gallery-filter-chip gallery-filter-chip--author{% if author.username in author_usernames %} is-active{% endif %}"
-            aria-pressed="{% if author.username in author_usernames %}true{% else %}false{% endif %}"
-          >@{{ author.username }}</a>
-          {% endfor %}
+          <a href="{% gallery_filter_url sort='all' %}" class="gallery-filter-chip{% if gallery_sort == 'all' %} is-active{% endif %}">All</a>
+          <a href="{% gallery_filter_url sort='featured' %}" class="gallery-filter-chip{% if gallery_sort == 'featured' or not gallery_sort %} is-active{% endif %}">Staff picks</a>
+          <a href="{% gallery_filter_url sort='recent' %}" class="gallery-filter-chip{% if gallery_sort == 'recent' %} is-active{% endif %}">Recent</a>
         </div>
       </section>
       {% endif %}
-
-      {% for group in tag_groups %}
-      <section class="gallery-filter-group">
-        <h2 class="gallery-filter-group-title">
-          {% if group.category %}{{ group.category.name }}{% else %}Tags{% endif %}
-        </h2>
-        {% if group.category and group.category.description %}
-        <p class="gallery-filter-group-desc">{{ group.category.description }}</p>
-        {% elif not group.category %}
-        <p class="gallery-filter-group-desc">Select one or more topics and techniques.</p>
-        {% else %}
-        <p class="gallery-filter-group-desc">Select one or more tags.</p>
-        {% endif %}
-        <div class="gallery-filter-chips">
-          {% for tag in group.tags %}
-          <a
-            href="{% gallery_filter_url toggle_tag=tag.slug %}"
-            class="gallery-filter-chip{% if tag.slug in tag_slugs %} is-active{% endif %}"
-            title="{{ tag.description }}"
-            aria-pressed="{% if tag.slug in tag_slugs %}true{% else %}false{% endif %}"
-          >{{ tag.name }}</a>
-          {% endfor %}
-        </div>
-      </section>
-      {% empty %}
-      <section class="gallery-filter-group">
-        <h2 class="gallery-filter-group-title">Tags</h2>
-        <p class="gallery-filter-group-desc">No tags yet. Admins can add tags in the Django admin.</p>
-      </section>
-      {% endfor %}
+      {% include "sketches/partials/gallery_filters_body.html" %}
     </div>
   </div>
 </section>

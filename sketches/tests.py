@@ -6,6 +6,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, SimpleTestCase, TestCase, override_settings
+from django.urls import reverse
 from PIL import Image
 
 from sketches.forms import SketchDetailsForm, SketchEditForm
@@ -39,7 +40,7 @@ class EmbedBuilderTests(SimpleTestCase):
         self.assertIn("sketch-restart", html)
         self.assertIn("sketch-mouse", html)
         self.assertNotIn("sketch-preview-restart", html)
-        self.assertIn("background: #ffffff", html)
+        self.assertIn("background: transparent", html)
 
     def test_build_live_mode_includes_error_reporter_and_mouse_bridge(self):
         html = build_p5_embed_html("function setup() {}", mode="live", run_id=7)
@@ -360,6 +361,183 @@ class GalleryFilterTests(TestCase):
         self.assertContains(response, "Particles")
         self.assertContains(response, "p5.js")
         self.assertContains(response, "@filter-user")
+
+    def test_sort_recent_param_accepted(self):
+        response = self.client.get("/sketches/", {"sort": "recent"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["gallery_sort"], "recent")
+        self.assertContains(response, "Recent")
+
+    def test_type_filter_and_explore_nav_labels(self):
+        response = self.client.get("/sketches/", {"type": "p5js"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Explore")
+        self.assertContains(response, 'role="dialog"')
+        self.assertContains(response, "gallery-nav-close")
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class DesignRedesignTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username="maker",
+            email="maker@example.com",
+            password="secret",
+        )
+        Sketch.objects.create(
+            title="Neon Grid",
+            slug="maker-neon-grid",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            author=self.user,
+        )
+        self.client = Client()
+
+    def test_home_renders_landing_and_stats(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Create. Code.")
+        self.assertContains(response, "Experiment.")
+        self.assertContains(response, "Featured Sketches")
+        self.assertEqual(response.context["stats_sketch_count"], 1)
+        self.assertEqual(response.context["stats_artist_count"], 1)
+
+    def test_anonymous_mobile_menu_auth_actions(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Get started")
+        self.assertContains(response, "Log in")
+        self.assertContains(response, ">Explore</span>")
+
+    def test_authenticated_mobile_menu_user_footer(self):
+        self.client.force_login(self.user)
+        response = self.client.get("/sketches/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "maker@example.com")
+        self.assertContains(response, "My Sketches")
+        self.assertContains(response, "Log out")
+        self.assertContains(response, "New Sketch")
+
+    def test_gallery_dark_shell_nav_search_and_footer(self):
+        response = self.client.get("/sketches/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "gallery-nav-search")
+        self.assertContains(response, "Search sketches, makers, tags")
+        self.assertContains(response, "gallery-app-footer")
+        self.assertContains(response, "Built for computational creatives")
+
+    def test_auth_login_uses_dark_shell(self):
+        response = self.client.get("/accounts/login/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "gallery-auth-page")
+        self.assertContains(response, "auth-shell")
+        self.assertContains(response, "Explore gallery")
+
+    def test_theme_toggle_markup_present(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-theme-toggle')
+        self.assertContains(response, "gallery-theme-toggle-track")
+        self.assertContains(response, "theme.js")
+        self.assertContains(response, "sketches101-theme")
+
+    def test_home_renders_theme_background_sketches(self):
+        Sketch.objects.create(
+            title="Figma Mesh Dark",
+            slug="sketches101-figma-mesh-dark",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            home_background_theme=Sketch.HomeBackgroundTheme.DARK,
+            is_home_background=True,
+        )
+        Sketch.objects.create(
+            title="Figma Mesh Light",
+            slug="sketches101-figma-mesh-light",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            home_background_theme=Sketch.HomeBackgroundTheme.LIGHT,
+            is_home_background=True,
+        )
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-theme-bg="dark"')
+        self.assertContains(response, 'data-theme-bg="light"')
+        self.assertContains(response, "sketches101-figma-mesh-dark")
+        self.assertContains(response, "sketches101-figma-mesh-light")
+        self.assertContains(response, "data-src=")
+        self.assertContains(response, "is-active")
+
+    def test_home_landing_ide_cta_links_to_db_sketch(self):
+        Sketch.objects.create(
+            title="The Interactive IDE — Dark",
+            slug="sketches101-interactive-ide-dark",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            landing_ide_theme=Sketch.HomeBackgroundTheme.DARK,
+            is_landing_ide=True,
+        )
+        Sketch.objects.create(
+            title="The Interactive IDE — Light",
+            slug="sketches101-interactive-ide-light",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            landing_ide_theme=Sketch.HomeBackgroundTheme.LIGHT,
+            is_landing_ide=True,
+        )
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Open in editor")
+        self.assertContains(response, 'data-landing-ide-cta')
+        self.assertContains(response, 'data-sketch-slug-dark="sketches101-interactive-ide-dark"')
+        self.assertContains(response, 'data-sketch-slug-light="sketches101-interactive-ide-light"')
+        self.assertContains(response, reverse("landing_ide_redirect"))
+
+    def test_landing_ide_redirect_uses_theme(self):
+        Sketch.objects.create(
+            title="The Interactive IDE — Dark",
+            slug="sketches101-interactive-ide-dark",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            landing_ide_theme=Sketch.HomeBackgroundTheme.DARK,
+            is_landing_ide=True,
+        )
+        Sketch.objects.create(
+            title="The Interactive IDE — Light",
+            slug="sketches101-interactive-ide-light",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            landing_ide_theme=Sketch.HomeBackgroundTheme.LIGHT,
+            is_landing_ide=True,
+        )
+        dark = self.client.get("/interactive-ide/")
+        self.assertRedirects(
+            dark,
+            "/accounts/sketches/sketches101-interactive-ide-dark/edit/",
+            fetch_redirect_response=False,
+        )
+        light = self.client.get("/interactive-ide/?theme=light")
+        self.assertRedirects(
+            light,
+            "/accounts/sketches/sketches101-interactive-ide-light/edit/",
+            fetch_redirect_response=False,
+        )
+        cookie = self.client.get(
+            "/interactive-ide/",
+            HTTP_COOKIE="sketches101-theme=light",
+        )
+        self.assertRedirects(
+            cookie,
+            "/accounts/sketches/sketches101-interactive-ide-light/edit/",
+            fetch_redirect_response=False,
+        )
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
@@ -889,7 +1067,7 @@ class ThumbnailGeneratorTests(TestCase):
         html = _prepare_embed_html_for_capture(self.sketch)
         self.assertIn("__SKETCH_THUMBNAIL_READY__", html)
         self.assertIn("function setup()", html)
-        self.assertIn("background: #ffffff", html)
+        self.assertIn("background: transparent", html)
 
     def test_prepare_thumbnail_image_letterboxes_to_target_size(self):
         processed = _prepare_thumbnail_image(self._sample_png(), (1280, 720))

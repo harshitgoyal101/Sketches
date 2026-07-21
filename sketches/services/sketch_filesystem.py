@@ -67,6 +67,7 @@ def export_sketch(sketch: Sketch, *, overwrite: bool = True) -> Path:
         "status": sketch.status,
         "tags": list(sketch.tags.order_by("name").values_list("name", flat=True)),
         "is_home_background": sketch.is_home_background,
+        "home_background_theme": sketch.home_background_theme,
     }
     (folder / META_FILENAME).write_text(
         json.dumps(meta, indent=2, ensure_ascii=False) + "\n",
@@ -127,6 +128,7 @@ def import_sketch(
         "code": code,
         "status": meta.get("status", Sketch.Status.DRAFT),
         "is_home_background": bool(meta.get("is_home_background", False)),
+        "home_background_theme": meta.get("home_background_theme", "") or "",
     }
     if author is not None:
         sketch_defaults["author"] = author

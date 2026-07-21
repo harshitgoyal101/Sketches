@@ -1,6 +1,7 @@
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import Http404, HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import condition
 
@@ -26,6 +27,7 @@ from .services.highlighter import get_highlight_css
 from .services.sketch_context import build_sketch_detail_context
 
 PUBLISHED = Sketch.Status.PUBLISHED
+THEME_COOKIE = "sketches101-theme"
 SITE_DESCRIPTION = (
     "Interactive p5.js and Processing sketches with live previews, "
     "source code, and markdown descriptions — sketches101."
@@ -40,7 +42,44 @@ def _published_sketches():
 
 def _home_featured_sketches():
     """Published sketches shown on the home page grid (excludes live background)."""
-    return _published_sketches().filter(is_home_background=False)
+    return _published_sketches().filter(is_home_background=False).exclude(
+        Q(is_landing_ide=True) | Q(landing_ide_theme__in=["dark", "light"])
+    )
+
+
+def _landing_ide_sketch_for_theme(theme):
+    sketch = (
+        Sketch.objects.filter(status=PUBLISHED, landing_ide_theme=theme)
+        .prefetch_related("assets")
+        .first()
+    )
+    if sketch or theme != Sketch.HomeBackgroundTheme.DARK:
+        return sketch
+    return (
+        Sketch.objects.filter(status=PUBLISHED, is_landing_ide=True, landing_ide_theme="")
+        .prefetch_related("assets")
+        .first()
+    )
+
+
+def _resolve_request_theme(request):
+    query = request.GET.get("theme", "").strip().lower()
+    if query in ("light", "dark"):
+        return query
+    cookie = request.COOKIES.get(THEME_COOKIE, "").strip().lower()
+    if cookie in ("light", "dark"):
+        return cookie
+    return Sketch.HomeBackgroundTheme.DARK
+
+
+def landing_ide_redirect(request):
+    theme = _resolve_request_theme(request)
+    sketch = _landing_ide_sketch_for_theme(theme)
+    if not sketch:
+        sketch = _landing_ide_sketch_for_theme(Sketch.HomeBackgroundTheme.DARK)
+    if not sketch:
+        return redirect("sketch_list")
+    return redirect("sketch_edit", slug=sketch.slug)
 
 
 def _gallery_sketches():
@@ -79,24 +118,50 @@ def _build_filter_context(request, page_obj, filter_params, active_tag=None):
         "sketch_types": filter_params["sketch_types"],
         "sketch_type_labels": format_labels_for_slugs(filter_params["sketch_types"]),
         "author_usernames": filter_params["author_usernames"],
+        "gallery_sort": filter_params.get("sort", "featured"),
         "active_filter_count": active_filter_count(filter_params),
         "filter_querystring": params.urlencode(),
     }
 
 
 def home(request):
-    sketches = _home_featured_sketches()[:6]
-    background_sketch = Sketch.objects.filter(
-        status=PUBLISHED,
-        is_home_background=True,
-    ).prefetch_related("assets").first()
+    sketches = list(_home_featured_sketches()[:6])
+    bg_qs = Sketch.objects.filter(status=PUBLISHED).prefetch_related("assets")
+    background_sketch_dark = bg_qs.filter(
+        home_background_theme=Sketch.HomeBackgroundTheme.DARK
+    ).first()
+    background_sketch_light = bg_qs.filter(
+        home_background_theme=Sketch.HomeBackgroundTheme.LIGHT
+    ).first()
+    # Legacy: single is_home_background sketch without a theme acts as dark.
+    if not background_sketch_dark:
+        background_sketch_dark = bg_qs.filter(
+            is_home_background=True,
+            home_background_theme="",
+        ).first() or bg_qs.filter(is_home_background=True).first()
+    published = Sketch.objects.filter(status=PUBLISHED)
     return render(
         request,
         "sketches/home.html",
         {
             "sketches": sketches,
-            "background_sketch": background_sketch,
+            "featured_sketches": sketches[:3],
+            "background_sketch_dark": background_sketch_dark,
+            "background_sketch_light": background_sketch_light,
+            "background_sketch": background_sketch_dark or background_sketch_light,
+            "landing_ide_sketch_dark": _landing_ide_sketch_for_theme(
+                Sketch.HomeBackgroundTheme.DARK
+            ),
+            "landing_ide_sketch_light": _landing_ide_sketch_for_theme(
+                Sketch.HomeBackgroundTheme.LIGHT
+            ),
             "meta_description": SITE_DESCRIPTION,
+            "stats_sketch_count": published.count(),
+            "stats_artist_count": published.exclude(author=None)
+            .values("author")
+            .distinct()
+            .count(),
+            "stats_format_count": published.values("sketch_type").distinct().count(),
         },
     )
 
@@ -105,8 +170,11 @@ def sketch_list(request):
     queryset, filter_params = apply_sketch_filters(_gallery_sketches(), request)
     page_obj = _paginate_sketches(request, queryset)
     context = _build_filter_context(request, page_obj, filter_params)
+    sort = filter_params.get("sort", "featured")
     context["gallery_show_featured"] = (
-        page_obj.number == 1 and active_filter_count(filter_params) == 0
+        page_obj.number == 1
+        and active_filter_count(filter_params) == 0
+        and sort == "featured"
     )
     return render(request, "sketches/sketch_list.html", context)
 

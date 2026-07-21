@@ -1,0 +1,75 @@
+{% load gallery_filters %}
+<div class="gallery-filters-panel-body">
+  <section class="gallery-filter-group">
+    <div class="gallery-filter-group-head">
+      <h3 class="gallery-filter-group-title">Format</h3>
+      <p class="gallery-filter-group-desc">Sketch runtimes</p>
+    </div>
+    <div class="gallery-filter-chips">
+      <a
+        href="{% gallery_filter_url remove_type=True %}"
+        class="gallery-filter-chip{% if not sketch_types %} is-active{% endif %}"
+      >All</a>
+      {% for fmt in sketch_formats %}
+      <a
+        href="{% gallery_filter_url toggle_type=fmt.slug %}"
+        class="gallery-filter-chip{% if fmt.slug in sketch_types %} is-active{% endif %}"
+        title="{{ fmt.description }}"
+        aria-pressed="{% if fmt.slug in sketch_types %}true{% else %}false{% endif %}"
+      >{{ fmt.name }}</a>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if gallery_authors %}
+  <section class="gallery-filter-group">
+    <div class="gallery-filter-group-head">
+      <h3 class="gallery-filter-group-title">Authors</h3>
+      <p class="gallery-filter-group-desc">Or search <strong>@username</strong></p>
+    </div>
+    <div class="gallery-filter-chips">
+      {% for author in gallery_authors %}
+      <a
+        href="{% gallery_filter_url toggle_author=author.username %}"
+        class="gallery-filter-chip gallery-filter-chip--author{% if author.username in author_usernames %} is-active{% endif %}"
+        aria-pressed="{% if author.username in author_usernames %}true{% else %}false{% endif %}"
+      >@{{ author.username }}</a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% for group in tag_groups %}
+  <section class="gallery-filter-group">
+    <div class="gallery-filter-group-head">
+      <h3 class="gallery-filter-group-title">
+        {% if group.category %}{{ group.category.name }}{% else %}Tags{% endif %}
+      </h3>
+      {% if group.category and group.category.description %}
+      <p class="gallery-filter-group-desc">{{ group.category.description }}</p>
+      {% elif not group.category %}
+      <p class="gallery-filter-group-desc">Topics and techniques</p>
+      {% else %}
+      <p class="gallery-filter-group-desc">Filter by tag</p>
+      {% endif %}
+    </div>
+    <div class="gallery-filter-chips">
+      {% for tag in group.tags %}
+      <a
+        href="{% gallery_filter_url toggle_tag=tag.slug %}"
+        class="gallery-filter-chip{% if tag.slug in tag_slugs %} is-active{% endif %}"
+        title="{{ tag.description }}"
+        aria-pressed="{% if tag.slug in tag_slugs %}true{% else %}false{% endif %}"
+      >{{ tag.name }}</a>
+      {% endfor %}
+    </div>
+  </section>
+  {% empty %}
+  <section class="gallery-filter-group">
+    <div class="gallery-filter-group-head">
+      <h3 class="gallery-filter-group-title">Tags</h3>
+      <p class="gallery-filter-group-desc">No tags yet. Admins can add tags in the Django admin.</p>
+    </div>
+  </section>
+  {% endfor %}
+</div>

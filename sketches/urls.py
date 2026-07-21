@@ -6,6 +6,7 @@ from . import views_manage
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("interactive-ide/", views.landing_ide_redirect, name="landing_ide_redirect"),
     path("sketches/", views.sketch_list, name="sketch_list"),
     path("tags/<slug:slug>/", views.tag_detail, name="tag_detail"),
     path("sketches/<slug:slug>/", views.sketch_detail, name="sketch_detail"),

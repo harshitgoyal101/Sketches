@@ -1,15 +1,23 @@
 {% extends "sketches/base.html" %}
 
-{% block page_background %}
-<div class="fixed inset-0 network-grid pointer-events-none z-0" aria-hidden="true"></div>
-{% endblock %}
+{% block page_class %}gallery-auth-page{% endblock %}
 
-{% block main_class %}xl:ml-sidebar-width relative z-10{% endblock %}
+{% block gallery_sidebar %}{% endblock %}
+
+{% block page_background %}{% endblock %}
+
+{% block main_class %}relative z-10 p-0{% endblock %}
 
 {% block content %}
-<div class="relative z-10 flex min-h-full items-center justify-center px-4 py-12">
-  <div class="w-full max-w-md">
+<div class="auth-shell">
+  <a href="{% url 'home' %}" class="auth-shell-brand" aria-label="sketches101 home">
+    {% include "sketches/partials/site_logo.html" %}
+  </a>
+  <div class="auth-shell-card-wrap">
     {% block auth_content %}{% endblock %}
   </div>
+  <p class="auth-shell-footer">
+    <a href="{% url 'sketch_list' %}">Explore gallery</a>
+  </p>
 </div>
 {% endblock %}

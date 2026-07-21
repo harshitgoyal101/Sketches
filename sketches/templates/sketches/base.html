@@ -1,10 +1,23 @@
 {% load static %}
 <!DOCTYPE html>
-<html class="light" lang="en">
+<html class="theme-dark" lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Sketches101{% endblock %}</title>
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem("sketches101-theme");
+        var theme = stored === "light" || stored === "dark" ? stored : "dark";
+        document.documentElement.classList.remove("theme-light", "theme-dark", "light", "dark");
+        document.documentElement.classList.add(theme === "light" ? "theme-light" : "theme-dark");
+        document.cookie = "sketches101-theme=" + theme + ";path=/;max-age=31536000;SameSite=Lax";
+      } catch (e) {
+        document.documentElement.classList.add("theme-dark");
+      }
+    })();
+  </script>
   <link rel="icon" type="image/svg+xml" href="{% static 'sketches/img/icon.svg' %}">
   {% block meta_tags %}
   <meta name="description" content="Interactive p5.js and Processing sketches with live previews and source code.">
@@ -14,11 +27,11 @@
   {% endblock %}
   <link rel="canonical" href="{{ request.build_absolute_uri }}">
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'sketches/css/gallery.css' %}?v=20260708c">
+  <link rel="stylesheet" href="{% static 'sketches/css/gallery.css' %}?v=20260721x">
   {% include "sketches/partials/gallery_tailwind_config.html" %}
-  <link rel="stylesheet" href="{% static 'sketches/css/style.css' %}?v=20260708c">
+  <link rel="stylesheet" href="{% static 'sketches/css/style.css' %}?v=20260721m">
   {% block extra_head %}{% endblock %}
 </head>
 <body class="gallery-page font-body-md text-body-md selection:bg-primary-container/20 selection:text-primary {% block page_class %}{% endblock %}{% if body_class %} {{ body_class }}{% endif %}">
@@ -55,7 +68,8 @@
 
   {% block mobile_nav %}{% endblock %}
 
-  <script src="{% static 'sketches/js/gallery.js' %}?v=20260706b"></script>
+  <script src="{% static 'sketches/js/theme.js' %}?v=20260721k"></script>
+  <script src="{% static 'sketches/js/gallery.js' %}?v=20260721b"></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

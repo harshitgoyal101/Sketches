@@ -4,36 +4,69 @@
 {% block title %}Sketches101 — Creative Coding{% endblock %}
 
 {% block page_class %}gallery-home-page{% endblock %}
-{% block main_class %}relative z-10 p-0 h-dvh overflow-hidden{% endblock %}
+{% block main_class %}relative z-10 p-0 overflow-visible{% endblock %}
 
 {% block gallery_sidebar %}{% endblock %}
 
 {% block page_background %}{% endblock %}
 
 {% block background %}
-{% if background_sketch %}
-<div class="gallery-home-bg" aria-hidden="true">
+<div class="landing-hero-bg" aria-hidden="true">
+  {% if background_sketch_dark or background_sketch_light %}
+  {% if background_sketch_dark %}
   <iframe
-    id="home-bg-sketch"
-    src="{% url 'sketch_embed' background_sketch.slug %}?v={{ background_sketch|embed_cache_version }}"
+    id="home-bg-sketch-dark"
+    class="home-bg-sketch"
+    data-theme-bg="dark"
+    data-src="{% url 'sketch_embed' background_sketch_dark.slug %}?v={{ background_sketch_dark|embed_cache_version }}"
     sandbox="allow-scripts allow-same-origin"
-    loading="eager"
     title=""
     tabindex="-1"
   ></iframe>
+  {% endif %}
+  {% if background_sketch_light %}
+  <iframe
+    id="home-bg-sketch-light"
+    class="home-bg-sketch"
+    data-theme-bg="light"
+    data-src="{% url 'sketch_embed' background_sketch_light.slug %}?v={{ background_sketch_light|embed_cache_version }}"
+    sandbox="allow-scripts allow-same-origin"
+    title=""
+    tabindex="-1"
+  ></iframe>
+  {% endif %}
+  <script>
+  (function () {
+    var theme = document.documentElement.classList.contains("theme-light") ? "light" : "dark";
+    var frame = document.querySelector('.home-bg-sketch[data-theme-bg="' + theme + '"]');
+    if (!frame) frame = document.querySelector(".home-bg-sketch");
+    if (!frame) return;
+    frame.classList.add("is-active");
+    if (frame.dataset.src) frame.src = frame.dataset.src;
+  })();
+  </script>
+  {% else %}
+  <canvas id="home-particle-canvas" class="landing-particle-canvas"></canvas>
+  {% endif %}
 </div>
-{% endif %}
 {% endblock %}
 
 {% block content %}
-<div class="gallery-home-hero">
-  <div class="gallery-home-brand">
-    {% include "sketches/partials/site_logo.html" %}
-    <p class="gallery-home-subtitle">Creative Coding</p>
-    <p class="gallery-home-hint">Tab to reset. Drag to interact.</p>
-  </div>
-  <a href="{% url 'sketch_list' %}" class="gallery-home-explore">Explore</a>
+<div class="landing">
+  {% include "sketches/partials/home/hero.html" %}
+  {% include "sketches/partials/home/stats.html" %}
+  {% include "sketches/partials/home/featured.html" %}
+  {% include "sketches/partials/home/how_it_works.html" %}
+  {% include "sketches/partials/home/ide_preview.html" %}
+  {% include "sketches/partials/home/tech.html" %}
+  {% include "sketches/partials/home/testimonials.html" %}
+  {% include "sketches/partials/home/cta.html" %}
+  {% include "sketches/partials/home/footer.html" %}
 </div>
 {% endblock %}
 
-{% block extra_js %}{% endblock %}
+{% block extra_js %}
+<script src="{% static 'sketches/js/home-background.js' %}?v=20260721f"></script>
+<script src="{% static 'sketches/js/home-particles.js' %}?v=20260721f"></script>
+<script src="{% static 'sketches/js/landing-ide-preview.js' %}?v=20260721i"></script>
+{% endblock %}
