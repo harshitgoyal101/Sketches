@@ -15,36 +15,37 @@
   id="gallery-workspace-sidebar-show"
   aria-controls="gallery-workspace-sidebar"
   aria-expanded="false"
+  aria-hidden="true"
+  tabindex="-1"
   title="Show workspace sidebar"
-  hidden
 >
   <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
   <span class="sr-only">Show sidebar</span>
 </button>
 
+<button
+  type="button"
+  class="gallery-sidebar-collapse-btn"
+  id="gallery-workspace-sidebar-hide"
+  aria-controls="gallery-workspace-sidebar"
+  aria-expanded="true"
+  title="Hide workspace sidebar"
+>
+  <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+  <span class="sr-only">Hide sidebar</span>
+</button>
+
 <aside
   id="gallery-workspace-sidebar"
-  class="gallery-workspace-sidebar fixed left-0 bottom-0 flex flex-col w-sidebar-width z-40 overflow-hidden pt-4"
+  class="gallery-workspace-sidebar fixed left-0 bottom-0 flex flex-col w-sidebar-width z-40 overflow-hidden"
   aria-label="Workspace"
 >
-  <a href="{% url 'home' %}" class="gallery-sidebar-brand mx-4" aria-label="sketches101">
+  <a href="{% url 'home' %}" class="gallery-sidebar-brand" aria-label="sketches101">
     {% include "sketches/partials/site_logo.html" %}
-  </a> 
+  </a>
   <div class="gallery-workspace-sidebar-inner">
-    
     <div class="gallery-sidebar-toolbar">
-      <span class="gallery-sidebar-toolbar-label mt-2">Workspace</span>
-      <button
-        type="button"
-        class="gallery-sidebar-collapse-btn"
-        id="gallery-workspace-sidebar-hide"
-        aria-controls="gallery-workspace-sidebar"
-        aria-expanded="true"
-        title="Hide workspace sidebar"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
-        <span class="sr-only">Hide sidebar</span>
-      </button>
+      <span class="gallery-sidebar-toolbar-label">Workspace</span>
     </div>
 
     {% if sketch_formats %}

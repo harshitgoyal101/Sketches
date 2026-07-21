@@ -196,12 +196,16 @@ function initGalleryWorkspaceSidebar() {
     return desktopQuery.matches;
   }
 
+  function setToggleVisible(btn, visible, expanded) {
+    btn.setAttribute("aria-expanded", expanded ? "true" : "false");
+    btn.setAttribute("aria-hidden", visible ? "false" : "true");
+    btn.tabIndex = visible ? 0 : -1;
+  }
+
   function setMobileOpen(open) {
     document.body.classList.toggle("is-workspace-sidebar-mobile-open", open);
-    hideBtn.hidden = !open;
-    hideBtn.setAttribute("aria-expanded", open ? "true" : "false");
-    showBtn.hidden = open;
-    showBtn.setAttribute("aria-expanded", open ? "false" : "true");
+    setToggleVisible(hideBtn, open, open);
+    setToggleVisible(showBtn, !open, false);
 
     if (backdrop) {
       backdrop.hidden = !open;
@@ -211,10 +215,8 @@ function initGalleryWorkspaceSidebar() {
 
   function setDesktopCollapsed(collapsed, persist) {
     document.body.classList.toggle("is-workspace-sidebar-collapsed", collapsed);
-    hideBtn.hidden = collapsed;
-    hideBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
-    showBtn.hidden = !collapsed;
-    showBtn.setAttribute("aria-expanded", collapsed ? "true" : "false");
+    setToggleVisible(hideBtn, !collapsed, !collapsed);
+    setToggleVisible(showBtn, collapsed, collapsed);
 
     if (persist) {
       if (collapsed) {
@@ -244,8 +246,6 @@ function initGalleryWorkspaceSidebar() {
     if (!isDesktopLayout()) {
       document.body.classList.remove("is-workspace-sidebar-collapsed");
       setMobileOpen(false);
-      showBtn.hidden = false;
-      showBtn.setAttribute("aria-expanded", "false");
       return;
     }
 
