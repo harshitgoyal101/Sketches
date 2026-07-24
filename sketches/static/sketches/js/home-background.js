@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function ensureSrc(iframe) {
     if (!iframe || iframe.getAttribute("src")) return;
+    if (window.matchMedia("(max-width: 767px)").matches) return;
     const src = iframe.dataset.src;
     if (src) iframe.src = src;
   }

@@ -1,0 +1,17 @@
+{% load gallery_filters %}
+{% if not active_tag %}
+<nav class="gallery-sort-tabs" aria-label="Gallery sort">
+  <a
+    href="{% gallery_filter_url sort='all' %}"
+    class="gallery-sort-tab{% if gallery_sort == 'all' %} is-active{% endif %}"
+  >All Creations</a>
+  <a
+    href="{% gallery_filter_url sort='featured' %}"
+    class="gallery-sort-tab{% if gallery_sort == 'featured' or not gallery_sort %} is-active{% endif %}"
+  >Staff Picks</a>
+  <a
+    href="{% gallery_filter_url sort='recent' %}"
+    class="gallery-sort-tab{% if gallery_sort == 'recent' %} is-active{% endif %}"
+  >Recently Published</a>
+</nav>
+{% endif %}

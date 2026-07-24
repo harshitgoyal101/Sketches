@@ -24,11 +24,13 @@
     {{ field }}
     <button
       type="button"
-      class="password-toggle"
+      class="password-toggle password-toggle--icon"
       data-target="{{ field.id_for_label }}"
       aria-label="Show password"
       aria-pressed="false"
-    >Show</button>
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+    </button>
   </div>
   {% else %}
   {{ field }}

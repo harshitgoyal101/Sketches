@@ -17,62 +17,112 @@
 <meta name="twitter:description" content="{{ meta_description|striptags|truncatechars:160 }}">
 {% endblock %}
 
-{% block page_class %}gallery-detail-page gallery-detail-page--minimal{% endblock %}
-{% block main_class %}xl:ml-sidebar-width relative z-10 p-0{% endblock %}
+{% block gallery_sidebar %}{% endblock %}
+{% block page_class %}gallery-detail-page{% endblock %}
+{% block main_class %}relative z-10 p-0{% endblock %}
+{% block page_background %}{% endblock %}
+{% block site_css %}{% endblock %}
 
-{% block page_background %}
-<div class="fixed inset-0 network-grid pointer-events-none z-0" aria-hidden="true"></div>
+{% block gallery_page_css %}
+<link rel="stylesheet" href="{% static 'sketches/css/built/gallery-detail.min.css' %}?v=20260724c">
 {% endblock %}
 
 {% block content %}
-<div class="sketch-detail-minimal">
-  <header class="sketch-detail-topbar">
-    <div class="sketch-detail-topbar-info">
-      <h1 class="sketch-detail-title">{{ sketch.title }}</h1>
-      {% include "sketches/partials/sketch_fork_attribution.html" %}
-      {% if sketch.author %}
-      <p class="sketch-detail-author">
-        <a href="{% url 'sketch_list' %}?author={{ sketch.author.username|urlencode }}" class="sketch-detail-author-link">
-          @{{ sketch.author.username }}
-        </a>
-      </p>
+<div class="sketch-detail">
+  <div class="sketch-detail-shell">
+    <nav class="sketch-detail-breadcrumb" aria-label="Breadcrumb">
+      <a href="{% url 'sketch_list' %}" class="sketch-detail-breadcrumb-link">Explore</a>
+      {% if breadcrumb_tag %}
+      <span class="sketch-detail-breadcrumb-sep" aria-hidden="true">/</span>
+      <a href="{% url 'tag_detail' breadcrumb_tag.slug %}" class="sketch-detail-breadcrumb-link">{{ breadcrumb_tag.name }}</a>
       {% endif %}
-    </div>
-    {% if sketch.status == "published" or can_edit %}
-    <div class="sketch-detail-topbar-actions">
-      {% if can_edit %}
-      <a href="{% url 'sketch_settings' sketch.slug %}" class="btn btn-secondary sketch-detail-edit-btn">
-        <span class="material-symbols-outlined">tune</span>
-        Settings
-      </a>
-      {% endif %}
-      <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-primary sketch-detail-edit-btn">
-        <span class="material-symbols-outlined">edit</span>
-        Open in Editor
-      </a>
-      {% if can_fork %}
-      <form method="post" action="{% url 'sketch_fork' sketch.slug %}" class="sketch-fork-form">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-secondary sketch-detail-edit-btn">
-          <span class="material-symbols-outlined">fork_right</span>
-          Fork
-        </button>
-      </form>
-      {% endif %}
-    </div>
-    {% endif %}
-  </header>
+      <span class="sketch-detail-breadcrumb-sep" aria-hidden="true">/</span>
+      <span class="sketch-detail-breadcrumb-current" aria-current="page">{{ sketch.title }}</span>
+    </nav>
 
-  <div class="sketch-detail-body">
-    <div class="sketch-detail-main">
-      {% include "sketches/partials/sketch_detail_preview.html" %}
-    </div>
-    {% if sketch.description %}
-    <aside class="sketch-detail-sidebar" aria-label="Sketch description">
-      <div class="sketch-detail-description markdown-body">
-        {{ description_html|safe }}
+    <header class="sketch-detail-topbar">
+      <div class="sketch-detail-topbar-info">
+        <h1 class="sketch-detail-title">{{ sketch.title }}</h1>
+        {% include "sketches/partials/sketch_fork_attribution.html" %}
+        {% if sketch.author %}
+        <p class="sketch-detail-author">
+          <a href="{% url 'sketch_list' %}?author={{ sketch.author.username|urlencode }}" class="sketch-detail-author-link">
+            @{{ sketch.author.username }}
+          </a>
+        </p>
+        {% endif %}
       </div>
-    </aside>
+      {% if sketch.status == "published" or can_edit %}
+      <div class="sketch-detail-topbar-actions">
+        {% if can_edit %}
+        <a href="{% url 'sketch_settings' sketch.slug %}" class="btn btn-secondary sketch-detail-edit-btn">
+          <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+          Settings
+        </a>
+        {% endif %}
+        <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-primary sketch-detail-edit-btn">
+          <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+          Open in Editor
+        </a>
+        {% if can_fork %}
+        <form method="post" action="{% url 'sketch_fork' sketch.slug %}" class="sketch-fork-form">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary sketch-detail-edit-btn">
+            <span class="material-symbols-outlined" aria-hidden="true">fork_right</span>
+            Fork
+          </button>
+        </form>
+        {% endif %}
+      </div>
+      {% endif %}
+    </header>
+
+    <div class="sketch-detail-meta">
+      {% include "sketches/partials/gallery_sketch_type_icon.html" %}
+      {% if sketch.published_at %}
+      <time class="sketch-detail-date" datetime="{{ sketch.published_at|date:'c' }}">
+        {{ sketch.published_at|date:"M j, Y" }}
+      </time>
+      {% endif %}
+      {% if sketch.tags.all %}
+      <div class="sketch-detail-tags" aria-label="Tags">
+        {% for tag in sketch.tags.all %}
+        <a href="{% url 'tag_detail' tag.slug %}" class="sketch-detail-tag">{{ tag.name }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="sketch-detail-body">
+      <div class="sketch-detail-main">
+        {% include "sketches/partials/sketch_detail_preview.html" %}
+      </div>
+      {% if sketch.description %}
+      <aside class="sketch-detail-sidebar" aria-label="Sketch description">
+        <div class="sketch-detail-description markdown-body">
+          {{ description_html|safe }}
+        </div>
+      </aside>
+      {% endif %}
+    </div>
+
+    {% if related_sketches %}
+    <section class="sketch-detail-related" aria-labelledby="sketch-detail-related-heading">
+      <header class="sketch-detail-related-head">
+        <div>
+          <h2 id="sketch-detail-related-heading" class="sketch-detail-related-title">Related sketches</h2>
+          {% if breadcrumb_tag %}
+          <p class="sketch-detail-related-lead">More in <strong>{{ breadcrumb_tag.name }}</strong></p>
+          {% endif %}
+        </div>
+        <a href="{% url 'sketch_list' %}" class="sketch-detail-related-more">View all</a>
+      </header>
+      <div class="gallery-sketch-grid sketch-detail-related-grid">
+        {% for related in related_sketches %}
+        {% include "sketches/partials/gallery_card.html" with sketch=related %}
+        {% endfor %}
+      </div>
+    </section>
     {% endif %}
   </div>
 </div>

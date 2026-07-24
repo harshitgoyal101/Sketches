@@ -1,0 +1,15 @@
+{% load gallery_filters %}
+{% if sketch_formats %}
+<nav class="gallery-format-chips" aria-label="Filter by format">
+  <a
+    href="{% gallery_filter_url %}"
+    class="gallery-format-chip{% if not sketch_types %} is-active{% endif %}"
+  >All</a>
+  {% for fmt in sketch_formats %}
+  <a
+    href="{% gallery_filter_url toggle_type=fmt.slug %}"
+    class="gallery-format-chip{% if fmt.slug in sketch_types %} is-active{% endif %}"
+  >{{ fmt.name }}</a>
+  {% endfor %}
+</nav>
+{% endif %}

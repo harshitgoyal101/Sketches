@@ -76,10 +76,8 @@ class SignUpForm(UserCreationForm):
         style_form(self)
         self.fields["username"].widget.attrs.setdefault("autocomplete", "username")
         self.fields["username"].widget.attrs.setdefault("placeholder", "alex")
-        self.fields["username"].help_text = (
-            "Shown on your sketches and author profile. For example: <strong>alex</strong>. "
-            "Up to 150 characters — letters, numbers, and @ . + - _ only."
-        )
+        # Username hints are rendered in the signup template to match password rules UI.
+        self.fields["username"].help_text = ""
         self.fields["email"].widget.attrs.setdefault("autocomplete", "email")
         self.fields["password1"].widget.attrs.update(
             {
@@ -137,6 +135,28 @@ class StyledAuthenticationForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         style_form(self)
+        self.fields["username"].label = "Email"
+        self.fields["username"].widget.attrs.update(
+            {
+                "placeholder": "you@example.com",
+                "autocomplete": "username email",
+                "inputmode": "email",
+            }
+        )
+        self.fields["password"].widget.attrs.update(
+            {
+                "placeholder": "••••••••",
+                "autocomplete": "current-password",
+            }
+        )
+
+    def clean(self):
+        username = self.cleaned_data.get("username")
+        if username and "@" in username:
+            match = User.objects.filter(email__iexact=username).first()
+            if match:
+                self.cleaned_data["username"] = match.username
+        return super().clean()
 
     def confirm_login_allowed(self, user):
         if not user.is_active:

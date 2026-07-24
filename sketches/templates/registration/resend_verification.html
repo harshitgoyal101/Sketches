@@ -4,23 +4,23 @@
 {% block title %}Resend verification | Sketches101{% endblock %}
 
 {% block auth_content %}
-<section class="auth-card gallery-themed-card">
-  {% include "sketches/partials/auth_card_icon.html" with icon="mail" %}
+<header class="auth-form-header">
   <h1>Resend verification</h1>
   <p class="auth-lead">Enter your email and we'll send a new verification link.</p>
+</header>
 
-  <form method="post" class="themed-form auth-form" novalidate>
-    {% csrf_token %}
-    {% include "sketches/partials/form_field.html" with field=form.email %}
-    <button type="submit" class="btn btn-primary btn-full">Send link</button>
-  </form>
+<form method="post" class="themed-form auth-form auth-form--split" novalidate>
+  {% csrf_token %}
+  {% include "sketches/partials/form_field.html" with field=form.email %}
+  <button type="submit" class="btn btn-primary btn-full auth-submit">Send link</button>
+</form>
 
-  <p class="auth-switch">
-    <a href="{% url 'login' %}">Back to log in</a>
-  </p>
-</section>
+<p class="auth-switch auth-switch--inline">
+  <a href="{% url 'login' %}">← Back to log in</a>
+</p>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'sketches/js/forms.js' %}"></script>
+{{ block.super }}
+<script src="{% static 'sketches/js/forms.js' %}?v=20260722a"></script>
 {% endblock %}

@@ -1,5 +1,5 @@
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.clickjacking import xframe_options_sameorigin
@@ -23,7 +23,7 @@ from .services.gallery_filters import (
     published_authors,
     published_tags_queryset,
 )
-from .services.highlighter import get_highlight_css
+from .services.home_background import get_home_background_sketches
 from .services.sketch_context import build_sketch_detail_context
 
 PUBLISHED = Sketch.Status.PUBLISHED
@@ -35,8 +35,11 @@ SITE_DESCRIPTION = (
 
 
 def _published_sketches():
-    return Sketch.objects.filter(status=PUBLISHED).prefetch_related(
-        "tags", "author", "assets"
+    return (
+        Sketch.objects.filter(status=PUBLISHED)
+        .select_related("author")
+        .prefetch_related("tags", "assets")
+        .annotate(fork_count=Count("forks"))
     )
 
 
@@ -102,6 +105,13 @@ def _paginate_sketches(request, queryset, per_page=12):
     return page_obj
 
 
+def _is_gallery_partial_request(request):
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.GET.get("partial") == "1"
+    )
+
+
 def _build_filter_context(request, page_obj, filter_params, active_tag=None):
     params = request.GET.copy()
     if "page" in params:
@@ -126,19 +136,7 @@ def _build_filter_context(request, page_obj, filter_params, active_tag=None):
 
 def home(request):
     sketches = list(_home_featured_sketches()[:6])
-    bg_qs = Sketch.objects.filter(status=PUBLISHED).prefetch_related("assets")
-    background_sketch_dark = bg_qs.filter(
-        home_background_theme=Sketch.HomeBackgroundTheme.DARK
-    ).first()
-    background_sketch_light = bg_qs.filter(
-        home_background_theme=Sketch.HomeBackgroundTheme.LIGHT
-    ).first()
-    # Legacy: single is_home_background sketch without a theme acts as dark.
-    if not background_sketch_dark:
-        background_sketch_dark = bg_qs.filter(
-            is_home_background=True,
-            home_background_theme="",
-        ).first() or bg_qs.filter(is_home_background=True).first()
+    background_sketch_dark, background_sketch_light = get_home_background_sketches()
     published = Sketch.objects.filter(status=PUBLISHED)
     return render(
         request,
@@ -176,6 +174,8 @@ def sketch_list(request):
         and active_filter_count(filter_params) == 0
         and sort == "featured"
     )
+    if _is_gallery_partial_request(request):
+        return render(request, "sketches/partials/gallery_load_more_fragment.html", context)
     return render(request, "sketches/sketch_list.html", context)
 
 
@@ -187,6 +187,8 @@ def tag_detail(request, slug):
     context = _build_filter_context(request, page_obj, filter_params, tag)
     context["active_tag"] = tag
     context["gallery_show_featured"] = False
+    if _is_gallery_partial_request(request):
+        return render(request, "sketches/partials/gallery_load_more_fragment.html", context)
     return render(request, "sketches/tag_detail.html", context)
 
 

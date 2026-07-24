@@ -1,0 +1,49 @@
+{% load gallery_filters %}
+<div class="landing-hero-bg" aria-hidden="true">
+  {% if background_sketch_dark or background_sketch_light %}
+  {% if background_sketch_dark %}
+  <iframe
+    class="home-bg-sketch"
+    data-theme-bg="dark"
+    data-src="{% url 'sketch_embed' background_sketch_dark.slug %}?v={{ background_sketch_dark|embed_cache_version }}"
+    sandbox="allow-scripts allow-same-origin"
+    title=""
+    tabindex="-1"
+  ></iframe>
+  <iframe
+    class="home-bg-sketch"
+    data-theme-bg="light"
+    data-src="{% url 'sketch_embed' background_sketch_light.slug %}?v={{ background_sketch_light|embed_cache_version }}"
+    sandbox="allow-scripts allow-same-origin"
+    title=""
+    tabindex="-1"
+  ></iframe>
+  {% endif %}
+  <script>
+  (function () {
+    var root = document.currentScript && document.currentScript.parentElement;
+    if (!root) return;
+    // Live sketch iframes are expensive on phones — use particle/static fallback instead.
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      root.querySelectorAll(".home-bg-sketch").forEach(function (frame) {
+        frame.remove();
+      });
+      if (!root.querySelector(".landing-particle-canvas")) {
+        var canvas = document.createElement("canvas");
+        canvas.className = "landing-particle-canvas";
+        root.appendChild(canvas);
+      }
+      return;
+    }
+    var theme = document.documentElement.classList.contains("theme-light") ? "light" : "dark";
+    var frame = root.querySelector('.home-bg-sketch[data-theme-bg="' + theme + '"]');
+    if (!frame) frame = root.querySelector(".home-bg-sketch");
+    if (!frame) return;
+    frame.classList.add("is-active");
+    if (frame.dataset.src) frame.src = frame.dataset.src;
+  })();
+  </script>
+  {% else %}
+  <canvas class="landing-particle-canvas"></canvas>
+  {% endif %}
+</div>

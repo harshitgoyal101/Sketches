@@ -1,23 +1,44 @@
 {% extends "sketches/base.html" %}
+{% load static %}
 
-{% block page_class %}gallery-auth-page{% endblock %}
+{% block page_class %}gallery-auth-page gallery-auth-split{% endblock %}
+
+{% block gallery_nav %}{% endblock %}
 
 {% block gallery_sidebar %}{% endblock %}
 
 {% block page_background %}{% endblock %}
 
-{% block main_class %}relative z-10 p-0{% endblock %}
+{% block site_css %}{% endblock %}
+
+{% block gallery_page_css %}
+<link rel="stylesheet" href="{% static 'sketches/css/built/gallery-auth.min.css' %}?v=20260724c">
+{% endblock %}
+
+{% block main_class %}relative z-10 p-0 auth-main{% endblock %}
 
 {% block content %}
-<div class="auth-shell">
-  <a href="{% url 'home' %}" class="auth-shell-brand" aria-label="sketches101 home">
-    {% include "sketches/partials/site_logo.html" %}
-  </a>
-  <div class="auth-shell-card-wrap">
-    {% block auth_content %}{% endblock %}
-  </div>
-  <p class="auth-shell-footer">
-    <a href="{% url 'sketch_list' %}">Explore gallery</a>
-  </p>
+<div class="auth-split">
+  {% block auth_brand %}
+  {% include "sketches/partials/auth_brand_panel.html" %}
+  {% endblock %}
+
+  <section class="auth-form-panel">
+    <div class="auth-form-panel-top">
+      {% include "sketches/partials/theme_toggle.html" %}
+    </div>
+    <div class="auth-form-panel-inner">
+      {% block auth_content %}{% endblock %}
+    </div>
+  </section>
 </div>
+
+<a href="{% url 'sketch_list' %}" class="auth-help-fab" aria-label="Explore gallery" title="Explore gallery">
+  <span class="material-symbols-outlined" aria-hidden="true">help</span>
+</a>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'sketches/js/home-background.js' %}?v=20260724a" defer></script>
+<script src="{% static 'sketches/js/home-particles.js' %}?v=20260724a" defer></script>
 {% endblock %}

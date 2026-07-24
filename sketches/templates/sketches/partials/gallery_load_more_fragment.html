@@ -1,0 +1,16 @@
+{# HTML fragment returned for Load more AJAX requests. #}
+<div
+  data-gallery-fragment
+  data-has-next="{% if page_obj.has_next %}true{% else %}false{% endif %}"
+  {% if page_obj.has_next %}
+  data-next-url="?page={{ page_obj.next_page_number }}{% if filter_querystring %}&amp;{{ filter_querystring }}{% endif %}"
+  {% endif %}
+>
+  {% for sketch in page_obj %}
+    {% if gallery_show_featured and forloop.first %}
+      {% include "sketches/partials/gallery_card_featured.html" %}
+    {% else %}
+      {% include "sketches/partials/gallery_card.html" %}
+    {% endif %}
+  {% endfor %}
+</div>

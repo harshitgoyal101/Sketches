@@ -11,7 +11,15 @@
       <a href="{% url 'sketch_detail' sketch.slug %}" class="landing-featured-card">
         <div class="landing-featured-media">
           {% if sketch.thumbnail %}
-          <img src="{{ sketch.thumbnail.url }}" alt="" loading="lazy">
+          <img
+            src="{{ sketch.thumbnail_card_url }}"
+            {% if sketch.thumbnail_srcset %}srcset="{{ sketch.thumbnail_srcset }}" sizes="(max-width: 767px) 90vw, 360px"{% endif %}
+            alt=""
+            width="640"
+            height="360"
+            loading="lazy"
+            decoding="async"
+          >
           {% else %}
           <div class="landing-featured-placeholder" aria-hidden="true"></div>
           {% endif %}

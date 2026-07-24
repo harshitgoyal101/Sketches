@@ -164,7 +164,15 @@ def _fit_image_to_box(image, box_w, box_h):
     return image.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
 
-def _prepare_thumbnail_image(png_bytes, size):
+def _card_thumbnail_size():
+    return getattr(settings, "SKETCH_THUMBNAIL_CARD_SIZE", (640, 360))
+
+
+def _webp_quality():
+    return int(getattr(settings, "SKETCH_THUMBNAIL_WEBP_QUALITY", 80))
+
+
+def _prepare_thumbnail_rgb(png_bytes, size):
     box_w, box_h = size
     image = Image.open(BytesIO(png_bytes)).convert("RGBA")
     fitted = _fit_image_to_box(image, box_w, box_h)
@@ -173,27 +181,72 @@ def _prepare_thumbnail_image(png_bytes, size):
     offset_x = (box_w - fitted.width) // 2
     offset_y = (box_h - fitted.height) // 2
     background.paste(fitted, (offset_x, offset_y), fitted)
+    return background.convert("RGB")
+
+
+def _encode_thumbnail_webp(image_rgb):
     output = BytesIO()
-    background.convert("RGB").save(output, format="PNG", optimize=True)
+    image_rgb.save(
+        output,
+        format="WEBP",
+        quality=_webp_quality(),
+        method=4,
+    )
     return output.getvalue()
 
 
+def _prepare_thumbnail_image(png_bytes, size):
+    """Letterbox source bytes into `size` and encode as WebP."""
+    return _encode_thumbnail_webp(_prepare_thumbnail_rgb(png_bytes, size))
+
+
+def card_thumbnail_storage_name(thumbnail_name):
+    """Derive the 640w companion path from the primary thumbnail name."""
+    if not thumbnail_name:
+        return ""
+    root, ext = thumbnail_name.rsplit(".", 1) if "." in thumbnail_name else (thumbnail_name, "webp")
+    if root.endswith("-640"):
+        return thumbnail_name
+    return f"{root}-640.{ext}"
+
+
+def _delete_card_thumbnail(sketch):
+    from django.core.files.storage import default_storage
+
+    if not sketch.thumbnail:
+        return
+    card_name = card_thumbnail_storage_name(sketch.thumbnail.name)
+    if card_name and default_storage.exists(card_name):
+        default_storage.delete(card_name)
+
+
 def save_sketch_thumbnail_bytes(sketch, png_bytes, *, force=False):
-    """Resize and persist thumbnail bytes on a sketch."""
+    """Resize and persist thumbnail bytes on a sketch (WebP + 640w card variant)."""
     if not png_bytes:
         return False
     if sketch.thumbnail and not force:
         return False
 
-    processed = _prepare_thumbnail_image(png_bytes, _thumbnail_size())
+    from django.core.files.storage import default_storage
+
+    full_bytes = _prepare_thumbnail_image(png_bytes, _thumbnail_size())
+    card_bytes = _prepare_thumbnail_image(png_bytes, _card_thumbnail_size())
+
     if sketch.thumbnail:
+        _delete_card_thumbnail(sketch)
         sketch.thumbnail.delete(save=False)
+
     sketch.thumbnail.save(
-        f"{sketch.slug}-thumbnail.png",
-        ContentFile(processed),
+        f"{sketch.slug}-thumbnail.webp",
+        ContentFile(full_bytes),
         save=False,
     )
     sketch.save(update_fields=["thumbnail", "updated_at"])
+
+    card_name = card_thumbnail_storage_name(sketch.thumbnail.name)
+    if default_storage.exists(card_name):
+        default_storage.delete(card_name)
+    default_storage.save(card_name, ContentFile(card_bytes))
     return True
 
 

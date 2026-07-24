@@ -21,7 +21,11 @@ function applyFormat(textarea, format) {
 
   const formats = {
     bold: { before: "**", after: "**" },
+    italic: { before: "*", after: "*" },
     underline: { before: "<u>", after: "</u>" },
+    link: { before: "[", after: "](https://)" },
+    image: { before: "![alt text](", after: ")" },
+    code: { before: "`", after: "`" },
   };
   const config = formats[format];
   if (!config) return;

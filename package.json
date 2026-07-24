@@ -1,0 +1,18 @@
+{
+  "name": "sketches101",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./sketches/static/sketches/css/tailwind.src.css -o ./sketches/static/sketches/css/tailwind.css --minify && node scripts/split-gallery-css.js",
+    "watch:css": "tailwindcss -i ./sketches/static/sketches/css/tailwind.src.css -o ./sketches/static/sketches/css/tailwind.css --watch",
+    "build:gallery-css": "node scripts/split-gallery-css.js"
+  },
+  "devDependencies": {
+    "@tailwindcss/container-queries": "^0.1.1",
+    "@tailwindcss/forms": "^0.5.10",
+    "clean-css": "^5.3.3",
+    "clean-css-cli": "^5.6.3",
+    "postcss": "^8.5.22",
+    "postcss-cli": "^11.0.1",
+    "tailwindcss": "^3.4.17"
+  }
+}

@@ -1,5 +1,5 @@
 {% if card_manage %}
-<article class="gallery-sketch-card group" data-sketch-type="{{ sketch.sketch_type }}">
+<article class="gallery-sketch-card gallery-sketch-card--manage group" data-sketch-type="{{ sketch.sketch_type }}">
   <a
     href="{% if sketch.status == 'published' %}{% url 'sketch_detail' sketch.slug %}{% else %}{% url 'sketch_edit' sketch.slug %}{% endif %}"
     class="gallery-sketch-card-link"
@@ -10,7 +10,7 @@
 {% endif %}
     <div class="gallery-sketch-card-media">
       {% if sketch.thumbnail %}
-        <img alt="{{ sketch.title }}" class="gallery-sketch-card-image" src="{{ sketch.thumbnail.url }}" loading="lazy">
+        {% include "sketches/partials/gallery_card_image.html" %}
       {% else %}
         <div class="gallery-sketch-card-placeholder gallery-sketch-card-placeholder--{{ sketch.sketch_type }}">
           {% if sketch.sketch_type == "processing" %}
@@ -20,50 +20,77 @@
           {% endif %}
         </div>
       {% endif %}
-      {% if card_manage and sketch.status != "published" %}
-      <span class="gallery-sketch-card-badge gallery-sketch-card-badge--draft">Draft</span>
-      {% endif %}
-      {% include "sketches/partials/gallery_sketch_type_icon.html" %}
+      <div class="gallery-sketch-card-top">
+        {% if card_manage and sketch.status != "published" %}
+        <span class="gallery-sketch-card-media-tag gallery-sketch-card-media-tag--draft">Draft</span>
+        {% else %}
+        <span class="gallery-sketch-card-media-tag">
+          {% if sketch.sketch_type == "processing" %}Processing{% else %}p5.js{% endif %}
+        </span>
+        {% endif %}
+      </div>
     </div>
-    <div class="gallery-sketch-card-body">
+    <div class="gallery-sketch-card-panel">
+      {% if not card_manage %}
+      <span class="gallery-sketch-card-type-tag">
+        {% if sketch.sketch_type == "processing" %}Processing{% else %}p5.js{% endif %}
+      </span>
+      {% elif card_manage and sketch.status != "published" %}
+      <span class="gallery-sketch-card-type-tag gallery-sketch-card-type-tag--draft">Draft</span>
+      {% endif %}
       <h3 class="gallery-sketch-card-title">{{ sketch.title }}</h3>
-      {% if sketch.description %}
-      <p class="gallery-sketch-card-description">{{ sketch.description|striptags|truncatewords:20 }}</p>
+      {% if sketch.description and not card_manage %}
+      <p class="gallery-sketch-card-description">{{ sketch.description|striptags|truncatewords:22 }}</p>
+      {% endif %}
+      {% if not card_manage %}
+      <div class="gallery-sketch-card-footer-row">
+        <div class="gallery-sketch-card-meta">
+          {% if sketch.author %}
+          <span class="gallery-sketch-card-meta-author">
+            <span class="gallery-sketch-card-avatar" aria-hidden="true">{{ sketch.author.username|slice:":1"|upper }}</span>
+            <span class="gallery-sketch-card-author">{{ sketch.author.username }}</span>
+          </span>
+          {% else %}
+          <span class="gallery-sketch-card-meta-author">
+            <span class="gallery-sketch-card-avatar gallery-sketch-card-avatar--muted" aria-hidden="true">?</span>
+            <span class="gallery-sketch-card-author gallery-sketch-card-author--muted">sketches101</span>
+          </span>
+          {% endif %}
+          {% if sketch.published_at %}
+          <time class="gallery-sketch-card-date" datetime="{{ sketch.published_at|date:'c' }}">{{ sketch.published_at|timesince }} ago</time>
+          {% endif %}
+        </div>
+        <div class="gallery-sketch-card-stats" aria-label="Engagement">
+          <span class="gallery-sketch-card-stat">
+            <span class="material-symbols-outlined" aria-hidden="true">favorite</span>
+            <span>{{ sketch.fork_count|default:0 }}</span>
+          </span>
+          <span class="gallery-sketch-card-stat">
+            <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+            <span>—</span>
+          </span>
+        </div>
+      </div>
       {% endif %}
     </div>
   </a>
-  <div class="gallery-sketch-card-footer">
-    {% if card_manage %}
-    <span class="gallery-sketch-card-status{% if sketch.status == 'published' %} gallery-sketch-card-status--published{% endif %}">
-      {% if sketch.status == "published" %}Published{% else %}Draft{% endif %}
-    </span>
-    <time class="gallery-sketch-card-date" datetime="{{ sketch.updated_at|date:'c' }}">{{ sketch.updated_at|date:"M j" }}</time>
-    {% else %}
-    <div class="gallery-sketch-card-author-row">
-      {% if sketch.author %}
-      <a href="{% url 'sketch_list' %}?author={{ sketch.author.username|urlencode }}" class="gallery-sketch-card-author-link">
-        <span class="gallery-sketch-card-avatar" aria-hidden="true">{{ sketch.author.username|slice:":1"|upper }}</span>
-        <span class="gallery-sketch-card-author">@{{ sketch.author.username }}</span>
-      </a>
-      {% else %}
-      <span class="gallery-sketch-card-avatar gallery-sketch-card-avatar--muted" aria-hidden="true">?</span>
-      <span class="gallery-sketch-card-author gallery-sketch-card-author--muted">sketches101</span>
-      {% endif %}
+  {% if card_manage %}
+  <div class="gallery-sketch-card-manage">
+    <div class="gallery-sketch-card-manage-meta">
+      <span class="gallery-sketch-card-status{% if sketch.status == 'published' %} gallery-sketch-card-status--published{% endif %}">
+        {% if sketch.status == "published" %}Published{% else %}Draft{% endif %}
+      </span>
+      <time class="gallery-sketch-card-date" datetime="{{ sketch.updated_at|date:'c' }}">{{ sketch.updated_at|date:"M j, Y" }}</time>
     </div>
-    {% if sketch.published_at %}
-    <time class="gallery-sketch-card-date" datetime="{{ sketch.published_at|date:'c' }}">{{ sketch.published_at|date:"M j" }}</time>
-    {% endif %}
-    {% endif %}
+    <div class="gallery-sketch-card-actions">
+      {% if sketch.status != "published" %}
+      {% include "sketches/partials/sketch_publish_form.html" with sketch=sketch %}
+      {% else %}
+      <a href="{% url 'sketch_detail' sketch.slug %}" class="link-action link-action--sm">View</a>
+      {% endif %}
+      <a href="{% url 'sketch_edit' sketch.slug %}" class="link-action link-action--sm">Code</a>
+      <a href="{% url 'sketch_settings' sketch.slug %}" class="link-action link-action--sm">Settings</a>
+    </div>
   </div>
-{% if card_manage %}
-  <div class="gallery-sketch-card-actions">
-    {% if sketch.status != "published" %}
-    {% include "sketches/partials/sketch_publish_form.html" with sketch=sketch %}
-    {% else %}
-    <a href="{% url 'sketch_detail' sketch.slug %}" class="link-action link-action--sm">View</a>
-    {% endif %}
-    <a href="{% url 'sketch_edit' sketch.slug %}" class="link-action link-action--sm">Code</a>
-    <a href="{% url 'sketch_settings' sketch.slug %}" class="link-action link-action--sm">Settings</a>
-  </div>
-{% endif %}
+  {% endif %}
 </article>

@@ -26,12 +26,32 @@
   <meta property="og:description" content="Interactive p5.js and Processing sketches with live previews and source code.">
   {% endblock %}
   <link rel="canonical" href="{{ request.build_absolute_uri }}">
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'sketches/css/gallery.css' %}?v=20260721aa">
-  {% include "sketches/partials/gallery_tailwind_config.html" %}
-  <link rel="stylesheet" href="{% static 'sketches/css/style.css' %}?v=20260721m">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  {# Non-blocking fonts: print→all swap avoids render-blocking Google CSS #}
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    media="print"
+    onload="this.media='all'"
+  >
+  {# Subset Material Symbols to icons used in templates/JS #}
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL@24,400,0..1&icon_names=add,add_box,arrow_back,autorenew,bolt,check_circle,chevron_left,chevron_right,close,code,code_blocks,dark_mode,edit,error,explore,favorite,folder_open,fork_right,fullscreen,fullscreen_exit,gesture,grid_view,group,help,home,image,light_mode,link,lock,login,mail,memory,person_add,play_circle,refresh,schedule,search,search_off,star,touch_app,tune,visibility,visibility_off,warning&display=swap"
+    media="print"
+    onload="this.media='all'"
+  >
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL@24,400,0..1&icon_names=add,add_box,arrow_back,autorenew,bolt,check_circle,chevron_left,chevron_right,close,code,code_blocks,dark_mode,edit,error,explore,favorite,folder_open,fork_right,fullscreen,fullscreen_exit,gesture,grid_view,group,help,home,image,light_mode,link,lock,login,mail,memory,person_add,play_circle,refresh,schedule,search,search_off,star,touch_app,tune,visibility,visibility_off,warning&display=swap" rel="stylesheet">
+  </noscript>
+  <link rel="stylesheet" href="{% static 'sketches/css/tailwind.css' %}?v=20260724b">
+  <link rel="stylesheet" href="{% static 'sketches/css/built/gallery-core.min.css' %}?v=20260724c">
+  {% block gallery_page_css %}{% endblock %}
+  {% block site_css %}
+  <link rel="stylesheet" href="{% static 'sketches/css/built/style.min.css' %}?v=20260724c">
+  {% endblock %}
   {% block extra_head %}{% endblock %}
 </head>
 <body class="gallery-page font-body-md text-body-md selection:bg-primary-container/20 selection:text-primary {% block page_class %}{% endblock %}{% if body_class %} {{ body_class }}{% endif %}">
@@ -68,8 +88,8 @@
 
   {% block mobile_nav %}{% endblock %}
 
-  <script src="{% static 'sketches/js/theme.js' %}?v=20260721k"></script>
-  <script src="{% static 'sketches/js/gallery.js' %}?v=20260721c"></script>
+  <script src="{% static 'sketches/js/theme.js' %}?v=20260721k" defer></script>
+  <script src="{% static 'sketches/js/gallery.js' %}?v=20260724a" defer></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -5,7 +5,24 @@ document.addEventListener("DOMContentLoaded", function () {
   initGalleryAvatarMenu();
   initGalleryWorkspaceSidebar();
   initGalleryMessages();
+  initGalleryLoadMore();
+  initNetworkGridLazy();
 });
+
+function initNetworkGridLazy() {
+  if (!document.querySelector(".network-grid")) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  var script = document.createElement("script");
+  var base = document.querySelector('script[src*="gallery.js"]');
+  if (base && base.src) {
+    script.src = base.src.replace(/gallery\.js[^/]*$/, "network-grid.js?v=20260724a");
+  } else {
+    script.src = "/static/sketches/js/network-grid.js?v=20260724a";
+  }
+  script.defer = true;
+  document.body.appendChild(script);
+}
 
 function initGalleryFilters() {
   var toggle = document.getElementById("gallery-filters-toggle");
@@ -330,5 +347,72 @@ function initGalleryMessages() {
     message.title = "Dismiss";
     message.addEventListener("click", dismiss);
     dismissTimer = window.setTimeout(dismiss, dismissMs);
+  });
+}
+
+function initGalleryLoadMore() {
+  var button = document.querySelector(".gallery-load-more-btn");
+  var grid = document.querySelector(".gallery-sketch-grid");
+  if (!button || !grid) return;
+
+  var loading = false;
+
+  button.addEventListener("click", function () {
+    if (loading) return;
+
+    var nextUrl = button.getAttribute("data-next-url");
+    if (!nextUrl) return;
+
+    var fetchUrl = nextUrl + (nextUrl.indexOf("?") >= 0 ? "&" : "?") + "partial=1";
+    loading = true;
+    button.disabled = true;
+    button.classList.add("is-loading");
+    button.textContent = "Loading…";
+
+    fetch(fetchUrl, {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        Accept: "text/html",
+      },
+      credentials: "same-origin",
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("Failed to load more sketches");
+        }
+        return response.text();
+      })
+      .then(function (html) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, "text/html");
+        var fragment = doc.querySelector("[data-gallery-fragment]");
+        if (!fragment) {
+          throw new Error("Invalid load more response");
+        }
+
+        var cards = Array.prototype.slice.call(fragment.children);
+        cards.forEach(function (card) {
+          grid.appendChild(card);
+        });
+
+        var hasNext = fragment.getAttribute("data-has-next") === "true";
+        var nextPageUrl = fragment.getAttribute("data-next-url");
+        if (hasNext && nextPageUrl) {
+          button.setAttribute("data-next-url", nextPageUrl);
+          button.disabled = false;
+          button.classList.remove("is-loading");
+          button.textContent = "Load more";
+          loading = false;
+        } else {
+          var wrap = button.closest(".gallery-load-more");
+          if (wrap) wrap.remove();
+        }
+      })
+      .catch(function () {
+        button.disabled = false;
+        button.classList.remove("is-loading");
+        button.textContent = "Load more";
+        loading = false;
+      });
   });
 }

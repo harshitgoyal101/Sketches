@@ -6,12 +6,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const showing = input.type === "text";
       input.type = showing ? "password" : "text";
-      button.textContent = showing ? "Show" : "Hide";
       button.setAttribute("aria-pressed", String(!showing));
       button.setAttribute(
         "aria-label",
         showing ? "Show password" : "Hide password"
       );
+
+      const icon = button.querySelector(".material-symbols-outlined");
+      if (icon) {
+        icon.textContent = showing ? "visibility" : "visibility_off";
+      } else {
+        button.textContent = showing ? "Show" : "Hide";
+      }
     });
   });
 });

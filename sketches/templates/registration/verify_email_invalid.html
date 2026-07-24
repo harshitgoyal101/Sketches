@@ -3,14 +3,13 @@
 {% block title %}Invalid link | Sketches101{% endblock %}
 
 {% block auth_content %}
-<section class="auth-card gallery-themed-card gallery-themed-card--error">
-  {% include "sketches/partials/auth_card_icon.html" with icon="warning" %}
+<header class="auth-form-header">
   <h1>Invalid or expired link</h1>
   <p class="auth-lead">
     This verification link is no longer valid. Request a new one to activate your account.
   </p>
-  <p class="auth-switch">
-    <a href="{% url 'resend_verification' %}">Resend verification email</a>
-  </p>
-</section>
+</header>
+<p class="auth-switch auth-switch--inline">
+  <a href="{% url 'resend_verification' %}">Resend verification email</a>
+</p>
 {% endblock %}

@@ -1,6 +1,14 @@
 <div class="sketch-thumbnail{% if extra_class %} {{ extra_class }}{% endif %}">
   {% if sketch.thumbnail %}
-    <img src="{{ sketch.thumbnail.url }}" alt="{{ sketch.title }} thumbnail" loading="lazy">
+    <img
+      src="{{ sketch.thumbnail_card_url }}"
+      {% if sketch.thumbnail_srcset %}srcset="{{ sketch.thumbnail_srcset }}" sizes="160px"{% endif %}
+      alt="{{ sketch.title }} thumbnail"
+      width="640"
+      height="360"
+      loading="lazy"
+      decoding="async"
+    >
   {% else %}
     <span class="sketch-thumbnail-placeholder" aria-hidden="true">◌</span>
   {% endif %}

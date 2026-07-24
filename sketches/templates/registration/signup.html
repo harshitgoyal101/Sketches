@@ -4,56 +4,92 @@
 {% block title %}Sign up | Sketches101{% endblock %}
 
 {% block auth_content %}
-<section class="auth-card gallery-themed-card">
-  {% include "sketches/partials/auth_card_icon.html" with icon="signup" %}
+<header class="auth-form-header">
   <h1>Create account</h1>
   <p class="auth-lead">Join the gallery to publish and manage your sketches.</p>
+</header>
 
-  <form method="post" class="themed-form auth-form" id="signup-form" novalidate>
-    {% csrf_token %}
-    {% include "sketches/partials/form_non_field_errors.html" with form=form %}
+<form method="post" class="themed-form auth-form auth-form--split" id="signup-form" novalidate>
+  {% csrf_token %}
+  {% include "sketches/partials/form_non_field_errors.html" with form=form %}
 
-    {% include "sketches/partials/form_field.html" with field=form.username %}
-    {% include "sketches/partials/form_field.html" with field=form.email %}
-
-    <div class="form-field password-field">
-      <label class="form-label" for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
-      <div class="password-input-wrap">
-        {{ form.password1 }}
-        <button
-          type="button"
-          class="password-toggle"
-          data-target="{{ form.password1.id_for_label }}"
-          aria-label="Show password"
-          aria-pressed="false"
-        >Show</button>
-      </div>
-      <ul class="password-requirements" id="password-requirements" aria-live="polite">
-        <li class="password-requirement" data-rule="length">At least 8 characters long</li>
-        <li class="password-requirement" data-rule="letter">Must have an alphabet</li>
-        <li class="password-requirement" data-rule="number">Must have a number</li>
-        <li class="password-requirement" data-rule="symbol">Must have a symbol</li>
-        <li class="password-requirement" data-rule="similar">Should not be your username</li>
-        <li class="password-requirement" data-rule="match">Password must match</li>
-      </ul>
-      {% if form.password1.errors %}
-      <span class="field-error">{{ form.password1.errors|join:", " }}</span>
-      {% endif %}
-    </div>
-
-    {% include "sketches/partials/form_field.html" with field=form.password2 show_toggle=True %}
-
-    <button type="submit" class="btn btn-primary btn-full">Sign up</button>
-  </form>
-
-  <div class="auth-switch auth-switch-action">
-    <p class="auth-switch-label">Already have an account?</p>
-    <a href="{% url 'login' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="btn btn-secondary btn-full">Log in</a>
+  <div class="form-field">
+    <label class="form-label" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+    {{ form.username }}
+    <ul class="auth-field-hints" aria-label="Username requirements">
+      <li class="auth-field-hint">Shown on your sketches and profile</li>
+      <li class="auth-field-hint">Example: <strong>alex</strong></li>
+      <li class="auth-field-hint">Up to 150 characters</li>
+      <li class="auth-field-hint">Letters, numbers, and @ . + - _ only</li>
+    </ul>
+    {% if form.username.errors %}
+    <span class="field-error">{{ form.username.errors|join:", " }}</span>
+    {% endif %}
   </div>
-</section>
+
+  {% include "sketches/partials/form_field.html" with field=form.email %}
+
+  <div class="form-field password-field">
+    <label class="form-label" for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
+    <div class="password-input-wrap">
+      {{ form.password1 }}
+      <button
+        type="button"
+        class="password-toggle password-toggle--icon"
+        data-target="{{ form.password1.id_for_label }}"
+        aria-label="Show password"
+        aria-pressed="false"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+      </button>
+    </div>
+    <ul class="auth-field-hints password-requirements" id="password-requirements" aria-live="polite" aria-label="Password requirements">
+      <li class="auth-field-hint password-requirement" data-rule="length">At least 8 characters</li>
+      <li class="auth-field-hint password-requirement" data-rule="letter">Must include a letter</li>
+      <li class="auth-field-hint password-requirement" data-rule="number">Must include a number</li>
+      <li class="auth-field-hint password-requirement" data-rule="symbol">Must include a symbol</li>
+      <li class="auth-field-hint password-requirement" data-rule="similar">Should not be your username</li>
+      <li class="auth-field-hint password-requirement" data-rule="match">Passwords must match</li>
+    </ul>
+    {% if form.password1.errors %}
+    <span class="field-error">{{ form.password1.errors|join:", " }}</span>
+    {% endif %}
+  </div>
+
+  <div class="form-field password-field">
+    <label class="form-label" for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
+    <div class="password-input-wrap">
+      {{ form.password2 }}
+      <button
+        type="button"
+        class="password-toggle password-toggle--icon"
+        data-target="{{ form.password2.id_for_label }}"
+        aria-label="Show password"
+        aria-pressed="false"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+      </button>
+    </div>
+    {% if form.password2.errors %}
+    <span class="field-error">{{ form.password2.errors|join:", " }}</span>
+    {% endif %}
+  </div>
+
+  <button type="submit" class="btn btn-primary btn-full auth-submit">Sign up</button>
+</form>
+
+<p class="auth-switch auth-switch--inline">
+  Already have an account?
+  <a href="{% url 'login' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}">Log in</a>
+</p>
+
+<p class="auth-guest-link">
+  <a href="{% url 'sketch_list' %}">← Continue without an account</a>
+</p>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'sketches/js/forms.js' %}"></script>
-<script src="{% static 'sketches/js/signup.js' %}?v=20260706a"></script>
+{{ block.super }}
+<script src="{% static 'sketches/js/forms.js' %}?v=20260722a"></script>
+<script src="{% static 'sketches/js/signup.js' %}?v=20260722b"></script>
 {% endblock %}

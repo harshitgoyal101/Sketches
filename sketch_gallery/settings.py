@@ -80,6 +80,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'sketches.context_processors.home_background_sketches',
             ],
         },
     },
@@ -161,6 +162,8 @@ SKETCH_THUMBNAIL_AUTO_GENERATE = os.environ.get(
     "SKETCH_THUMBNAIL_AUTO_GENERATE", "true"
 ).lower() in ("true", "1", "yes")
 SKETCH_THUMBNAIL_SIZE = (1280, 720)
+SKETCH_THUMBNAIL_CARD_SIZE = (640, 360)
+SKETCH_THUMBNAIL_WEBP_QUALITY = 80
 SKETCH_THUMBNAIL_CAPTURE_TIMEOUT_MS = 15000
 SKETCH_THUMBNAIL_SETTLE_MS = 2000
 

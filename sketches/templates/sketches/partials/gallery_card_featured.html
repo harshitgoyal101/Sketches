@@ -1,8 +1,8 @@
 <article class="gallery-sketch-card gallery-sketch-card--featured group" data-sketch-type="{{ sketch.sketch_type }}">
-  <a href="{% url 'sketch_detail' sketch.slug %}" class="gallery-sketch-card-link">
+  <a href="{% url 'sketch_detail' sketch.slug %}" class="gallery-sketch-card-link gallery-sketch-card-link--featured">
     <div class="gallery-sketch-card-media gallery-sketch-card-media--featured">
       {% if sketch.thumbnail %}
-        <img alt="{{ sketch.title }}" class="gallery-sketch-card-image" src="{{ sketch.thumbnail.url }}" loading="lazy">
+        {% include "sketches/partials/gallery_card_image.html" with sizes="(max-width: 767px) 90vw, (max-width: 1199px) 55vw, 560px" %}
       {% else %}
         <div class="gallery-sketch-card-placeholder gallery-sketch-card-placeholder--{{ sketch.sketch_type }}">
           {% if sketch.sketch_type == "processing" %}
@@ -12,29 +12,47 @@
           {% endif %}
         </div>
       {% endif %}
-      <div class="gallery-sketch-card-featured-badges">
+      <div class="gallery-sketch-card-top">
+        <span class="gallery-sketch-card-media-tag">
+          {% if sketch.sketch_type == "processing" %}Processing{% else %}p5.js{% endif %}
+        </span>
         <span class="gallery-sketch-card-badge gallery-sketch-card-badge--featured">Featured</span>
-        {% include "sketches/partials/gallery_sketch_type_icon.html" %}
       </div>
     </div>
-    <div class="gallery-sketch-card-body gallery-sketch-card-body--featured">
+    <div class="gallery-sketch-card-panel gallery-sketch-card-panel--featured">
+      <div class="gallery-sketch-card-tag-row">
+        <span class="gallery-sketch-card-type-tag gallery-sketch-card-type-tag--staff">Staff Pick</span>
+        <span class="gallery-sketch-card-type-tag">
+          {% if sketch.sketch_type == "processing" %}Processing{% else %}p5.js{% endif %}
+        </span>
+      </div>
       <h3 class="gallery-sketch-card-title gallery-sketch-card-title--featured">{{ sketch.title }}</h3>
       {% if sketch.description %}
-      <p class="gallery-sketch-card-description gallery-sketch-card-description--featured">{{ sketch.description|striptags|truncatewords:24 }}</p>
+      <p class="gallery-sketch-card-description gallery-sketch-card-description--featured">{{ sketch.description|striptags|truncatewords:28 }}</p>
       {% endif %}
+      <div class="gallery-sketch-card-footer-row">
+        <div class="gallery-sketch-card-meta">
+          {% if sketch.author %}
+          <span class="gallery-sketch-card-meta-author">
+            <span class="gallery-sketch-card-avatar gallery-sketch-card-avatar--featured" aria-hidden="true">{{ sketch.author.username|slice:":1"|upper }}</span>
+            <span class="gallery-sketch-card-author">{{ sketch.author.username }}</span>
+          </span>
+          {% endif %}
+          {% if sketch.published_at %}
+          <time class="gallery-sketch-card-date" datetime="{{ sketch.published_at|date:'c' }}">{{ sketch.published_at|timesince }} ago</time>
+          {% endif %}
+        </div>
+        <div class="gallery-sketch-card-stats" aria-label="Engagement">
+          <span class="gallery-sketch-card-stat">
+            <span class="material-symbols-outlined" aria-hidden="true">favorite</span>
+            <span>{{ sketch.fork_count|default:0 }}</span>
+          </span>
+          <span class="gallery-sketch-card-stat">
+            <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+            <span>—</span>
+          </span>
+        </div>
+      </div>
     </div>
   </a>
-  <div class="gallery-sketch-card-footer gallery-sketch-card-footer--featured">
-    <div class="gallery-sketch-card-author-row">
-      {% if sketch.author %}
-      <a href="{% url 'sketch_list' %}?author={{ sketch.author.username|urlencode }}" class="gallery-sketch-card-author-link">
-        <span class="gallery-sketch-card-avatar gallery-sketch-card-avatar--featured" aria-hidden="true">{{ sketch.author.username|slice:":1"|upper }}</span>
-        <span class="gallery-sketch-card-author">@{{ sketch.author.username }}</span>
-      </a>
-      {% endif %}
-    </div>
-    {% if sketch.published_at %}
-    <time class="gallery-sketch-card-date" datetime="{{ sketch.published_at|date:'c' }}">{{ sketch.published_at|date:"M j, Y" }}</time>
-    {% endif %}
-  </div>
 </article>

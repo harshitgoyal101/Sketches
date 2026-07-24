@@ -10,11 +10,13 @@
 <div class="fixed inset-0 network-grid pointer-events-none z-0" aria-hidden="true"></div>
 {% endblock %}
 
+{% block site_css %}{% endblock %}
+
 {% block content %}
 {% include "sketches/partials/gallery_header.html" %}
 
 {% if page_obj.object_list %}
-<div class="gallery-sketch-grid relative z-10">
+<div class="gallery-sketch-grid relative z-10{% if gallery_show_featured %} gallery-sketch-grid--has-featured{% endif %}">
   {% for sketch in page_obj %}
     {% if gallery_show_featured and forloop.first %}
       {% include "sketches/partials/gallery_card_featured.html" %}
@@ -26,10 +28,11 @@
 
 {% if page_obj.has_next %}
 <div class="gallery-load-more relative z-10">
-  <a
-    href="?page={{ page_obj.next_page_number }}{% if filter_querystring %}&amp;{{ filter_querystring }}{% endif %}"
-    class="landing-btn landing-btn--ghost"
-  >Load more</a>
+  <button
+    type="button"
+    class="landing-btn landing-btn--ghost gallery-load-more-btn"
+    data-next-url="?page={{ page_obj.next_page_number }}{% if filter_querystring %}&amp;{{ filter_querystring }}{% endif %}"
+  >Load more</button>
 </div>
 {% endif %}
 

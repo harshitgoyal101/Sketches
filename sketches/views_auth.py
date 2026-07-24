@@ -34,6 +34,14 @@ class UserLoginView(LoginView):
     authentication_form = StyledAuthenticationForm
     redirect_authenticated_user = True
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.POST.get("remember"):
+            self.request.session.set_expiry(60 * 60 * 24 * 30)
+        else:
+            self.request.session.set_expiry(0)
+        return response
+
 
 class UserLogoutView(LogoutView):
     pass

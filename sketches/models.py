@@ -162,6 +162,34 @@ class Sketch(models.Model):
     def __str__(self):
         return self.title
 
+    @property
+    def thumbnail_card_url(self):
+        """URL for the 640w gallery card variant when present."""
+        if not self.thumbnail:
+            return ""
+        from django.core.files.storage import default_storage
+        from sketches.services.thumbnail_generator import card_thumbnail_storage_name
+
+        card_name = card_thumbnail_storage_name(self.thumbnail.name)
+        if card_name and default_storage.exists(card_name):
+            return default_storage.url(card_name)
+        return self.thumbnail.url
+
+    @property
+    def thumbnail_srcset(self):
+        """Responsive srcset for gallery cards (640w + full)."""
+        if not self.thumbnail:
+            return ""
+        from django.core.files.storage import default_storage
+        from sketches.services.thumbnail_generator import card_thumbnail_storage_name
+
+        parts = []
+        card_name = card_thumbnail_storage_name(self.thumbnail.name)
+        if card_name and default_storage.exists(card_name):
+            parts.append(f"{default_storage.url(card_name)} 640w")
+        parts.append(f"{self.thumbnail.url} 1280w")
+        return ", ".join(parts)
+
     def _author_slug_prefix(self):
         author = self.author
         if author is not None:

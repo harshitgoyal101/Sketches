@@ -3,11 +3,14 @@
 
 {% block title %}{% if is_create %}New sketch{% else %}{{ sketch.title }} — Edit{% endif %} | Sketches101{% endblock %}
 
+{% block gallery_sidebar %}{% endblock %}
 {% block page_class %}gallery-edit-page{% endblock %}
-{% block main_class %}xl:ml-sidebar-width relative z-10 px-3 md:px-4 pb-0 flex flex-col min-h-0 overflow-hidden{% endblock %}
+{% block main_class %}relative z-10 px-2 md:px-4 pb-0 flex flex-col min-h-0 overflow-hidden{% endblock %}
 
-{% block page_background %}
-<div class="fixed inset-0 network-grid pointer-events-none z-0" aria-hidden="true"></div>
+{% block page_background %}{% endblock %}
+
+{% block gallery_page_css %}
+<link rel="stylesheet" href="{% static 'sketches/css/built/gallery-edit.min.css' %}?v=20260724c">
 {% endblock %}
 
 {% block extra_head %}
@@ -56,9 +59,13 @@
   <div class="sketch-edit-topbar">
     <div class="sketch-edit-topbar-start">
       {% if is_create %}
-      <a href="{% url 'account' %}" class="sketch-edit-back" aria-label="Back to account">←</a>
+      <a href="{% url 'account' %}" class="sketch-edit-back" aria-label="Back to account">
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+      </a>
       {% else %}
-      <a href="{% url 'sketch_detail' sketch.slug %}" class="sketch-edit-back" aria-label="Back to sketch">←</a>
+      <a href="{% url 'sketch_detail' sketch.slug %}" class="sketch-edit-back" aria-label="Back to sketch">
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+      </a>
       {% endif %}
       <div class="sketch-edit-title-field">
         {% if can_edit %}
@@ -117,7 +124,10 @@
       {% endif %}
     </div>
     {% if not is_create %}
-    <a href="{% url 'sketch_detail' sketch.slug %}" class="btn btn-secondary btn-sm sketch-edit-view-btn">{% if sketch.status == "draft" %}Preview{% else %}View{% endif %}</a>
+    <a href="{% url 'sketch_detail' sketch.slug %}" class="btn btn-secondary btn-sm sketch-edit-view-btn">
+      <span class="material-symbols-outlined sketch-edit-view-btn-icon" aria-hidden="true">visibility</span>
+      <span class="sketch-edit-view-btn-label">{% if sketch.status == "draft" %}Preview{% else %}View{% endif %}</span>
+    </a>
     {% endif %}
   </div>
 

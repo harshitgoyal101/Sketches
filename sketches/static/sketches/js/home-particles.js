@@ -4,15 +4,16 @@
  */
 (function () {
   function initParticles() {
-    var canvas = document.getElementById("home-particle-canvas");
+    var canvas = document.querySelector(".landing-particle-canvas");
     if (!canvas) return;
 
     var ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    var N = 90;
-    var MAX_DIST = 150;
+    var isMobile = window.matchMedia("(max-width: 767px)").matches;
+    var N = isMobile ? 28 : 90;
+    var MAX_DIST = isMobile ? 110 : 150;
     var nodes = [];
     var W = 0;
     var H = 0;

@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const button = document.getElementById("generate-thumbnail-btn");
   if (!button || !window.SketchThumbnailCapture) return;
 
-  const page = document.querySelector(".sketch-settings-page");
+  const page = document.querySelector(".sketch-settings");
   const preview = document.getElementById("edit-thumbnail-preview");
   const uploadUrl = button.dataset.uploadUrl;
   const embedUrl = button.dataset.embedUrl;
@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const shouldAutoGenerate =
     page?.dataset.autoGenerateThumbnail === "true"
-    && preview?.classList.contains("edit-thumbnail-preview--empty");
+    && preview?.classList.contains("sketch-settings-thumbnail-preview--empty");
 
   if (shouldAutoGenerate) {
     window.setTimeout(() => {

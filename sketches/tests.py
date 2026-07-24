@@ -809,7 +809,7 @@ class SketchSettingsTests(TestCase):
         self.client.force_login(self.author)
         response = self.client.get("/accounts/sketches/my-sketch/settings/")
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Sketch settings")
+        self.assertContains(response, "Sketch Settings")
         self.assertContains(response, "sketch-description-input")
         self.assertNotContains(response, "code-editor")
 
@@ -1073,6 +1073,7 @@ class ThumbnailGeneratorTests(TestCase):
         processed = _prepare_thumbnail_image(self._sample_png(), (1280, 720))
         image = Image.open(BytesIO(processed))
         self.assertEqual(image.size, (1280, 720))
+        self.assertEqual(image.format, "WEBP")
 
     def test_prepare_thumbnail_image_scales_up_small_canvas(self):
         buffer = BytesIO()
@@ -1098,13 +1099,16 @@ class ThumbnailGeneratorTests(TestCase):
         self.assertTrue(generated)
         self.sketch.refresh_from_db()
         self.assertTrue(self.sketch.thumbnail)
-        self.assertTrue(self.sketch.thumbnail.name.endswith(".png"))
+        self.assertTrue(self.sketch.thumbnail.name.endswith(".webp"))
+        self.assertIn("640w", self.sketch.thumbnail_srcset)
 
     def test_save_sketch_thumbnail_bytes(self):
         saved = save_sketch_thumbnail_bytes(self.sketch, self._sample_png(), force=True)
         self.assertTrue(saved)
         self.sketch.refresh_from_db()
         self.assertTrue(self.sketch.thumbnail)
+        self.assertTrue(self.sketch.thumbnail.name.endswith(".webp"))
+        self.assertTrue(self.sketch.thumbnail_card_url)
 
     @patch("sketches.services.thumbnail_generator._capture_canvas_png")
     def test_generate_sketch_thumbnail_skips_existing_thumbnail(self, capture_mock):

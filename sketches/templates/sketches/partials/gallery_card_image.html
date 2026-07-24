@@ -1,0 +1,12 @@
+{% if sketch.thumbnail %}
+<img
+  alt="{{ sketch.title }}"
+  class="{% if img_class %}{{ img_class }}{% else %}gallery-sketch-card-image{% endif %}"
+  src="{{ sketch.thumbnail_card_url }}"
+  {% if sketch.thumbnail_srcset %}srcset="{{ sketch.thumbnail_srcset }}" sizes="{{ sizes|default:'(max-width: 767px) 42vw, (max-width: 1199px) 30vw, 280px' }}"{% endif %}
+  width="640"
+  height="360"
+  loading="lazy"
+  decoding="async"
+>
+{% endif %}

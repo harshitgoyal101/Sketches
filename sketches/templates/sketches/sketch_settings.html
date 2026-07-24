@@ -3,151 +3,201 @@
 
 {% block title %}{{ sketch.title }} — Settings | Sketches101{% endblock %}
 
+{% block gallery_sidebar %}{% endblock %}
 {% block page_class %}gallery-settings-page{% endblock %}
+{% block main_class %}relative z-10 p-0{% endblock %}
+{% block page_background %}{% endblock %}
 
-{% block page_background %}
-<div class="fixed inset-0 network-grid pointer-events-none z-0" aria-hidden="true"></div>
+{% block gallery_page_css %}
+<link rel="stylesheet" href="{% static 'sketches/css/built/gallery-settings.min.css' %}?v=20260724c">
 {% endblock %}
 
 {% block content %}
 <div
-  class="relative z-10 sketch-settings-page"
+  class="sketch-settings"
   {% if is_setup %}data-setup-step="2" data-auto-generate-thumbnail="true"{% endif %}
 >
-  <header class="sketch-settings-header">
-    <div class="sketch-settings-header-start">
-      <a href="{% if is_setup %}{% url 'sketch_edit' sketch.slug %}{% else %}{% url 'sketch_detail' sketch.slug %}{% endif %}" class="sketch-settings-back" aria-label="{% if is_setup %}Back to editor{% else %}Back to sketch{% endif %}">←</a>
-      <div>
-        <p class="sketch-settings-eyebrow">{% if is_setup %}Step 2 · Sketch details{% else %}Sketch settings{% endif %}</p>
-        <h1 class="sketch-settings-title">{{ sketch.title }}</h1>
-      </div>
-    </div>
-    <div class="sketch-settings-header-actions">
-      <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-secondary btn-sm">
-        <span class="material-symbols-outlined" aria-hidden="true">code</span>
-        Open editor
-      </a>
-      <a href="{% url 'sketch_detail' sketch.slug %}" class="btn btn-secondary btn-sm">
-        {% if sketch.status == "draft" %}Preview{% else %}View{% endif %}
-      </a>
-    </div>
-  </header>
+  <div class="sketch-settings-shell">
+    <nav class="sketch-settings-breadcrumb" aria-label="Breadcrumb">
+      <a href="{% url 'account' %}" class="sketch-settings-breadcrumb-link">My Sketches</a>
+      <span class="sketch-settings-breadcrumb-sep" aria-hidden="true">&rsaquo;</span>
+      <a href="{% url 'sketch_detail' sketch.slug %}" class="sketch-settings-breadcrumb-link">{{ sketch.title }}</a>
+      <span class="sketch-settings-breadcrumb-sep" aria-hidden="true">&rsaquo;</span>
+      <span class="sketch-settings-breadcrumb-current" aria-current="page">Settings</span>
+    </nav>
 
-  <form method="post" class="themed-form sketch-settings-form" enctype="multipart/form-data" novalidate>
-    {% csrf_token %}
-    {% include "sketches/partials/form_non_field_errors.html" with form=form %}
-
-    <div class="sketch-settings-grid">
-      <section class="sketch-settings-card gallery-themed-card">
-        <h2 class="sketch-settings-card-title">Basics</h2>
-        {% include "sketches/partials/form_field.html" with field=form.title %}
-
-        <div class="form-field">
-          <span class="form-label">URL slug</span>
-          <p class="sketch-settings-slug" aria-readonly="true">{{ sketch.slug }}</p>
-          <span class="field-help">Set when the sketch is created. Includes your username and the sketch title.</span>
-        </div>
-
-        {% if sketch.forked_from %}
-        <div class="form-field">
-          <span class="form-label">Forked from</span>
-          <p class="sketch-settings-slug" aria-readonly="true">
-            <a href="{% url 'sketch_detail' sketch.forked_from.slug %}">{{ sketch.forked_from.title }}</a>
-            {% if sketch.forked_from.author %}
-            by @{{ sketch.forked_from.author.username }}
-            {% endif %}
-          </p>
-          <span class="field-help">Original sketch this copy was based on. Cannot be changed.</span>
-        </div>
-        {% if sketch.fork_by %}
-        <div class="form-field">
-          <span class="form-label">Forked by</span>
-          <p class="sketch-settings-slug" aria-readonly="true">@{{ sketch.fork_by.username }}</p>
-          <span class="field-help">Set automatically when the fork was created. Cannot be changed.</span>
-        </div>
+    <header class="sketch-settings-header">
+      <div class="sketch-settings-header-start">
+        {% if is_setup %}
+        <p class="sketch-settings-setup-label">Step 2 · Sketch details</p>
         {% endif %}
-        {% endif %}
-
-        <div class="form-field">
-          <span class="form-label" id="{{ form.description.id_for_label }}-label">{{ form.description.label }}</span>
-          <div class="description-editor">
-            <div class="description-toolbar" data-description-toolbar aria-label="Description formatting">
-              <button type="button" class="description-toolbar-btn" data-format="bold" title="Bold"><strong>B</strong></button>
-              <button type="button" class="description-toolbar-btn description-toolbar-underline" data-format="underline" title="Underline">U</button>
-            </div>
-            {{ form.description }}
-          </div>
-          {% if form.description.help_text %}
-          <span class="field-help">{{ form.description.help_text|safe }}</span>
-          {% endif %}
-          {% if form.description.errors %}
-          <span class="field-error">{{ form.description.errors|join:", " }}</span>
-          {% endif %}
-        </div>
-      </section>
-
-      <section class="sketch-settings-card gallery-themed-card">
-        <h2 class="sketch-settings-card-title">Thumbnail</h2>
-        <div class="form-field edit-thumbnail-field">
-          <span class="form-label" for="{{ form.thumbnail.id_for_label }}">{{ form.thumbnail.label }}</span>
-          <div
-            id="edit-thumbnail-preview"
-            class="edit-thumbnail-preview{% if sketch.thumbnail %} edit-thumbnail-preview--has-image{% else %} edit-thumbnail-preview--empty{% endif %}"
-          >
-            {% if sketch.thumbnail %}
-            <div class="sketch-thumbnail sketch-thumbnail--settings">
-              <img src="{{ sketch.thumbnail.url }}" alt="{{ sketch.title }} thumbnail" loading="lazy">
-            </div>
-            {% else %}
-            <span class="material-symbols-outlined" aria-hidden="true">image</span>
-            <span class="edit-thumbnail-empty-label">No thumbnail yet</span>
-            {% endif %}
-          </div>
-          <div class="edit-thumbnail-upload">
-            {{ form.thumbnail }}
-          </div>
-          <button
-            type="button"
-            class="btn btn-secondary btn-sm"
-            id="generate-thumbnail-btn"
-            data-embed-url="{% url 'sketch_embed' sketch.slug %}?fullscreen=1"
-            data-upload-url="{% url 'sketch_upload_thumbnail' sketch.slug %}"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">photo_camera</span>
-            {% if sketch.thumbnail %}Regenerate from preview{% else %}Generate from preview{% endif %}
-          </button>
-          <span class="field-help">
-            Captures a still from your sketch preview in the browser. You can also upload your own image above.
+        <div class="sketch-settings-title-row">
+          <h1 class="sketch-settings-title">Sketch Settings</h1>
+          <span class="sketch-settings-status sketch-settings-status--{{ sketch.status }}">
+            <span class="sketch-settings-status-dot" aria-hidden="true"></span>
+            {% if sketch.status == "published" %}Published{% else %}Draft{% endif %}
           </span>
-          {% if form.thumbnail.errors %}
-          <span class="field-error">{{ form.thumbnail.errors|join:", " }}</span>
-          {% endif %}
         </div>
-      </section>
+      </div>
+      <div class="sketch-settings-header-actions">
+        <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-secondary btn-sm sketch-settings-header-btn">
+          <span class="material-symbols-outlined" aria-hidden="true">code</span>
+          Open editor
+        </a>
+        <a href="{% url 'sketch_detail' sketch.slug %}" class="btn btn-secondary btn-sm sketch-settings-header-btn">
+          <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+          View sketch
+        </a>
+      </div>
+    </header>
 
-      <section class="sketch-settings-card gallery-themed-card">
-        <h2 class="sketch-settings-card-title">Tags</h2>
-        {% include "sketches/partials/form_field.html" with field=form.tags %}
-      </section>
+    <form method="post" class="themed-form sketch-settings-form" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {% include "sketches/partials/form_non_field_errors.html" with form=form %}
 
-      {% if is_admin %}
-      <section class="sketch-settings-card gallery-themed-card">
-        <h2 class="sketch-settings-card-title">Admin</h2>
-        {% if form.status %}
-        {% include "sketches/partials/form_field.html" with field=form.status %}
+      <div class="sketch-settings-grid">
+        <section class="sketch-settings-card sketch-settings-card--basics gallery-themed-card">
+          <h2 class="sketch-settings-card-title">Basics</h2>
+          {% include "sketches/partials/form_field.html" with field=form.title %}
+
+          <div class="form-field">
+            <span class="form-label">URL slug</span>
+            <p class="sketch-settings-slug" aria-readonly="true">{{ sketch.slug }}</p>
+            <span class="field-help">Set when the sketch is created, includes your username and the sketch title.</span>
+          </div>
+
+          {% if sketch.forked_from %}
+          <div class="form-field">
+            <span class="form-label">Forked from</span>
+            <p class="sketch-settings-slug" aria-readonly="true">
+              <a href="{% url 'sketch_detail' sketch.forked_from.slug %}">{{ sketch.forked_from.title }}</a>
+              {% if sketch.forked_from.author %}
+              by @{{ sketch.forked_from.author.username }}
+              {% endif %}
+            </p>
+            <span class="field-help">Original sketch this copy was based on. Cannot be changed.</span>
+          </div>
+          {% if sketch.fork_by %}
+          <div class="form-field">
+            <span class="form-label">Forked by</span>
+            <p class="sketch-settings-slug" aria-readonly="true">@{{ sketch.fork_by.username }}</p>
+            <span class="field-help">Set automatically when the fork was created. Cannot be changed.</span>
+          </div>
+          {% endif %}
+          {% endif %}
+
+          <div class="form-field sketch-settings-description-field">
+            <span class="form-label" id="{{ form.description.id_for_label }}-label">{{ form.description.label }}</span>
+            <div class="description-editor sketch-settings-description-editor">
+              <div class="description-toolbar sketch-settings-description-toolbar" data-description-toolbar aria-label="Description formatting">
+                <button type="button" class="description-toolbar-btn" data-format="bold" title="Bold"><strong>B</strong></button>
+                <button type="button" class="description-toolbar-btn" data-format="italic" title="Italic"><em>I</em></button>
+                <button type="button" class="description-toolbar-btn description-toolbar-underline" data-format="underline" title="Underline">U</button>
+                <span class="description-toolbar-divider" aria-hidden="true"></span>
+                <button type="button" class="description-toolbar-btn description-toolbar-icon" data-format="link" title="Link">
+                  <span class="material-symbols-outlined" aria-hidden="true">link</span>
+                </button>
+                <button type="button" class="description-toolbar-btn description-toolbar-icon" data-format="image" title="Image">
+                  <span class="material-symbols-outlined" aria-hidden="true">image</span>
+                </button>
+                <button type="button" class="description-toolbar-btn description-toolbar-icon" data-format="code" title="Code">
+                  <span class="material-symbols-outlined" aria-hidden="true">code</span>
+                </button>
+              </div>
+              {{ form.description }}
+            </div>
+            {% if form.description.help_text %}
+            <span class="field-help">{{ form.description.help_text|safe }}</span>
+            {% endif %}
+            {% if form.description.errors %}
+            <span class="field-error">{{ form.description.errors|join:", " }}</span>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="sketch-settings-card sketch-settings-card--thumbnail gallery-themed-card">
+          <h2 class="sketch-settings-card-title">Thumbnail</h2>
+          <div class="sketch-settings-thumbnail">
+            <div
+              id="edit-thumbnail-preview"
+              class="sketch-settings-thumbnail-preview{% if sketch.thumbnail %} sketch-settings-thumbnail-preview--has-image{% else %} sketch-settings-thumbnail-preview--empty{% endif %}"
+            >
+              {% if sketch.thumbnail %}
+              <img src="{{ sketch.thumbnail.url }}" alt="{{ sketch.title }} thumbnail" loading="lazy">
+              {% else %}
+              <span class="material-symbols-outlined" aria-hidden="true">image</span>
+              <span class="sketch-settings-thumbnail-empty-label">No thumbnail yet</span>
+              {% endif %}
+            </div>
+
+            {% if sketch.thumbnail %}
+            <p class="sketch-settings-thumbnail-path">{{ sketch.thumbnail.name }}</p>
+            {% endif %}
+
+            <div class="sketch-settings-file-upload">
+              <label class="sketch-settings-file-label" for="{{ form.thumbnail.id_for_label }}">Choose file</label>
+              <span class="sketch-settings-file-name" data-thumbnail-file-name>No file chosen</span>
+            </div>
+            <!-- Purple color button -->
+            <div class="sketch-settings-thumbnail-regenerate">
+              <button
+                type="button"
+                class="btn btn-primary btn-sm"
+                id="generate-thumbnail-btn"
+                data-embed-url="{% url 'sketch_embed' sketch.slug %}?fullscreen=1"
+                data-upload-url="{% url 'sketch_upload_thumbnail' sketch.slug %}"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">autorenew</span>
+                {% if sketch.thumbnail %}Regenerate from preview{% else %}Generate from preview{% endif %}
+              </button>
+              <p class="sketch-settings-thumbnail-help">
+                Captures a still from your sketch preview in the browser. You can also upload your own image above.
+              </p>
+            </div>
+
+            {% if form.thumbnail.errors %}
+            <span class="field-error">{{ form.thumbnail.errors|join:", " }}</span>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="sketch-settings-card sketch-settings-card--tags gallery-themed-card">
+          <h2 class="sketch-settings-card-title">Tags</h2>
+          {% include "sketches/partials/form_field.html" with field=form.tags %}
+        </section>
+
+        <section class="sketch-settings-card sketch-settings-card--publishing gallery-themed-card">
+          <h2 class="sketch-settings-card-title">Publishing</h2>
+          {% if form.status %}
+          {% include "sketches/partials/form_field.html" with field=form.status %}
+          {% else %}
+          <div class="form-field">
+            <span class="form-label">Status</span>
+            <div class="sketch-settings-status-readout sketch-settings-status-readout--{{ sketch.status }}">
+              <span class="sketch-settings-status-dot" aria-hidden="true"></span>
+              <span>{% if sketch.status == "published" %}Published{% else %}Draft{% endif %}</span>
+            </div>
+            {% if sketch.status == "draft" %}
+            <span class="field-help">Publish from the editor when your sketch is ready to share publicly.</span>
+            {% endif %}
+          </div>
+          {% endif %}
+        </section>
+      </div>
+
+      <footer class="sketch-settings-footer">
+        <div class="sketch-settings-footer-start">
+          <button type="submit" class="btn btn-primary">{% if is_setup %}Save and finish{% else %}Save settings{% endif %}</button>
+          <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-secondary">Open editor</a>
+        </div>
+        {% if not is_setup %}
+        <div class="sketch-settings-footer-end">
+          <a href="{% url 'account' %}" class="btn btn-secondary">Back to account</a>
+        </div>
         {% endif %}
-      </section>
-      {% endif %}
-    </div>
-
-    <div class="sketch-settings-actions">
-      <button type="submit" class="btn btn-primary">{% if is_setup %}Save and finish{% else %}Save settings{% endif %}</button>
-      <a href="{% url 'sketch_edit' sketch.slug %}" class="btn btn-secondary">Open editor</a>
-      {% if not is_setup %}
-      <a href="{% url 'account' %}" class="btn btn-secondary">Back to account</a>
-      {% endif %}
-    </div>
-  </form>
+      </footer>
+    </form>
+  </div>
 </div>
 {% endblock %}
 
@@ -156,4 +206,5 @@
 <script src="{% static 'sketches/js/edit-thumbnail-preview.js' %}"></script>
 <script src="{% static 'sketches/js/thumbnail-capture.js' %}?v=20260708c"></script>
 <script src="{% static 'sketches/js/thumbnail-settings.js' %}?v=20260708c"></script>
+<script src="{% static 'sketches/js/sketch-settings-file.js' %}?v=20260722a"></script>
 {% endblock %}

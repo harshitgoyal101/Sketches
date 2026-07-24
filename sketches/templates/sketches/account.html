@@ -6,6 +6,8 @@
 <div class="fixed inset-0 network-grid pointer-events-none z-0" aria-hidden="true"></div>
 {% endblock %}
 
+{% block site_css %}{% endblock %}
+
 {% block content %}
 <div class="relative z-10">
   <header class="mb-10">
@@ -28,7 +30,7 @@
   {% if sketches %}
   <section>
     <h2 class="text-xl font-bold text-on-surface mb-4">Your sketches</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-gutter">
+    <div class="gallery-sketch-grid gallery-sketch-grid--account">
       {% for sketch in sketches %}
       {% include "sketches/partials/gallery_card.html" with card_manage=True %}
       {% endfor %}
