@@ -21,10 +21,10 @@
 {% block page_class %}gallery-detail-page{% endblock %}
 {% block main_class %}relative z-10 p-0{% endblock %}
 {% block page_background %}{% endblock %}
-{% block site_css %}{% endblock %}
+{# Keep style.min.css: preview fullscreen + toolbar-btn bases still live there #}
 
 {% block gallery_page_css %}
-<link rel="stylesheet" href="{% static 'sketches/css/built/gallery-detail.min.css' %}?v=20260724c">
+<link rel="stylesheet" href="{% static 'sketches/css/built/gallery-detail.min.css' %}?v=20260724e">
 {% endblock %}
 
 {% block content %}

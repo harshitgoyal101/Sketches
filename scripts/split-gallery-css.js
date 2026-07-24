@@ -18,11 +18,10 @@ const BUNDLES = ["core", "home", "auth", "edit", "detail", "settings"];
 
 const PAGE_PATTERNS = {
   home: [
-    /gallery-home/,
+    // Use gallery-home-page, not gallery-home — gallery-home-nav is site-wide chrome.
+    /gallery-home-page/,
     /landing-/,
     /\.landing\b/,
-    /home-bg/,
-    /landing-particle/,
     /landing-ide/,
   ],
   auth: [
@@ -36,13 +35,11 @@ const PAGE_PATTERNS = {
     /auth-main/,
   ],
   edit: [
-    /gallery-edit/,
+    /gallery-edit-page/,
     /sketch-edit/,
     /code-ide/,
     /code-section/,
     /code-editor/,
-    /preview-fullscreen/,
-    /sketch-mobile-fullscreen/,
     /edit-thumbnail/,
     /has-unsaved-edits/,
   ],
@@ -53,10 +50,22 @@ const PAGE_PATTERNS = {
     /preview-controls/,
   ],
   settings: [
-    /gallery-settings/,
+    /gallery-settings-page/,
     /sketch-settings/,
   ],
 };
+
+/**
+ * Shared across page types — must stay in core even if a page pattern also matches
+ * (e.g. landing-btn on browse Load more, landing-hero-bg on auth brand panel).
+ */
+const FORCE_CORE = [
+  /landing-btn/,
+  /landing-hero-bg/,
+  /landing-particle/,
+  /home-bg-sketch/,
+  /gallery-load-more/,
+];
 
 /** Ignore negated selectors so `:not(.gallery-home-page)` stays in core. */
 function stripNegations(selector) {
@@ -71,6 +80,7 @@ function stripNegations(selector) {
 
 function classifySelector(selector) {
   const haystack = stripNegations(selector);
+  if (FORCE_CORE.some((re) => re.test(haystack))) return "core";
   const hits = [];
   for (const [page, patterns] of Object.entries(PAGE_PATTERNS)) {
     if (patterns.some((re) => re.test(haystack))) hits.push(page);

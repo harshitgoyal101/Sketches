@@ -3588,6 +3588,16 @@ html.theme-light body.gallery-home-page.is-gallery-nav-open .gallery-nav-toggle 
   color: var(--gallery-primary);
 }
 
+.gallery-page .link {
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--gallery-primary) 45%, transparent);
+}
+
+.gallery-page .link:hover {
+  text-decoration-color: var(--gallery-primary);
+}
+
 .gallery-page .link-action {
   border-color: var(--gallery-outline);
 }
