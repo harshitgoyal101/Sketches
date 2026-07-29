@@ -29,6 +29,48 @@ from .services.email_verification import send_verification_email
 User = get_user_model()
 
 
+def _spa_path(*parts):
+    """Build an absolute SPA path (root-mounted React app)."""
+    cleaned = "/".join(str(part).strip("/") for part in parts if part is not None and str(part) != "")
+    return f"/{cleaned}/" if cleaned else "/"
+
+
+def spa_login_redirect(request):
+    return redirect(_spa_path("login"))
+
+
+def spa_signup_redirect(request):
+    return redirect(_spa_path("signup"))
+
+
+def spa_account_redirect(request):
+    return redirect(_spa_path("account"))
+
+
+def spa_password_reset_redirect(request):
+    return redirect(_spa_path("password-reset"))
+
+
+def spa_password_reset_done_redirect(request):
+    return redirect(_spa_path("password-reset", "sent"))
+
+
+def spa_password_reset_confirm_redirect(request, uidb64, token):
+    return redirect(_spa_path("password-reset", "confirm", uidb64, token))
+
+
+def spa_password_reset_complete_redirect(request):
+    return redirect(_spa_path("login"))
+
+
+def spa_verification_sent_redirect(request):
+    return redirect(_spa_path("signup"))
+
+
+def spa_resend_verification_redirect(request):
+    return redirect(_spa_path("resend-verification"))
+
+
 class UserLoginView(LoginView):
     template_name = "registration/login.html"
     authentication_form = StyledAuthenticationForm
@@ -117,9 +159,9 @@ def verify_email(request, uidb64, token):
         user.save(update_fields=["is_active"])
         login(request, user)
         messages.success(request, "Your email is verified. Welcome!")
-        return redirect("account")
+        return redirect(_spa_path("account"))
 
-    return render(request, "registration/verify_email_invalid.html", status=400)
+    return redirect(_spa_path("login"))
 
 
 def resend_verification(request):

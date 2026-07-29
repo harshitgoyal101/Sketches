@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+html.theme-dark {
+  --color-primary: #7b61ff;
+  --color-primary-hover: #6a50ee;
+  --color-on-primary: #ffffff;
+  --color-background: #0d0d0d;
+  --color-surface: #161616;
+  --color-foreground: #f8fafc;
+  --color-muted: #a1a1aa;
+  --color-border: #2a2a2e;
+  --color-destructive: #ef4444;
+  color-scheme: dark;
+}
+
+html.theme-light {
+  --color-primary: #7b61ff;
+  --color-primary-hover: #6a50ee;
+  --color-on-primary: #ffffff;
+  --color-background: #f8fafc;
+  --color-surface: #ffffff;
+  --color-foreground: #131b2e;
+  --color-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-destructive: #dc2626;
+  color-scheme: light;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    @apply bg-background font-body text-foreground antialiased;
+    margin: 0;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  a,
+  [role='button'] {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .glass-nav {
+    background: color-mix(in srgb, var(--color-background) 92%, transparent);
+    backdrop-filter: blur(10px);
+  }
+}
+
+/* Sanitized markdown from Django API (description_html) */
+.markdown-body {
+  color: var(--color-muted);
+}
+
+.markdown-body > :first-child {
+  margin-top: 0;
+}
+
+.markdown-body > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body pre,
+.markdown-body blockquote {
+  margin: 0.75em 0;
+}
+
+.markdown-body a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown-body code {
+  font-family: theme('fontFamily.mono');
+  font-size: 0.85em;
+  padding: 0.1em 0.35em;
+  border-radius: 0.35rem;
+  background: var(--color-surface);
+  color: var(--color-foreground);
+}
+
+.markdown-body pre {
+  overflow: auto;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+}
+
+.markdown-body pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.markdown-body img {
+  max-width: 100%;
+  border-radius: 0.75rem;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.25rem;
+}
+
+/* Home sketch background (mirrors gallery.css landing-hero-bg) */
+.landing-hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  height: 100%;
+}
+
+.landing-hero-bg .home-bg-sketch {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
+  touch-action: none;
+}
+
+.landing-hero-bg .home-bg-sketch.is-active {
+  opacity: 1;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+body.is-gallery-nav-open {
+  overflow: hidden;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

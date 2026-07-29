@@ -11,4 +11,5 @@ staticfiles/
 dist/
 build/
 node_modules/
+.tmp_spa_test/
 
