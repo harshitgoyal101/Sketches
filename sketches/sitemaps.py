@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
 
@@ -16,6 +17,11 @@ class SketchSitemap(Sitemap):
     def lastmod(self, obj):
         return obj.updated_at
 
+    def location(self, obj):
+        if getattr(settings, "SPA_AT_ROOT", False):
+            return f"/sketches/{obj.slug}"
+        return reverse("sketch_detail", kwargs={"slug": obj.slug})
+
 
 class TagSitemap(Sitemap):
     changefreq = "monthly"
@@ -25,6 +31,8 @@ class TagSitemap(Sitemap):
         return Tag.objects.filter(sketches__status=PUBLISHED).distinct()
 
     def location(self, obj):
+        if getattr(settings, "SPA_AT_ROOT", False):
+            return f"/gallery?tag={obj.slug}"
         return reverse("tag_detail", kwargs={"slug": obj.slug})
 
 
@@ -33,7 +41,11 @@ class StaticViewSitemap(Sitemap):
     changefreq = "monthly"
 
     def items(self):
+        if getattr(settings, "SPA_AT_ROOT", False):
+            return ["/", "/gallery"]
         return ["home", "sketch_list"]
 
     def location(self, item):
+        if item.startswith("/"):
+            return item
         return reverse(item)

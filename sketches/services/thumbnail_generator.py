@@ -304,3 +304,41 @@ def schedule_sketch_thumbnail_generation(sketch, *, force=False):
             logger.exception("Background thumbnail generation failed for sketch %s", sketch_id)
 
     threading.Thread(target=_run, daemon=True).start()
+
+
+APP_ICON_SIZE = (192, 192)
+
+
+def _prepare_app_icon_webp(image_bytes):
+    """Center-crop to square and encode a 192×192 WebP app icon."""
+    source = Image.open(BytesIO(image_bytes)).convert("RGBA")
+    width, height = source.size
+    side = min(width, height)
+    left = (width - side) // 2
+    top = (height - side) // 2
+    cropped = source.crop((left, top, left + side, top + side))
+    icon = cropped.resize(APP_ICON_SIZE, Image.Resampling.LANCZOS)
+    # Flatten onto brand-ish dark if needed for opaque webp
+    background = Image.new("RGB", APP_ICON_SIZE, (13, 13, 13))
+    background.paste(icon, mask=icon.split()[3] if icon.mode == "RGBA" else None)
+    return _encode_thumbnail_webp(background)
+
+
+def save_sketch_app_icon_bytes(sketch, image_bytes, *, force=False):
+    """Persist a square app icon for mobile gallery lists."""
+    if not image_bytes:
+        return False
+    if sketch.app_icon and not force:
+        return False
+
+    icon_bytes = _prepare_app_icon_webp(image_bytes)
+    if sketch.app_icon:
+        sketch.app_icon.delete(save=False)
+
+    sketch.app_icon.save(
+        f"{sketch.slug}-app-icon.webp",
+        ContentFile(icon_bytes),
+        save=False,
+    )
+    sketch.save(update_fields=["app_icon", "updated_at"])
+    return True

@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings
 from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from PIL import Image
@@ -1178,3 +1179,782 @@ class SketchPublishThumbnailTests(TestCase):
         self.sketch.refresh_from_db()
         self.assertEqual(self.sketch.status, Sketch.Status.PUBLISHED)
         schedule_mock.assert_called_once_with(self.sketch)
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class SketchApiTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(username="api-user", password="secret")
+        self.sketch = Sketch.objects.create(
+            title="API Orbit",
+            slug="api-orbit",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            author=self.author,
+            description="Public sketch for API tests",
+        )
+        Sketch.objects.create(
+            title="Hidden Draft",
+            slug="hidden-draft",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.DRAFT,
+            author=self.author,
+        )
+        self.client = Client()
+
+    def test_api_home_returns_featured(self):
+        response = self.client.get("/api/home/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("featured", payload)
+        self.assertIn("stats", payload)
+        self.assertIn("background", payload)
+        self.assertIn("dark", payload["background"])
+        self.assertIn("light", payload["background"])
+        slugs = [item["slug"] for item in payload["featured"]]
+        self.assertIn("api-orbit", slugs)
+        self.assertNotIn("hidden-draft", slugs)
+
+    def test_api_sketch_list_excludes_drafts(self):
+        response = self.client.get("/api/sketches/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        slugs = [item["slug"] for item in payload["results"]]
+        self.assertIn("api-orbit", slugs)
+        self.assertNotIn("hidden-draft", slugs)
+        self.assertEqual(payload["total"], 1)
+
+    def test_api_sketch_detail(self):
+        response = self.client.get("/api/sketches/api-orbit/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["slug"], "api-orbit")
+        self.assertEqual(payload["sketch_type"], "p5js")
+        self.assertEqual(payload["author"]["username"], "api-user")
+        self.assertIn("embed_url", payload)
+        self.assertIn("code", payload)
+
+    def test_api_sketch_detail_draft_404_for_anonymous(self):
+        response = self.client.get("/api/sketches/hidden-draft/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_api_formats_and_tags(self):
+        formats = self.client.get("/api/formats/")
+        self.assertEqual(formats.status_code, 200)
+        self.assertIn("results", formats.json())
+        tags = self.client.get("/api/tags/")
+        self.assertEqual(tags.status_code, 200)
+        self.assertIn("results", tags.json())
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class AuthApiTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username="authuser",
+            email="auth@example.com",
+            password="Secret@42",
+        )
+        self.user.is_active = True
+        self.user.save(update_fields=["is_active"])
+        self.client = Client()
+
+    def test_csrf_and_me_anonymous(self):
+        csrf = self.client.get("/api/auth/csrf/")
+        self.assertEqual(csrf.status_code, 200)
+        me = self.client.get("/api/auth/me/")
+        self.assertEqual(me.status_code, 200)
+        self.assertIsNone(me.json()["user"])
+
+    def test_login_with_email_and_logout(self):
+        response = self.client.post(
+            "/api/auth/login/",
+            data=json.dumps(
+                {
+                    "username": "auth@example.com",
+                    "password": "Secret@42",
+                    "remember": True,
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["user"]["username"], "authuser")
+
+        me = self.client.get("/api/auth/me/")
+        self.assertEqual(me.json()["user"]["username"], "authuser")
+
+        logout = self.client.post(
+            "/api/auth/logout/",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        self.assertEqual(logout.status_code, 200)
+        self.assertIsNone(self.client.get("/api/auth/me/").json()["user"])
+
+    def test_login_rejects_bad_password(self):
+        response = self.client.post(
+            "/api/auth/login/",
+            data=json.dumps({"username": "authuser", "password": "wrong"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()["ok"])
+
+    @patch("sketches.api.auth_views.send_verification_email")
+    def test_signup_requires_verification(self, send_mail_mock):
+        response = self.client.post(
+            "/api/auth/signup/",
+            data=json.dumps(
+                {
+                    "username": "newbie",
+                    "email": "newbie@example.com",
+                    "password1": "Sketch@42",
+                    "password2": "Sketch@42",
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["verification_required"])
+        send_mail_mock.assert_called_once()
+        created = get_user_model().objects.get(username="newbie")
+        self.assertFalse(created.is_active)
+
+    def test_account_sketches_requires_auth(self):
+        response = self.client.get("/api/account/sketches/")
+        self.assertEqual(response.status_code, 401)
+
+    def test_account_sketches_lists_own(self):
+        Sketch.objects.create(
+            title="Mine",
+            slug="authuser-mine",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.DRAFT,
+            author=self.user,
+        )
+        self.client.force_login(self.user)
+        response = self.client.get("/api/account/sketches/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["draft_count"], 1)
+        self.assertEqual(payload["results"][0]["slug"], "authuser-mine")
+
+    def test_account_sketches_401_includes_auth_required_code(self):
+        response = self.client.get("/api/account/sketches/")
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json().get("code"), "auth_required")
+
+    def test_migrate_guest_requires_auth(self):
+        response = self.client.post(
+            "/api/auth/migrate-guest/",
+            data=json.dumps({"guest_id": "g-1", "drafts": []}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json().get("code"), "auth_required")
+
+    def test_migrate_guest_creates_drafts_and_is_idempotent(self):
+        self.client.force_login(self.user)
+        body = {
+            "guest_id": "guest-abc",
+            "display_name": "Ada Lovelace",
+            "drafts": [
+                {
+                    "client_id": "draft-1",
+                    "title": "Guest Orbit",
+                    "sketch_type": "p5js",
+                    "entry_filename": "sketch.js",
+                    "files": [
+                        {
+                            "filename": "sketch.js",
+                            "content": "function setup() {}",
+                            "is_main": True,
+                            "asset_type": "js",
+                        }
+                    ],
+                }
+            ],
+        }
+        first = self.client.post(
+            "/api/auth/migrate-guest/",
+            data=json.dumps(body),
+            content_type="application/json",
+        )
+        self.assertEqual(first.status_code, 200)
+        payload = first.json()
+        self.assertTrue(payload["ok"])
+        self.assertFalse(payload["idempotent"])
+        self.assertEqual(len(payload["sketches"]), 1)
+        self.assertEqual(payload["sketches"][0]["client_id"], "draft-1")
+        slug = payload["sketches"][0]["slug"]
+        sketch = Sketch.objects.get(slug=slug)
+        self.assertEqual(sketch.author_id, self.user.pk)
+        self.assertEqual(sketch.status, Sketch.Status.DRAFT)
+        self.assertEqual(sketch.code, "function setup() {}")
+        self.assertEqual(self.user.profile.display_name, "Ada Lovelace")
+
+        second = self.client.post(
+            "/api/auth/migrate-guest/",
+            data=json.dumps(body),
+            content_type="application/json",
+        )
+        self.assertEqual(second.status_code, 200)
+        again = second.json()
+        self.assertTrue(again["idempotent"])
+        self.assertEqual(again["sketches"][0]["slug"], slug)
+        self.assertEqual(
+            Sketch.objects.filter(author=self.user, title="Guest Orbit").count(),
+            1,
+        )
+
+    def test_migrate_guest_imports_scores_and_pending_forks(self):
+        from sketches.models import Game, GameScore
+
+        Game.objects.get_or_create(
+            slug="orbit-run",
+            defaults={"title": "Orbit Run", "max_score": 1_000_000},
+        )
+        source = Sketch.objects.create(
+            title="Public Source",
+            slug="authuser-public-source",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            author=self.user,
+        )
+        other = get_user_model().objects.create_user(
+            username="migrator",
+            email="migrator@example.com",
+            password="Secret@42",
+        )
+        other.is_active = True
+        other.save(update_fields=["is_active"])
+        self.client.force_login(other)
+        body = {
+            "guest_id": "guest-scores-1",
+            "display_name": "Scorer",
+            "drafts": [],
+            "scores": [
+                {
+                    "game": "orbit-run",
+                    "score": 1200,
+                    "played_at": "2026-07-01T12:00:00Z",
+                    "meta": {"wave": 3},
+                }
+            ],
+            "pending_forks": [{"source_slug": source.slug, "files": []}],
+        }
+        response = self.client.post(
+            "/api/auth/migrate-guest/",
+            data=json.dumps(body),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["scores_imported"], 1)
+        self.assertEqual(len(payload["forks"]), 1)
+        self.assertTrue(
+            GameScore.objects.filter(
+                user=other, game__slug="orbit-run", score=1200
+            ).exists()
+        )
+        fork_slug = payload["forks"][0]["slug"]
+        self.assertTrue(
+            Sketch.objects.filter(
+                slug=fork_slug, author=other, forked_from=source
+            ).exists()
+        )
+
+    @patch("sketches.api.auth_views.verify_google_id_token")
+    def test_google_auth_creates_user_and_session(self, verify_mock):
+        verify_mock.return_value = {
+            "iss": "https://accounts.google.com",
+            "email": "google.user@example.com",
+            "email_verified": True,
+            "name": "Google User",
+            "given_name": "Google",
+        }
+        response = self.client.post(
+            "/api/auth/google/",
+            data=json.dumps({"credential": "fake-token"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["created"])
+        self.assertEqual(payload["user"]["email"], "google.user@example.com")
+        me = self.client.get("/api/auth/me/").json()
+        self.assertEqual(me["user"]["email"], "google.user@example.com")
+        self.assertEqual(me["user"]["display_name"], "Google User")
+
+    def test_game_score_requires_auth_and_respects_cap(self):
+        from sketches.models import Game
+
+        Game.objects.get_or_create(
+            slug="orbit-run",
+            defaults={"title": "Orbit Run", "max_score": 100},
+        )
+        Game.objects.filter(slug="orbit-run").update(max_score=100)
+        anon = self.client.post(
+            "/api/games/orbit-run/scores/",
+            data=json.dumps({"score": 10}),
+            content_type="application/json",
+        )
+        self.assertEqual(anon.status_code, 401)
+
+        self.client.force_login(self.user)
+        ok = self.client.post(
+            "/api/games/orbit-run/scores/",
+            data=json.dumps({"score": 42}),
+            content_type="application/json",
+        )
+        self.assertEqual(ok.status_code, 201)
+        self.assertTrue(ok.json()["is_personal_best"])
+
+        too_high = self.client.post(
+            "/api/games/orbit-run/scores/",
+            data=json.dumps({"score": 999}),
+            content_type="application/json",
+        )
+        self.assertEqual(too_high.status_code, 400)
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class ManageApiTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username="maker",
+            email="maker@example.com",
+            password="Secret@42",
+        )
+        self.user.is_active = True
+        self.user.save(update_fields=["is_active"])
+        self.client = Client()
+        self.client.force_login(self.user)
+
+    def test_create_sketch_applies_starter(self):
+        response = self.client.post(
+            "/api/account/sketches/",
+            data=json.dumps({"title": "Fresh Orbit", "sketch_type": "p5js"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        sketch = payload["sketch"]
+        self.assertEqual(sketch["title"], "Fresh Orbit")
+        self.assertEqual(sketch["status"], "draft")
+        self.assertEqual(sketch["sketch_type"], "p5js")
+        self.assertEqual(sketch["entry_filename"], "sketch.js")
+        self.assertIn("function setup", sketch["code"])
+        self.assertTrue(sketch["slug"].startswith("maker-"))
+
+    def test_patch_source_and_settings_then_publish(self):
+        create = self.client.post(
+            "/api/account/sketches/",
+            data=json.dumps({"title": "Editable", "sketch_type": "processing"}),
+            content_type="application/json",
+        )
+        slug = create.json()["sketch"]["slug"]
+
+        patched = self.client.patch(
+            f"/api/account/sketches/{slug}/",
+            data=json.dumps(
+                {
+                    "title": "Editable Renamed",
+                    "entry_filename": "main.pde",
+                    "code": "void setup() { size(100, 100); }",
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(patched.status_code, 200)
+        self.assertEqual(patched.json()["sketch"]["title"], "Editable Renamed")
+        self.assertEqual(patched.json()["sketch"]["entry_filename"], "main.pde")
+
+        from sketches.models import Tag
+
+        tag = Tag.objects.create(name="Motion", slug="motion")
+        with patch(
+            "sketches.api.manage_views.schedule_sketch_thumbnail_generation"
+        ) as schedule_mock:
+            settings_resp = self.client.patch(
+                f"/api/account/sketches/{slug}/settings/",
+                data=json.dumps(
+                    {
+                        "title": "Editable Renamed",
+                        "description": "A short note",
+                        "tags": [tag.slug],
+                    }
+                ),
+                content_type="application/json",
+            )
+            self.assertEqual(settings_resp.status_code, 200)
+            schedule_mock.assert_called()
+        settings_payload = settings_resp.json()["sketch"]
+        self.assertEqual(settings_payload["description"], "A short note")
+        self.assertEqual(settings_payload["tags"][0]["slug"], "motion")
+
+        with patch(
+            "sketches.services.sketch_publish.schedule_sketch_thumbnail_generation"
+        ):
+            published = self.client.post(
+                f"/api/account/sketches/{slug}/publish/",
+                data=json.dumps({}),
+                content_type="application/json",
+            )
+        self.assertEqual(published.status_code, 200)
+        self.assertEqual(published.json()["sketch"]["status"], "published")
+
+    def test_create_requires_auth(self):
+        anon = Client()
+        response = anon.post(
+            "/api/account/sketches/",
+            data=json.dumps({"title": "Nope"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 401)
+
+    @patch("sketches.api.manage_views.save_sketch_thumbnail_bytes", return_value=True)
+    def test_thumbnail_upload(self, save_mock):
+        sketch = Sketch.objects.create(
+            title="Thumb Me",
+            slug="maker-thumb-me",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.DRAFT,
+            author=self.user,
+        )
+        image = SimpleUploadedFile(
+            "thumb.png",
+            b"\x89PNG\r\n\x1a\n" + b"0" * 64,
+            content_type="image/png",
+        )
+        # Force refresh path after "save"
+        sketch.thumbnail = SimpleUploadedFile(
+            "stored.webp", b"webpdata", content_type="image/webp"
+        )
+        sketch.save()
+
+        response = self.client.post(
+            f"/api/account/sketches/{sketch.slug}/thumbnail/",
+            {"image": image},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        save_mock.assert_called_once()
+
+    @patch("sketches.api.manage_views.save_sketch_app_icon_bytes", return_value=True)
+    def test_app_icon_upload(self, save_mock):
+        sketch = Sketch.objects.create(
+            title="Icon Me",
+            slug="maker-icon-me",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.DRAFT,
+            author=self.user,
+        )
+        image = SimpleUploadedFile(
+            "icon.png",
+            b"\x89PNG\r\n\x1a\n" + b"0" * 64,
+            content_type="image/png",
+        )
+        sketch.app_icon = SimpleUploadedFile(
+            "stored-icon.webp", b"webpdata", content_type="image/webp"
+        )
+        sketch.save()
+
+        response = self.client.post(
+            f"/api/account/sketches/{sketch.slug}/app-icon/",
+            {"image": image},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertIn("app_icon", payload)
+        save_mock.assert_called_once()
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class IdeApiTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(
+            username="ide-author",
+            email="ide@example.com",
+            password="Secret@42",
+        )
+        self.author.is_active = True
+        self.author.save(update_fields=["is_active"])
+        self.other = user_model.objects.create_user(
+            username="ide-fan",
+            email="fan@example.com",
+            password="Secret@42",
+        )
+        self.other.is_active = True
+        self.other.save(update_fields=["is_active"])
+        self.sketch = Sketch.objects.create(
+            title="Live Orbit",
+            slug="ide-author-live-orbit",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() { createCanvas(100, 100); }",
+            entry_filename="sketch.js",
+            status=Sketch.Status.PUBLISHED,
+            author=self.author,
+        )
+        SketchAsset.objects.create(
+            sketch=self.sketch,
+            filename="helper.js",
+            content="const helper = true;",
+            asset_type=SketchAsset.AssetType.JS,
+            order=0,
+        )
+        self.client = Client()
+        self.client.force_login(self.author)
+
+    def test_preview_returns_embed_url(self):
+        response = self.client.post(
+            "/api/preview/",
+            data=json.dumps(
+                {
+                    "sketch_type": "p5js",
+                    "main_code": "function setup() {}",
+                    "assets": [],
+                    "mode": "live",
+                    "run_id": 1,
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        url = response.json()["url"]
+        self.assertTrue(url.startswith("/accounts/sketches/preview/"))
+        embed = self.client.get(url)
+        self.assertEqual(embed.status_code, 200)
+        self.assertIn("function setup", embed.content.decode())
+
+    def test_source_save_creates_and_deletes_assets(self):
+        response = self.client.post(
+            f"/api/account/sketches/{self.sketch.slug}/source/",
+            data=json.dumps(
+                {
+                    "title": "Live Orbit",
+                    "entry_filename": "sketch.js",
+                    "files": [
+                        {
+                            "filename": "sketch.js",
+                            "content": "function setup() { background(0); }",
+                            "is_main": True,
+                            "asset_id": None,
+                            "asset_type": "js",
+                        },
+                        {
+                            "filename": "helper.js",
+                            "content": "const helper = 2;",
+                            "is_main": False,
+                            "asset_id": self.sketch.assets.get(filename="helper.js").pk,
+                            "asset_type": "js",
+                        },
+                        {
+                            "filename": "extra.js",
+                            "content": "const extra = true;",
+                            "is_main": False,
+                            "asset_id": None,
+                            "asset_type": "js",
+                        },
+                    ],
+                    "deleted_asset_ids": [],
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()["sketch"]
+        self.assertIn("background(0)", payload["code"])
+        filenames = {f["filename"] for f in payload["files"]}
+        self.assertEqual(filenames, {"sketch.js", "helper.js", "extra.js"})
+
+        helper_id = next(f["asset_id"] for f in payload["files"] if f["filename"] == "helper.js")
+        extra_id = next(f["asset_id"] for f in payload["files"] if f["filename"] == "extra.js")
+        deleted = self.client.post(
+            f"/api/account/sketches/{self.sketch.slug}/source/",
+            data=json.dumps(
+                {
+                    "files": [
+                        {
+                            "filename": "sketch.js",
+                            "content": payload["code"],
+                            "is_main": True,
+                        },
+                        {
+                            "filename": "extra.js",
+                            "content": "const extra = true;",
+                            "is_main": False,
+                            "asset_id": extra_id,
+                            "asset_type": "js",
+                        },
+                    ],
+                    "deleted_asset_ids": [helper_id],
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(deleted.status_code, 200)
+        names = {f["filename"] for f in deleted.json()["sketch"]["files"]}
+        self.assertEqual(names, {"sketch.js", "extra.js"})
+
+    def test_fork_from_other_user(self):
+        fan = Client()
+        fan.force_login(self.other)
+        response = fan.post(
+            f"/api/sketches/{self.sketch.slug}/fork/",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 201)
+        fork = response.json()["sketch"]
+        self.assertEqual(fork["status"], "draft")
+        self.assertTrue(fork["can_edit"])
+        self.assertEqual(fork["forked_from"]["slug"], self.sketch.slug)
+        self.assertEqual(len(fork["files"]), 2)
+
+
+@override_settings(
+    ALLOWED_HOSTS=["testserver"],
+    ROOT_URLCONF="sketch_gallery.urls",
+)
+class SpaServeTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self._tmpdir = Path(settings.BASE_DIR) / ".tmp_spa_test"
+        self._tmpdir.mkdir(parents=True, exist_ok=True)
+        (self._tmpdir / "index.html").write_text(
+            "<!doctype html><html><body>SPA</body></html>",
+            encoding="utf-8",
+        )
+        (self._tmpdir / "asset.txt").write_text("hello", encoding="utf-8")
+        self._override = override_settings(SPA_DIR=self._tmpdir)
+        self._override.enable()
+
+    def tearDown(self):
+        self._override.disable()
+        for child in self._tmpdir.iterdir():
+            child.unlink()
+        self._tmpdir.rmdir()
+
+    def test_spa_index_and_fallback(self):
+        index = self.client.get("/")
+        self.assertEqual(index.status_code, 200)
+        self.assertIn(b"SPA", index.content)
+
+        fallback = self.client.get("/gallery")
+        self.assertEqual(fallback.status_code, 200)
+        self.assertIn(b"SPA", fallback.content)
+
+        asset = self.client.get("/asset.txt")
+        self.assertEqual(asset.status_code, 200)
+        self.assertEqual(b"".join(asset.streaming_content), b"hello")
+
+        legacy = self.client.get("/app/gallery")
+        self.assertEqual(legacy.status_code, 302)
+        self.assertEqual(legacy["Location"], "/gallery")
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class PasswordResetApiTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username="resetme",
+            email="resetme@example.com",
+            password="OldPass@42",
+        )
+        self.user.is_active = True
+        self.user.save(update_fields=["is_active"])
+        self.client = Client()
+
+    @patch("sketches.api.auth_views.StyledPasswordResetForm.save")
+    def test_password_reset_request_always_ok(self, save_mock):
+        response = self.client.post(
+            "/api/auth/password-reset/",
+            data=json.dumps({"email": "resetme@example.com"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        save_mock.assert_called_once()
+
+    def test_password_reset_confirm(self):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        response = self.client.post(
+            "/api/auth/password-reset/confirm/",
+            data=json.dumps(
+                {
+                    "uid": uid,
+                    "token": token,
+                    "password1": "NewPass@99",
+                    "password2": "NewPass@99",
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("NewPass@99"))
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class GalleryTagApiTests(TestCase):
+    def setUp(self):
+        from sketches.models import Tag
+
+        user_model = get_user_model()
+        author = user_model.objects.create_user(username="tagger", password="secret")
+        self.tag = Tag.objects.create(name="Neon", slug="neon", is_active=True)
+        other = Tag.objects.create(name="Quiet", slug="quiet", is_active=True)
+        matched = Sketch.objects.create(
+            title="Neon Drift",
+            slug="tagger-neon-drift",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            author=author,
+        )
+        matched.tags.add(self.tag)
+        Sketch.objects.create(
+            title="Quiet Lake",
+            slug="tagger-quiet-lake",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            author=author,
+        ).tags.add(other)
+        self.client = Client()
+
+    def test_tag_filter_and_tags_endpoint(self):
+        tags = self.client.get("/api/tags/")
+        self.assertEqual(tags.status_code, 200)
+        slugs = {item["slug"] for item in tags.json()["results"]}
+        self.assertIn("neon", slugs)
+
+        filtered = self.client.get("/api/sketches/", {"tag": "neon"})
+        self.assertEqual(filtered.status_code, 200)
+        titles = [item["title"] for item in filtered.json()["results"]]
+        self.assertEqual(titles, ["Neon Drift"])

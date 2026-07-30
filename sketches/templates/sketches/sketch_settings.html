@@ -135,6 +135,7 @@
             {% endif %}
 
             <div class="sketch-settings-file-upload">
+              {{ form.thumbnail }}
               <label class="sketch-settings-file-label" for="{{ form.thumbnail.id_for_label }}">Choose file</label>
               <span class="sketch-settings-file-name" data-thumbnail-file-name>No file chosen</span>
             </div>
@@ -157,6 +158,36 @@
 
             {% if form.thumbnail.errors %}
             <span class="field-error">{{ form.thumbnail.errors|join:", " }}</span>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="sketch-settings-card sketch-settings-card--app-icon gallery-themed-card">
+          <h2 class="sketch-settings-card-title">App icon</h2>
+          <p class="sketch-settings-thumbnail-help" style="margin-top:0">
+            Square icon shown in the mobile gallery list (like a phone app icon). Recommended 192×192.
+          </p>
+          <div class="sketch-settings-thumbnail">
+            <div
+              class="sketch-settings-thumbnail-preview sketch-settings-app-icon-preview{% if sketch.app_icon %} sketch-settings-thumbnail-preview--has-image{% else %} sketch-settings-thumbnail-preview--empty{% endif %}"
+            >
+              {% if sketch.app_icon %}
+              <img src="{{ sketch.app_icon.url }}" alt="{{ sketch.title }} app icon" loading="lazy">
+              {% else %}
+              <span class="material-symbols-outlined" aria-hidden="true">apps</span>
+              <span class="sketch-settings-thumbnail-empty-label">No app icon yet</span>
+              {% endif %}
+            </div>
+            {% if sketch.app_icon %}
+            <p class="sketch-settings-thumbnail-path">{{ sketch.app_icon.name }}</p>
+            {% endif %}
+            <div class="sketch-settings-file-upload">
+              {{ form.app_icon }}
+              <label class="sketch-settings-file-label" for="{{ form.app_icon.id_for_label }}">Choose icon</label>
+              <span class="sketch-settings-file-name" data-app-icon-file-name>No file chosen</span>
+            </div>
+            {% if form.app_icon.errors %}
+            <span class="field-error">{{ form.app_icon.errors|join:", " }}</span>
             {% endif %}
           </div>
         </section>

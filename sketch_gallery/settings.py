@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -19,6 +20,8 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env")
+
+_RUNNING_TESTS = len(sys.argv) >= 2 and sys.argv[1] == "test"
 
 
 # Quick-start development settings - unsuitable for production
@@ -42,6 +45,10 @@ _csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
 CSRF_TRUSTED_ORIGINS = [
     origin.strip() for origin in _csrf_origins.split(",") if origin.strip()
 ]
+if DEBUG:
+    for origin in ("http://localhost:5173", "http://127.0.0.1:5173"):
+        if origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(origin)
 
 
 # Application definition
@@ -68,7 +75,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'sketch_gallery.urls'
+# ROOT_URLCONF is set below after SPA_AT_ROOT
 
 TEMPLATES = [
     {
@@ -140,6 +147,20 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Vite React SPA build output (served at / when SPA_AT_ROOT)
+SPA_DIR = BASE_DIR / "sketches" / "static" / "spa"
+# Production default: SPA at /. Tests default to legacy HTML URLconf.
+_SPA_DEFAULT = "false" if _RUNNING_TESTS else "true"
+SPA_AT_ROOT = os.environ.get("SPA_AT_ROOT", _SPA_DEFAULT).lower() in ("true", "1", "yes")
+
+LOGIN_URL = "/login" if SPA_AT_ROOT else "login"
+LOGIN_REDIRECT_URL = "/account" if SPA_AT_ROOT else "account"
+LOGOUT_REDIRECT_URL = "/" if SPA_AT_ROOT else "home"
+
+ROOT_URLCONF = (
+    "sketch_gallery.urls" if SPA_AT_ROOT else "sketch_gallery.urls_legacy"
+)
+
 # Browser cache for published sketch embed iframes (seconds).
 PUBLISHED_EMBED_MAX_AGE = int(os.environ.get("PUBLISHED_EMBED_MAX_AGE", "300"))
 HOME_BACKGROUND_EMBED_MAX_AGE = int(os.environ.get("HOME_BACKGROUND_EMBED_MAX_AGE", "86400"))
@@ -169,12 +190,11 @@ SKETCH_THUMBNAIL_SETTLE_MS = 2000
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'account'
-LOGOUT_REDIRECT_URL = 'home'
-
 SITE_NAME = os.environ.get("SITE_NAME", "sketches101")
 SITE_URL = os.environ.get("SITE_URL", "http://127.0.0.1:8000")
+
+# Google Identity Services (SPA ID-token → POST /api/auth/google/)
+GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
 
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
 if EMAIL_HOST:

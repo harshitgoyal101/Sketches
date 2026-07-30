@@ -1,6 +1,16 @@
 from django.contrib import admin
 
-from .models import Sketch, SketchAsset, SketchFormat, Tag, TagCategory
+from .models import (
+    Game,
+    GameScore,
+    GuestMigrationLog,
+    Sketch,
+    SketchAsset,
+    SketchFormat,
+    Tag,
+    TagCategory,
+    UserProfile,
+)
 
 
 class SketchAssetInline(admin.TabularInline):
@@ -47,6 +57,36 @@ class SketchFormatAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("name",)}
 
 
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ["user", "display_name"]
+    search_fields = ["user__username", "user__email", "display_name"]
+
+
+@admin.register(GuestMigrationLog)
+class GuestMigrationLogAdmin(admin.ModelAdmin):
+    list_display = ["user", "guest_id", "migrated_at", "payload_hash"]
+    search_fields = ["user__username", "guest_id"]
+    readonly_fields = ["migrated_at", "payload_hash", "result"]
+
+
+@admin.register(Game)
+class GameAdmin(admin.ModelAdmin):
+    list_display = ["title", "slug", "is_active", "max_score", "created_at"]
+    list_editable = ["is_active", "max_score"]
+    list_filter = ["is_active"]
+    search_fields = ["title", "slug", "description"]
+    prepopulated_fields = {"slug": ("title",)}
+
+
+@admin.register(GameScore)
+class GameScoreAdmin(admin.ModelAdmin):
+    list_display = ["user", "game", "score", "played_at", "guest_id"]
+    list_filter = ["game"]
+    search_fields = ["user__username", "guest_id"]
+    readonly_fields = ["created_at"]
+
+
 @admin.register(Sketch)
 class SketchAdmin(admin.ModelAdmin):
     list_display = [
@@ -88,8 +128,8 @@ class SketchAdmin(admin.ModelAdmin):
         (
             "Content",
             {
-                "fields": ("description", "entry_filename", "code", "thumbnail"),
-                "description": "Upload a screenshot or preview image for gallery cards and social sharing.",
+                "fields": ("description", "entry_filename", "code", "thumbnail", "app_icon"),
+                "description": "Thumbnail for gallery cards / sharing. App icon is a square mark for mobile lists.",
             },
         ),
         ("Organization", {"fields": ("tags",)}),

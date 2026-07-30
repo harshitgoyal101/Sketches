@@ -124,6 +124,12 @@ class Sketch(models.Model):
         help_text="User who created this fork.",
     )
     thumbnail = models.ImageField(upload_to="thumbnails/", blank=True, null=True)
+    app_icon = models.ImageField(
+        upload_to="app_icons/",
+        blank=True,
+        null=True,
+        help_text="Square app-style icon for mobile gallery lists (recommended 192×192).",
+    )
     is_home_background = models.BooleanField(
         default=False,
         help_text="Use this sketch as an animated home-page background (see theme).",
@@ -189,6 +195,13 @@ class Sketch(models.Model):
             parts.append(f"{default_storage.url(card_name)} 640w")
         parts.append(f"{self.thumbnail.url} 1280w")
         return ", ".join(parts)
+
+    @property
+    def app_icon_url(self):
+        """URL for the square mobile app icon when present."""
+        if self.app_icon:
+            return self.app_icon.url
+        return ""
 
     def _author_slug_prefix(self):
         author = self.author
@@ -320,6 +333,96 @@ class Sketch(models.Model):
         scripts = [asset.content for asset in self.assets.filter(asset_type="js")]
         scripts.append(self.code)
         return scripts
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="profile",
+    )
+    display_name = models.CharField(max_length=80, blank=True)
+
+    def __str__(self):
+        return self.display_name or self.user.get_username()
+
+
+class GuestMigrationLog(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="guest_migrations",
+    )
+    guest_id = models.CharField(max_length=64)
+    migrated_at = models.DateTimeField(auto_now_add=True)
+    payload_hash = models.CharField(max_length=64, blank=True)
+    result = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "guest_id"],
+                name="unique_guest_migration_per_user",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user_id}:{self.guest_id}"
+
+
+class Game(models.Model):
+    slug = models.SlugField(max_length=80, unique=True)
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    max_score = models.PositiveIntegerField(
+        default=1_000_000,
+        help_text="Reject submitted scores above this (anti-abuse).",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["title"]
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)[:80]
+        super().save(*args, **kwargs)
+
+
+class GameScore(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="game_scores",
+    )
+    game = models.ForeignKey(
+        Game,
+        on_delete=models.CASCADE,
+        related_name="scores",
+    )
+    score = models.PositiveIntegerField()
+    meta = models.JSONField(default=dict, blank=True)
+    played_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    guest_id = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text="Guest id this score was migrated from, if any.",
+    )
+
+    class Meta:
+        ordering = ["-score", "-played_at"]
+        indexes = [
+            models.Index(fields=["game", "-score"]),
+            models.Index(fields=["user", "game", "-score"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user_id} {self.game_id}={self.score}"
 
 
 class SketchAsset(models.Model):

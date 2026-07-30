@@ -9,6 +9,17 @@
   <a href="{% url 'sketch_detail' sketch.slug %}" class="gallery-sketch-card-link">
 {% endif %}
     <div class="gallery-sketch-card-media">
+      {% if sketch.app_icon %}
+      <img
+        class="gallery-sketch-card-app-icon"
+        src="{{ sketch.app_icon.url }}"
+        alt=""
+        width="64"
+        height="64"
+        loading="lazy"
+        decoding="async"
+      >
+      {% endif %}
       {% if sketch.thumbnail %}
         {% include "sketches/partials/gallery_card_image.html" %}
       {% else %}

@@ -1,26 +1,15 @@
 """
-URL configuration for sketch_gallery project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+Production URLConf: React SPA at / with Django API + embed/auth backends.
 """
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
-from django.urls import include, path
+from django.shortcuts import redirect
+from django.urls import include, path, re_path
 
 from sketches.sitemaps import SketchSitemap, StaticViewSitemap, TagSitemap
+from sketches.views_spa import spa_app
 
 sitemaps = {
     "sketches": SketchSitemap,
@@ -28,11 +17,27 @@ sitemaps = {
     "static": StaticViewSitemap,
 }
 
+
+def _redirect_legacy_app(request, path=""):
+    target = f"/{path}" if path else "/"
+    if request.META.get("QUERY_STRING"):
+        target = f"{target}?{request.META['QUERY_STRING']}"
+    return redirect(target, permanent=False)
+
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
-    path('', include('sketches.urls')),
+    path("admin/", admin.site.urls),
+    path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="sitemap"),
+    path("api/", include("sketches.api.urls")),
+    path("", include("sketches.urls_backend")),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+urlpatterns += [
+    path("app/", _redirect_legacy_app),
+    re_path(r"^app/(?P<path>.*)$", _redirect_legacy_app),
+    path("", spa_app, name="spa_app"),
+    re_path(r"^(?P<path>.*)$", spa_app, name="spa_app_path"),
+]
