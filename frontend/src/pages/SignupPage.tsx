@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { ApiError } from '@/api/client'
 import { useAuth } from '@/auth/AuthProvider'
+import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout'
 
 function fieldError(
   errors: Record<string, string[]>,
@@ -30,21 +31,23 @@ export function SignupPage() {
 
   if (doneEmail) {
     return (
-      <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-12">
-        <h1 className="font-display text-2xl font-semibold text-foreground">
-          Check your email
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted">
-          We sent a verification link to <span className="text-foreground">{doneEmail}</span>.
-          Verify your address before logging in.
-        </p>
+      <AuthSplitLayout
+        title="Check your email"
+        lead={
+          <>
+            We sent a verification link to{' '}
+            <span className="text-foreground">{doneEmail}</span>. Verify your
+            address before logging in.
+          </>
+        }
+      >
         <Link
           to="/login"
-          className="mt-8 inline-flex items-center justify-center rounded-btn bg-primary px-5 py-2.5 text-sm font-semibold text-[var(--color-on-primary)] hover:bg-primary-hover"
+          className="inline-flex w-full items-center justify-center rounded-btn bg-primary px-5 py-2.5 text-sm font-semibold text-[var(--color-on-primary)] hover:bg-primary-hover"
         >
           Go to log in
         </Link>
-      </div>
+      </AuthSplitLayout>
     )
   }
 
@@ -69,20 +72,18 @@ export function SignupPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-12">
-      <h1 className="font-display text-2xl font-semibold text-foreground">Sign up</h1>
-      <p className="mt-2 text-sm text-muted">
-        Create an account to publish sketches. Password needs 8+ chars, a letter, a
-        number, and a symbol.
-      </p>
-      <form className="mt-8 space-y-4" onSubmit={onSubmit}>
+    <AuthSplitLayout
+      title="Create account"
+      lead="Publish sketches and keep scores. Password needs 8+ characters with a letter, number, and symbol."
+    >
+      <form className="space-y-4" onSubmit={onSubmit}>
         <label className="block space-y-1.5 text-sm">
           <span className="text-muted">Username</span>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full rounded-btn border border-border bg-surface px-3 py-2 text-foreground"
+            className="w-full rounded-btn border border-border bg-surface px-3 py-2.5 text-foreground outline-none focus:border-primary"
             autoComplete="username"
             required
           />
@@ -98,7 +99,7 @@ export function SignupPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-btn border border-border bg-surface px-3 py-2 text-foreground"
+            className="w-full rounded-btn border border-border bg-surface px-3 py-2.5 text-foreground outline-none focus:border-primary"
             autoComplete="email"
             required
           />
@@ -114,7 +115,7 @@ export function SignupPage() {
             type="password"
             value={password1}
             onChange={(e) => setPassword1(e.target.value)}
-            className="w-full rounded-btn border border-border bg-surface px-3 py-2 text-foreground"
+            className="w-full rounded-btn border border-border bg-surface px-3 py-2.5 text-foreground outline-none focus:border-primary"
             autoComplete="new-password"
             required
           />
@@ -130,7 +131,7 @@ export function SignupPage() {
             type="password"
             value={password2}
             onChange={(e) => setPassword2(e.target.value)}
-            className="w-full rounded-btn border border-border bg-surface px-3 py-2 text-foreground"
+            className="w-full rounded-btn border border-border bg-surface px-3 py-2.5 text-foreground outline-none focus:border-primary"
             autoComplete="new-password"
             required
           />
@@ -159,6 +160,6 @@ export function SignupPage() {
           Log in
         </Link>
       </p>
-    </div>
+    </AuthSplitLayout>
   )
 }

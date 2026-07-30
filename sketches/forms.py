@@ -387,6 +387,7 @@ class SketchDetailsForm(ThemedModelForm):
             "title",
             "description",
             "thumbnail",
+            "app_icon",
             "tags",
             "status",
         )

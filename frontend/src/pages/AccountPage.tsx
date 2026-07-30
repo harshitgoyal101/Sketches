@@ -1,5 +1,6 @@
 import { Link, Navigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery } from '@tanstack/react-query'
+import { getGameScores, listGames } from '@/api/games'
 import { getAccountSketches } from '@/api/sketches'
 import { SketchCardView } from '@/components/SketchCardView'
 import { useAuth } from '@/auth/AuthProvider'
@@ -11,6 +12,18 @@ export function AccountPage() {
     queryKey: ['account-sketches'],
     queryFn: getAccountSketches,
     enabled: isAuthenticated,
+  })
+  const gamesQuery = useQuery({
+    queryKey: ['games'],
+    queryFn: listGames,
+    enabled: isAuthenticated,
+  })
+  const scoreQueries = useQueries({
+    queries: (gamesQuery.data ?? []).map((game) => ({
+      queryKey: ['game-scores', game.slug, 'me'],
+      queryFn: () => getGameScores(game.slug),
+      enabled: isAuthenticated && Boolean(games.slug),
+    })),
   })
 
   if (!isLoading && !isAuthenticated) {
@@ -26,25 +39,49 @@ export function AccountPage() {
   }
 
   const sketches = sketchesQuery.data?.results ?? []
+  const displayName = user.display_name || user.username
+  const myScores = (gamesQuery.data ?? [])
+    .map((game, index) => {
+      const me = scoreQueries[index]?.data?.me
+      if (!me) return null
+      return { game, score: me.score, played_at: me.played_at }
+    })
+    .filter(Boolean) as {
+    game: { slug: string; title: string }
+    score: number
+    played_at: string
+  }[]
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-10 flex flex-wrap items-start justify-between gap-4 border-b border-border pb-8">
         <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">
-            {user.username}
+          <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary">
+            Account
+          </p>
+          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">
+            {displayName}
           </h1>
-          <p className="mt-1 text-sm text-muted">{user.email}</p>
+          <p className="mt-1 text-sm text-muted">
+            @{user.username}
+            {user.email ? ` · ${user.email}` : ''}
+          </p>
           {sketchesQuery.data ? (
-            <p className="mt-2 text-xs text-muted">
+            <p className="mt-3 text-xs text-muted">
               {sketchesQuery.data.published_count} published ·{' '}
               {sketchesQuery.data.draft_count} drafts
+              {myScores.length
+                ? ` · ${myScores.length} game high score${myScores.length === 1 ? '' : 's'}`
+                : ''}
             </p>
           ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to="/sketches/new" className={primaryBtnClass}>
             New sketch
+          </Link>
+          <Link to="/sandbox" className={secondaryBtnClass}>
+            Sandbox
           </Link>
           <button
             type="button"
@@ -55,6 +92,27 @@ export function AccountPage() {
           </button>
         </div>
       </div>
+
+      {myScores.length > 0 ? (
+        <section className="mb-10">
+          <h2 className="font-display text-lg font-semibold">High scores</h2>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {myScores.map((row) => (
+              <li
+                key={row.game.slug}
+                className="rounded-xl border border-border bg-surface px-4 py-3"
+              >
+                <p className="text-xs uppercase tracking-wide text-muted">
+                  {row.game.title}
+                </p>
+                <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-foreground">
+                  {row.score.toLocaleString()}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="mb-4 flex items-center justify-between gap-4">
         <h2 className="font-display text-lg font-semibold">Your sketches</h2>

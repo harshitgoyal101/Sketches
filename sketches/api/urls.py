@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import auth_views, manage_views, views
+from . import auth_views, game_views, manage_views, views
 
 urlpatterns = [
     path("home/", views.api_home, name="api_home"),
@@ -28,6 +28,18 @@ urlpatterns = [
         "auth/resend-verification/",
         auth_views.api_resend_verification,
         name="api_resend_verification",
+    ),
+    path("auth/google/", auth_views.api_google, name="api_google"),
+    path(
+        "auth/migrate-guest/",
+        auth_views.api_migrate_guest,
+        name="api_migrate_guest",
+    ),
+    path("games/", game_views.api_game_list, name="api_game_list"),
+    path(
+        "games/<slug:slug>/scores/",
+        game_views.api_game_scores,
+        name="api_game_scores",
     ),
     path(
         "account/tags/",
@@ -58,6 +70,11 @@ urlpatterns = [
         "account/sketches/<slug:slug>/thumbnail/",
         manage_views.api_account_sketch_thumbnail,
         name="api_account_sketch_thumbnail",
+    ),
+    path(
+        "account/sketches/<slug:slug>/app-icon/",
+        manage_views.api_account_sketch_app_icon,
+        name="api_account_sketch_app_icon",
     ),
     path("preview/", manage_views.api_preview, name="api_preview"),
     path(

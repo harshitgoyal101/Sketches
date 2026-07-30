@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from '@/components/layout/AppShell'
 import { AuthProvider } from '@/auth/AuthProvider'
+import { GuestProvider } from '@/guest/GuestProvider'
 import { ThemeProvider } from '@/theme/ThemeProvider'
 import { HomePage } from '@/pages/HomePage'
 import { GalleryPage } from '@/pages/GalleryPage'
@@ -18,6 +19,9 @@ import { ResendVerificationPage } from '@/pages/ResendVerificationPage'
 
 const EditSketchPage = lazy(() =>
   import('@/pages/EditSketchPage').then((m) => ({ default: m.EditSketchPage })),
+)
+const SandboxPage = lazy(() =>
+  import('@/pages/SandboxPage').then((m) => ({ default: m.SandboxPage })),
 )
 
 function IdeFallback() {
@@ -43,43 +47,53 @@ export default function App() {
       <ThemeProvider>
         <BrowserRouter basename={basename}>
           <AuthProvider>
-            <Routes>
-              <Route element={<AppShell />}>
-                <Route index element={<HomePage />} />
-                <Route path="gallery" element={<GalleryPage />} />
-                <Route path="sketches/new" element={<CreateSketchPage />} />
-                <Route
-                  path="sketches/:slug/edit"
-                  element={
-                    <Suspense fallback={<IdeFallback />}>
-                      <EditSketchPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="sketches/:slug/settings"
-                  element={<SketchSettingsPage />}
-                />
-                <Route path="sketches/:slug" element={<SketchDetailPage />} />
-                <Route path="account" element={<AccountPage />} />
-                <Route path="login" element={<LoginPage />} />
-                <Route path="signup" element={<SignupPage />} />
-                <Route path="password-reset" element={<PasswordResetRequestPage />} />
-                <Route
-                  path="password-reset/sent"
-                  element={<PasswordResetRequestPage />}
-                />
-                <Route
-                  path="password-reset/confirm/:uidb64/:token"
-                  element={<PasswordResetConfirmPage />}
-                />
-                <Route
-                  path="resend-verification"
-                  element={<ResendVerificationPage />}
-                />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Route>
-            </Routes>
+            <GuestProvider>
+              <Routes>
+                <Route element={<AppShell />}>
+                  <Route index element={<HomePage />} />
+                  <Route path="gallery" element={<GalleryPage />} />
+                  <Route path="sketches/new" element={<CreateSketchPage />} />
+                  <Route
+                    path="sandbox"
+                    element={
+                      <Suspense fallback={<IdeFallback />}>
+                        <SandboxPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="sketches/:slug/edit"
+                    element={
+                      <Suspense fallback={<IdeFallback />}>
+                        <EditSketchPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="sketches/:slug/settings"
+                    element={<SketchSettingsPage />}
+                  />
+                  <Route path="sketches/:slug" element={<SketchDetailPage />} />
+                  <Route path="account" element={<AccountPage />} />
+                  <Route path="login" element={<LoginPage />} />
+                  <Route path="signup" element={<SignupPage />} />
+                  <Route path="password-reset" element={<PasswordResetRequestPage />} />
+                  <Route
+                    path="password-reset/sent"
+                    element={<PasswordResetRequestPage />}
+                  />
+                  <Route
+                    path="password-reset/confirm/:uidb64/:token"
+                    element={<PasswordResetConfirmPage />}
+                  />
+                  <Route
+                    path="resend-verification"
+                    element={<ResendVerificationPage />}
+                  />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Route>
+              </Routes>
+            </GuestProvider>
           </AuthProvider>
         </BrowserRouter>
       </ThemeProvider>

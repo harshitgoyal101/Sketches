@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ApiError } from '@/api/client'
 import { createSketch, getStarters } from '@/api/sketches'
 import { useAuth } from '@/auth/AuthProvider'
+import { useGuest } from '@/guest/GuestProvider'
 import {
   fieldError,
   inputClass,
@@ -15,6 +16,7 @@ import { cn } from '@/lib/utils'
 
 export function CreateSketchPage() {
   const { isAuthenticated, isLoading } = useAuth()
+  const { requireAuth } = useGuest()
   const navigate = useNavigate()
   const startersQuery = useQuery({
     queryKey: ['starters'],
@@ -54,8 +56,24 @@ export function CreateSketchPage() {
     }
   }, [starters, sketchType])
 
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      requireAuth({ type: 'create' })
+    }
+  }, [isAuthenticated, isLoading, requireAuth])
+
   if (!isLoading && !isAuthenticated) {
-    return <Navigate to="/login" replace />
+    return (
+      <div className="mx-auto max-w-xl px-4 py-16 text-center">
+        <h1 className="font-display text-2xl font-semibold">Sign in to create</h1>
+        <p className="mt-2 text-sm text-muted">
+          Choose Google or email in the dialog to keep a new sketch on your account.
+        </p>
+        <Link to="/sandbox" className="mt-6 inline-block text-primary hover:underline">
+          Or try the sandbox as a guest
+        </Link>
+      </div>
+    )
   }
 
   async function onSubmit(event: FormEvent) {

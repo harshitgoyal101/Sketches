@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiError } from '@/api/client'
 import { resendVerification } from '@/api/auth'
+import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout'
 import { fieldError, inputClass, labelClass, primaryBtnClass } from '@/lib/form'
 
 export function ResendVerificationPage() {
@@ -33,25 +34,23 @@ export function ResendVerificationPage() {
 
   if (sent) {
     return (
-      <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-12">
-        <h1 className="font-display text-2xl font-semibold">Check your email</h1>
-        <p className="mt-3 text-sm text-muted">
-          If an unverified account exists for that address, we sent a new link.
-        </p>
-        <Link to="/login" className={`${primaryBtnClass} mt-8`}>
+      <AuthSplitLayout
+        title="Check your email"
+        lead="If an unverified account exists for that address, we sent a new link."
+      >
+        <Link to="/login" className={`${primaryBtnClass} w-full justify-center`}>
           Back to log in
         </Link>
-      </div>
+      </AuthSplitLayout>
     )
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-12">
-      <h1 className="font-display text-2xl font-semibold">Resend verification</h1>
-      <p className="mt-2 text-sm text-muted">
-        Enter the email you used to sign up.
-      </p>
-      <form className="mt-8 space-y-4" onSubmit={onSubmit}>
+    <AuthSplitLayout
+      title="Resend verification"
+      lead="Enter the email you used to sign up."
+    >
+      <form className="space-y-4" onSubmit={onSubmit}>
         <label className={labelClass}>
           <span className="text-muted">Email</span>
           <input
@@ -73,10 +72,14 @@ export function ResendVerificationPage() {
             {formError}
           </p>
         ) : null}
-        <button type="submit" disabled={submitting} className={`${primaryBtnClass} w-full`}>
+        <button
+          type="submit"
+          disabled={submitting}
+          className={`${primaryBtnClass} w-full justify-center`}
+        >
           {submitting ? 'Sending…' : 'Resend link'}
         </button>
       </form>
-    </div>
+    </AuthSplitLayout>
   )
 }

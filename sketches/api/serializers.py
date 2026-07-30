@@ -45,6 +45,10 @@ def serialize_sketch_card(sketch, request=None):
     if card_url:
         card_url = _absolute_url(request, card_url)
 
+    app_icon = ""
+    if sketch.app_icon:
+        app_icon = _absolute_url(request, sketch.app_icon.url)
+
     srcset = sketch.thumbnail_srcset
     if srcset and request is not None:
         # Rebuild srcset with absolute URLs when possible
@@ -70,6 +74,7 @@ def serialize_sketch_card(sketch, request=None):
         "thumbnail": thumbnail or None,
         "thumbnail_card_url": card_url or None,
         "thumbnail_srcset": srcset or "",
+        "app_icon": app_icon or None,
         "published_at": sketch.published_at.isoformat() if sketch.published_at else None,
         "updated_at": sketch.updated_at.isoformat() if sketch.updated_at else None,
         "fork_count": fork_count,

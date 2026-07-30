@@ -725,6 +725,47 @@ body.is-workspace-sidebar-mobile-open main {
   background: #0d0d0d;
 }
 
+.gallery-sketch-card-app-icon {
+  display: none;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+@media (max-width: 767px) {
+  .gallery-sketch-card-link:has(.gallery-sketch-card-app-icon) {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .gallery-sketch-card-media:has(.gallery-sketch-card-app-icon) {
+    width: 3.35rem;
+    min-width: 3.35rem;
+    aspect-ratio: 1 / 1;
+    border-radius: 0.85rem;
+    align-self: center;
+  }
+
+  .gallery-sketch-card-media:has(.gallery-sketch-card-app-icon) .gallery-sketch-card-image,
+  .gallery-sketch-card-media:has(.gallery-sketch-card-app-icon) .gallery-sketch-card-placeholder,
+  .gallery-sketch-card-media:has(.gallery-sketch-card-app-icon) .gallery-sketch-card-top {
+    display: none;
+  }
+
+  .gallery-sketch-card-app-icon {
+    display: block;
+  }
+
+  .gallery-sketch-card-link:has(.gallery-sketch-card-app-icon) .gallery-sketch-card-panel {
+    flex: 1;
+    min-width: 0;
+    padding: 0.35rem 0.15rem;
+  }
+}
+
 .gallery-sketch-card-image {
   display: block;
   width: 100%;
@@ -5342,6 +5383,20 @@ html.theme-light .sketch-settings-regenerate-btn:hover {
 .sketch-settings-file-name {
   font-size: 0.8125rem;
   color: var(--settings-muted);
+}
+
+.sketch-settings-app-icon-preview {
+  width: 5.5rem !important;
+  height: 5.5rem !important;
+  max-width: 5.5rem;
+  aspect-ratio: 1 / 1 !important;
+  border-radius: 1.15rem !important;
+}
+
+.sketch-settings-app-icon-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .sketch-settings-thumbnail-regenerate {

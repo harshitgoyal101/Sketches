@@ -30,6 +30,10 @@ def require_login(request):
     if request.user.is_authenticated:
         return None
     return json_response(
-        {"ok": False, "error": "Authentication required"},
+        {
+            "ok": False,
+            "error": "Authentication required",
+            "code": "auth_required",
+        },
         status=401,
     )

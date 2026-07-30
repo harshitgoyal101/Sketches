@@ -10,6 +10,7 @@ import {
 import {
   getMe,
   login as apiLogin,
+  loginWithGoogle as apiLoginWithGoogle,
   logout as apiLogout,
   signup as apiSignup,
   ensureCsrfCookie,
@@ -25,6 +26,7 @@ type AuthContextValue = {
   isAuthenticated: boolean
   refresh: () => Promise<void>
   login: (payload: LoginPayload) => Promise<AuthUser>
+  loginWithGoogle: (credential: string) => Promise<AuthUser>
   logout: () => Promise<void>
   signup: (payload: SignupPayload) => Promise<SignupResponse>
 }
@@ -61,6 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return next
   }, [])
 
+  const loginWithGoogle = useCallback(async (credential: string) => {
+    const next = await apiLoginWithGoogle(credential)
+    setUser(next)
+    return next
+  }, [])
+
   const logout = useCallback(async () => {
     await apiLogout()
     setUser(null)
@@ -77,10 +85,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: Boolean(user),
       refresh,
       login,
+      loginWithGoogle,
       logout,
       signup,
     }),
-    [user, isLoading, refresh, login, logout, signup],
+    [user, isLoading, refresh, login, loginWithGoogle, logout, signup],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

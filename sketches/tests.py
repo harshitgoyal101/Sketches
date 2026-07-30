@@ -1349,6 +1349,186 @@ class AuthApiTests(TestCase):
         self.assertEqual(payload["draft_count"], 1)
         self.assertEqual(payload["results"][0]["slug"], "authuser-mine")
 
+    def test_account_sketches_401_includes_auth_required_code(self):
+        response = self.client.get("/api/account/sketches/")
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json().get("code"), "auth_required")
+
+    def test_migrate_guest_requires_auth(self):
+        response = self.client.post(
+            "/api/auth/migrate-guest/",
+            data=json.dumps({"guest_id": "g-1", "drafts": []}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json().get("code"), "auth_required")
+
+    def test_migrate_guest_creates_drafts_and_is_idempotent(self):
+        self.client.force_login(self.user)
+        body = {
+            "guest_id": "guest-abc",
+            "display_name": "Ada Lovelace",
+            "drafts": [
+                {
+                    "client_id": "draft-1",
+                    "title": "Guest Orbit",
+                    "sketch_type": "p5js",
+                    "entry_filename": "sketch.js",
+                    "files": [
+                        {
+                            "filename": "sketch.js",
+                            "content": "function setup() {}",
+                            "is_main": True,
+                            "asset_type": "js",
+                        }
+                    ],
+                }
+            ],
+        }
+        first = self.client.post(
+            "/api/auth/migrate-guest/",
+            data=json.dumps(body),
+            content_type="application/json",
+        )
+        self.assertEqual(first.status_code, 200)
+        payload = first.json()
+        self.assertTrue(payload["ok"])
+        self.assertFalse(payload["idempotent"])
+        self.assertEqual(len(payload["sketches"]), 1)
+        self.assertEqual(payload["sketches"][0]["client_id"], "draft-1")
+        slug = payload["sketches"][0]["slug"]
+        sketch = Sketch.objects.get(slug=slug)
+        self.assertEqual(sketch.author_id, self.user.pk)
+        self.assertEqual(sketch.status, Sketch.Status.DRAFT)
+        self.assertEqual(sketch.code, "function setup() {}")
+        self.assertEqual(self.user.profile.display_name, "Ada Lovelace")
+
+        second = self.client.post(
+            "/api/auth/migrate-guest/",
+            data=json.dumps(body),
+            content_type="application/json",
+        )
+        self.assertEqual(second.status_code, 200)
+        again = second.json()
+        self.assertTrue(again["idempotent"])
+        self.assertEqual(again["sketches"][0]["slug"], slug)
+        self.assertEqual(
+            Sketch.objects.filter(author=self.user, title="Guest Orbit").count(),
+            1,
+        )
+
+    def test_migrate_guest_imports_scores_and_pending_forks(self):
+        from sketches.models import Game, GameScore
+
+        Game.objects.get_or_create(
+            slug="orbit-run",
+            defaults={"title": "Orbit Run", "max_score": 1_000_000},
+        )
+        source = Sketch.objects.create(
+            title="Public Source",
+            slug="authuser-public-source",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            author=self.user,
+        )
+        other = get_user_model().objects.create_user(
+            username="migrator",
+            email="migrator@example.com",
+            password="Secret@42",
+        )
+        other.is_active = True
+        other.save(update_fields=["is_active"])
+        self.client.force_login(other)
+        body = {
+            "guest_id": "guest-scores-1",
+            "display_name": "Scorer",
+            "drafts": [],
+            "scores": [
+                {
+                    "game": "orbit-run",
+                    "score": 1200,
+                    "played_at": "2026-07-01T12:00:00Z",
+                    "meta": {"wave": 3},
+                }
+            ],
+            "pending_forks": [{"source_slug": source.slug, "files": []}],
+        }
+        response = self.client.post(
+            "/api/auth/migrate-guest/",
+            data=json.dumps(body),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["scores_imported"], 1)
+        self.assertEqual(len(payload["forks"]), 1)
+        self.assertTrue(
+            GameScore.objects.filter(
+                user=other, game__slug="orbit-run", score=1200
+            ).exists()
+        )
+        fork_slug = payload["forks"][0]["slug"]
+        self.assertTrue(
+            Sketch.objects.filter(
+                slug=fork_slug, author=other, forked_from=source
+            ).exists()
+        )
+
+    @patch("sketches.api.auth_views.verify_google_id_token")
+    def test_google_auth_creates_user_and_session(self, verify_mock):
+        verify_mock.return_value = {
+            "iss": "https://accounts.google.com",
+            "email": "google.user@example.com",
+            "email_verified": True,
+            "name": "Google User",
+            "given_name": "Google",
+        }
+        response = self.client.post(
+            "/api/auth/google/",
+            data=json.dumps({"credential": "fake-token"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["created"])
+        self.assertEqual(payload["user"]["email"], "google.user@example.com")
+        me = self.client.get("/api/auth/me/").json()
+        self.assertEqual(me["user"]["email"], "google.user@example.com")
+        self.assertEqual(me["user"]["display_name"], "Google User")
+
+    def test_game_score_requires_auth_and_respects_cap(self):
+        from sketches.models import Game
+
+        Game.objects.get_or_create(
+            slug="orbit-run",
+            defaults={"title": "Orbit Run", "max_score": 100},
+        )
+        Game.objects.filter(slug="orbit-run").update(max_score=100)
+        anon = self.client.post(
+            "/api/games/orbit-run/scores/",
+            data=json.dumps({"score": 10}),
+            content_type="application/json",
+        )
+        self.assertEqual(anon.status_code, 401)
+
+        self.client.force_login(self.user)
+        ok = self.client.post(
+            "/api/games/orbit-run/scores/",
+            data=json.dumps({"score": 42}),
+            content_type="application/json",
+        )
+        self.assertEqual(ok.status_code, 201)
+        self.assertTrue(ok.json()["is_personal_best"])
+
+        too_high = self.client.post(
+            "/api/games/orbit-run/scores/",
+            data=json.dumps({"score": 999}),
+            content_type="application/json",
+        )
+        self.assertEqual(too_high.status_code, 400)
+
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class ManageApiTests(TestCase):
@@ -1474,6 +1654,36 @@ class ManageApiTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["ok"])
+        save_mock.assert_called_once()
+
+    @patch("sketches.api.manage_views.save_sketch_app_icon_bytes", return_value=True)
+    def test_app_icon_upload(self, save_mock):
+        sketch = Sketch.objects.create(
+            title="Icon Me",
+            slug="maker-icon-me",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.DRAFT,
+            author=self.user,
+        )
+        image = SimpleUploadedFile(
+            "icon.png",
+            b"\x89PNG\r\n\x1a\n" + b"0" * 64,
+            content_type="image/png",
+        )
+        sketch.app_icon = SimpleUploadedFile(
+            "stored-icon.webp", b"webpdata", content_type="image/webp"
+        )
+        sketch.save()
+
+        response = self.client.post(
+            f"/api/account/sketches/{sketch.slug}/app-icon/",
+            {"image": image},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertIn("app_icon", payload)
         save_mock.assert_called_once()
 
 

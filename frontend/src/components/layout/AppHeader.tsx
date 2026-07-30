@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Menu, Moon, Search, Sun, X } from 'lucide-react'
 import { useAuth } from '@/auth/AuthProvider'
 import { useTheme } from '@/theme/ThemeProvider'
+import { useGuest } from '@/guest/GuestProvider'
 import { cn } from '@/lib/utils'
 
 const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -18,6 +19,7 @@ type AppHeaderProps = {
 export function AppHeader({ transparent = false }: AppHeaderProps) {
   const { theme, setTheme, toggleTheme } = useTheme()
   const { user, isLoading, logout } = useAuth()
+  const { guest, isGuest, requireAuth } = useGuest()
   const location = useLocation()
   const navigate = useNavigate()
   const [scrolled, setScrolled] = useState(false)
@@ -80,6 +82,16 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
   const overHeroLight = overHero && theme === 'light'
   const overHeroDark = overHero && theme === 'dark'
   const initials = user?.username?.slice(0, 2).toUpperCase() ?? '?'
+
+  function onGetStarted() {
+    if (user) {
+      navigate('/sketches/new')
+      return
+    }
+    if (requireAuth({ type: 'create' })) {
+      navigate('/sketches/new')
+    }
+  }
 
   return (
     <>
@@ -209,6 +221,28 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
               </div>
             ) : (
               <>
+                {isGuest && guest ? (
+                  <span
+                    className={cn(
+                      'max-w-[10rem] truncate text-sm',
+                      overHeroDark ? 'text-white/80' : 'text-muted',
+                    )}
+                    title={`Playing as ${guest.displayName}`}
+                  >
+                    Playing as {guest.displayName}
+                  </span>
+                ) : null}
+                <Link
+                  to="/sandbox"
+                  className={cn(
+                    'rounded-btn px-3 py-1.5 text-sm font-medium',
+                    overHeroDark
+                      ? 'text-white/90 hover:text-white'
+                      : 'text-muted hover:text-foreground',
+                  )}
+                >
+                  Sandbox
+                </Link>
                 <Link
                   to="/login"
                   className={cn(
@@ -220,12 +254,13 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
                 >
                   Log in
                 </Link>
-                <Link
-                  to="/signup"
+                <button
+                  type="button"
+                  onClick={onGetStarted}
                   className="rounded-btn bg-primary px-3 py-1.5 text-sm font-semibold text-[var(--color-on-primary)] hover:bg-primary-hover"
                 >
                   Get started
-                </Link>
+                </button>
               </>
             )}
           </div>
@@ -348,14 +383,23 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
               </>
             ) : (
               <>
+                {isGuest && guest ? (
+                  <p className="px-3 py-2 text-sm text-muted">
+                    Playing as {guest.displayName}
+                  </p>
+                ) : null}
+                <MobileLink to="/sandbox">Sandbox</MobileLink>
                 <MobileLink to="/login">Log in</MobileLink>
-                <Link
-                  to="/signup"
+                <button
+                  type="button"
                   className="mt-2 rounded-btn bg-primary px-3 py-3 text-center text-sm font-semibold text-[var(--color-on-primary)]"
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() => {
+                    setMenuOpen(false)
+                    onGetStarted()
+                  }}
                 >
                   Get started
-                </Link>
+                </button>
               </>
             )}
           </nav>

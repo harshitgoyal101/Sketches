@@ -4,6 +4,7 @@ React is the primary UI at **`/`**.
 
 - Gallery: search, formats, **tags** (URL-synced `?tag=` / `?type=` / `?q=` / `?sort=`), load more
 - Auth, create/settings, IDE, fork, password reset
+- **Guest → auth:** name gate, `/sandbox`, AuthGate on save/fork/create, draft migrate, Google GIS
 
 ## Local development
 
@@ -15,6 +16,19 @@ python3 manage.py runserver
 npm run dev:frontend       # :5173 hot reload
 ```
 
+### Google sign-in (optional)
+
+Set the same OAuth Web client ID on both sides:
+
+```bash
+# Django
+export GOOGLE_OAUTH_CLIENT_ID="....apps.googleusercontent.com"
+
+# Vite (frontend/.env.local)
+VITE_GOOGLE_OAUTH_CLIENT_ID=....apps.googleusercontent.com
+```
+
+Without these, AuthGate still offers email login/signup.
 ## Deploy (PythonAnywhere / production)
 
 From a machine with Node 20+:

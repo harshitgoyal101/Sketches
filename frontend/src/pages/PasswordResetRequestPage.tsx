@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiError } from '@/api/client'
 import { requestPasswordReset } from '@/api/auth'
+import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout'
 import { fieldError, inputClass, labelClass, primaryBtnClass } from '@/lib/form'
 
 export function PasswordResetRequestPage() {
@@ -33,25 +34,23 @@ export function PasswordResetRequestPage() {
 
   if (sent) {
     return (
-      <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-12">
-        <h1 className="font-display text-2xl font-semibold">Check your email</h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted">
-          If an account exists for that address, we sent a password reset link.
-        </p>
-        <Link to="/login" className={`${primaryBtnClass} mt-8`}>
+      <AuthSplitLayout
+        title="Check your email"
+        lead="If an account exists for that address, we sent a password reset link."
+      >
+        <Link to="/login" className={`${primaryBtnClass} w-full justify-center`}>
           Back to log in
         </Link>
-      </div>
+      </AuthSplitLayout>
     )
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-12">
-      <h1 className="font-display text-2xl font-semibold">Reset password</h1>
-      <p className="mt-2 text-sm text-muted">
-        Enter your account email and we will send a reset link.
-      </p>
-      <form className="mt-8 space-y-4" onSubmit={onSubmit}>
+    <AuthSplitLayout
+      title="Reset password"
+      lead="Enter the email on your account and we’ll send a reset link."
+    >
+      <form className="space-y-4" onSubmit={onSubmit}>
         <label className={labelClass}>
           <span className="text-muted">Email</span>
           <input
@@ -73,7 +72,11 @@ export function PasswordResetRequestPage() {
             {formError}
           </p>
         ) : null}
-        <button type="submit" disabled={submitting} className={`${primaryBtnClass} w-full`}>
+        <button
+          type="submit"
+          disabled={submitting}
+          className={`${primaryBtnClass} w-full justify-center`}
+        >
           {submitting ? 'Sending…' : 'Send reset link'}
         </button>
       </form>
@@ -82,6 +85,6 @@ export function PasswordResetRequestPage() {
           Back to log in
         </Link>
       </p>
-    </div>
+    </AuthSplitLayout>
   )
 }

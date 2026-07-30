@@ -1,10 +1,12 @@
 import { ApiError, ensureCsrfCookie, fetchJson } from '@/api/client'
+import type { GuestDraft, GuestPendingFork, GuestScore } from '@/guest/types'
 
 export type AuthUser = {
   id: number
   username: string
   email: string
   is_staff: boolean
+  display_name?: string
 }
 
 export type MeResponse = {
@@ -30,6 +32,23 @@ export type SignupResponse = {
   email: string
 }
 
+export type MigrateGuestPayload = {
+  guest_id: string
+  display_name: string
+  drafts: GuestDraft[]
+  scores?: GuestScore[]
+  pending_forks?: GuestPendingFork[]
+}
+
+export type MigrateGuestResponse = {
+  ok: true
+  idempotent: boolean
+  sketches: { client_id: string; slug: string }[]
+  forks?: { source_slug: string; slug: string }[]
+  scores_imported?: number
+  display_name?: string
+}
+
 export { ApiError, ensureCsrfCookie }
 
 export async function getMe(): Promise<MeResponse> {
@@ -47,6 +66,25 @@ export async function login(payload: LoginPayload): Promise<AuthUser> {
     fallbackMessage: 'Login failed',
   })
   return data.user
+}
+
+export async function loginWithGoogle(credential: string): Promise<AuthUser> {
+  const data = await fetchJson<{ ok: boolean; user: AuthUser }>('/api/auth/google/', {
+    method: 'POST',
+    body: { credential },
+    fallbackMessage: 'Google sign-in failed',
+  })
+  return data.user
+}
+
+export async function migrateGuest(
+  payload: MigrateGuestPayload,
+): Promise<MigrateGuestResponse> {
+  return fetchJson<MigrateGuestResponse>('/api/auth/migrate-guest/', {
+    method: 'POST',
+    body: payload,
+    fallbackMessage: 'Could not migrate guest drafts',
+  })
 }
 
 export async function logout(): Promise<void> {

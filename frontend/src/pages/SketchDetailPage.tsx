@@ -4,12 +4,13 @@ import { useSketch } from '@/hooks/useSketches'
 import { ApiError } from '@/api/client'
 import { forkSketch } from '@/api/sketches'
 import { useAuth } from '@/auth/AuthProvider'
+import { useGuest } from '@/guest/GuestProvider'
 import { primaryBtnClass, secondaryBtnClass } from '@/lib/form'
 
 export function SketchDetailPage() {
   const { slug } = useParams()
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuth()
+  const { requireAuth } = useGuest()
   const { data: sketch, isPending, error, refetch } = useSketch(slug)
   const [forking, setForking] = useState(false)
   const [forkError, setForkError] = useState<string | null>(null)
@@ -39,8 +40,7 @@ export function SketchDetailPage() {
 
   async function onFork() {
     if (!slug) return
-    if (!isAuthenticated) {
-      navigate('/login')
+    if (!requireAuth({ type: 'fork', sourceSlug: slug })) {
       return
     }
     setForking(true)

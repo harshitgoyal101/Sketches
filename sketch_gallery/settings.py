@@ -193,6 +193,9 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 SITE_NAME = os.environ.get("SITE_NAME", "sketches101")
 SITE_URL = os.environ.get("SITE_URL", "http://127.0.0.1:8000")
 
+# Google Identity Services (SPA ID-token → POST /api/auth/google/)
+GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
+
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
 if EMAIL_HOST:
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

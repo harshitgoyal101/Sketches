@@ -261,6 +261,17 @@ export async function uploadSketchThumbnail(
   })
 }
 
+export async function uploadSketchAppIcon(
+  slug: string,
+  file: File,
+): Promise<{ url: string | null; app_icon: string | null }> {
+  const formData = new FormData()
+  formData.append('image', file)
+  return fetchMultipart(`/api/account/sketches/${slug}/app-icon/`, formData, {
+    fallbackMessage: 'Could not upload app icon',
+  })
+}
+
 export type PreviewPayload = {
   sketch_type: string
   main_code: string

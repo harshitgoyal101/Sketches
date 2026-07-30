@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '@/api/client'
 import { confirmPasswordReset } from '@/api/auth'
 import { useAuth } from '@/auth/AuthProvider'
+import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout'
 import { fieldError, inputClass, labelClass, primaryBtnClass } from '@/lib/form'
 
 export function PasswordResetConfirmPage() {
@@ -46,12 +47,11 @@ export function PasswordResetConfirmPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-12">
-      <h1 className="font-display text-2xl font-semibold">Choose a new password</h1>
-      <p className="mt-2 text-sm text-muted">
-        Use at least 8 characters with a letter, number, and symbol.
-      </p>
-      <form className="mt-8 space-y-4" onSubmit={onSubmit}>
+    <AuthSplitLayout
+      title="Choose a new password"
+      lead="Use at least 8 characters with a letter, number, and symbol."
+    >
+      <form className="space-y-4" onSubmit={onSubmit}>
         <label className={labelClass}>
           <span className="text-muted">New password</span>
           <input
@@ -89,7 +89,11 @@ export function PasswordResetConfirmPage() {
             {formError}
           </p>
         ) : null}
-        <button type="submit" disabled={submitting} className={`${primaryBtnClass} w-full`}>
+        <button
+          type="submit"
+          disabled={submitting}
+          className={`${primaryBtnClass} w-full justify-center`}
+        >
           {submitting ? 'Saving…' : 'Update password'}
         </button>
       </form>
@@ -98,6 +102,6 @@ export function PasswordResetConfirmPage() {
           Back to log in
         </Link>
       </p>
-    </div>
+    </AuthSplitLayout>
   )
 }

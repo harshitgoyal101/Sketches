@@ -205,7 +205,8 @@ export function LandingHeroBackground({ dark, light }: LandingHeroBackgroundProp
           ) : null}
         </>
       )}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/35 via-background/15 to-background" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-background/25 via-background/10 to-background" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent" />
     </div>
   )
 }

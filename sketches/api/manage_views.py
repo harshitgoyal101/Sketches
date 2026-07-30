@@ -21,6 +21,7 @@ from sketches.services.sketch_starters import (
     normalize_sketch_type,
 )
 from sketches.services.thumbnail_generator import (
+    save_sketch_app_icon_bytes,
     save_sketch_thumbnail_bytes,
     schedule_sketch_thumbnail_generation,
 )
@@ -372,6 +373,42 @@ def api_account_sketch_thumbnail(request, slug):
             "thumbnail_card_url": sketch.thumbnail_card_url or url,
         }
     )
+
+
+@require_POST
+def api_account_sketch_app_icon(request, slug):
+    denied = require_login(request)
+    if denied:
+        return denied
+
+    sketch, error = _editable_sketch(request, slug)
+    if error:
+        return error
+
+    upload = request.FILES.get("image")
+    if not upload:
+        return json_response({"ok": False, "error": "No image uploaded."}, status=400)
+    if not (upload.content_type or "").startswith("image/"):
+        return json_response({"ok": False, "error": "Invalid image type."}, status=400)
+    if upload.size > 2 * 1024 * 1024:
+        return json_response({"ok": False, "error": "Image is too large."}, status=400)
+
+    try:
+        saved = save_sketch_app_icon_bytes(sketch, upload.read(), force=True)
+    except Exception:
+        return json_response(
+            {"ok": False, "error": "Could not process app icon."},
+            status=500,
+        )
+    if not saved:
+        return json_response(
+            {"ok": False, "error": "Could not save app icon."},
+            status=500,
+        )
+
+    sketch.refresh_from_db()
+    url = sketch.app_icon.url if sketch.app_icon else None
+    return json_response({"ok": True, "url": url, "app_icon": url})
 
 
 def _infer_asset_type(filename):

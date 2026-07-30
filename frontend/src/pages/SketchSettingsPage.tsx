@@ -7,6 +7,7 @@ import {
   getSketchSettings,
   publishSketch,
   updateSketchSettings,
+  uploadSketchAppIcon,
   uploadSketchThumbnail,
 } from '@/api/sketches'
 import { useAuth } from '@/auth/AuthProvider'
@@ -41,9 +42,11 @@ export function SketchSettingsPage() {
   const [status, setStatus] = useState('draft')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
+  const [appIconPreview, setAppIconPreview] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadingIcon, setUploadingIcon] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
   const [message, setMessage] = useState<string | null>(null)
@@ -56,6 +59,7 @@ export function SketchSettingsPage() {
     setStatus(sketch.status)
     setSelectedTags(sketch.tags.map((t) => t.slug))
     setThumbnailPreview(sketch.thumbnail_card_url || sketch.thumbnail)
+    setAppIconPreview(sketch.app_icon)
   }, [settingsQuery.data])
 
   if (!authLoading && !isAuthenticated) {
@@ -158,6 +162,24 @@ export function SketchSettingsPage() {
     }
   }
 
+  async function onAppIconChange(file: File | null) {
+    if (!file || !slug) return
+    setUploadingIcon(true)
+    setFormError(null)
+    setMessage(null)
+    try {
+      const result = await uploadSketchAppIcon(slug, file)
+      setAppIconPreview(result.app_icon || result.url)
+      setMessage('App icon updated.')
+      await settingsQuery.refetch()
+    } catch (err) {
+      if (err instanceof ApiError) setFormError(err.message)
+      else setFormError('Could not upload app icon.')
+    } finally {
+      setUploadingIcon(false)
+    }
+  }
+
   const sketch = settingsQuery.data?.sketch
   const isAdmin = settingsQuery.data?.is_admin ?? false
 
@@ -172,7 +194,7 @@ export function SketchSettingsPage() {
             {sketch?.title ?? 'Loading…'}
           </h1>
           <p className="mt-2 text-sm text-muted">
-            Description, tags, and thumbnail. Publish when you are ready.
+            Description, tags, thumbnail, and mobile app icon.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -272,6 +294,39 @@ export function SketchSettingsPage() {
                 disabled={uploading}
                 onChange={(e) =>
                   void onThumbnailChange(e.target.files?.[0] ?? null)
+                }
+              />
+            </label>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm text-muted">App icon</p>
+              <p className="mt-1 text-xs text-muted">
+                Square mark for mobile gallery lists (like a phone app icon).
+                Recommended 192×192.
+              </p>
+            </div>
+            {appIconPreview ? (
+              <img
+                src={appIconPreview}
+                alt=""
+                className="h-20 w-20 rounded-[1.15rem] border border-border object-cover shadow-sm"
+              />
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-[1.15rem] border border-dashed border-border text-xs text-muted">
+                No icon
+              </div>
+            )}
+            <label className={secondaryBtnClass}>
+              {uploadingIcon ? 'Uploading…' : 'Upload icon'}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploadingIcon}
+                onChange={(e) =>
+                  void onAppIconChange(e.target.files?.[0] ?? null)
                 }
               />
             </label>

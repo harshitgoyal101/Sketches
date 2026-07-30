@@ -23,6 +23,8 @@ export type SketchCard = {
   thumbnail: string | null
   thumbnail_card_url: string | null
   thumbnail_srcset: string
+  /** Square mobile list icon; falls back to thumbnail on the client when null. */
+  app_icon: string | null
   published_at: string | null
   updated_at: string | null
   fork_count: number
@@ -113,6 +115,7 @@ export const MOCK_SKETCHES: SketchCard[] = [
     thumbnail: 'https://picsum.photos/seed/orbit/640/400',
     thumbnail_card_url: 'https://picsum.photos/seed/orbit/640/400',
     thumbnail_srcset: '',
+    app_icon: null,
     published_at: null,
     updated_at: null,
     fork_count: 12,
@@ -130,6 +133,7 @@ export const MOCK_SKETCHES: SketchCard[] = [
     thumbnail: 'https://picsum.photos/seed/noise/640/400',
     thumbnail_card_url: 'https://picsum.photos/seed/noise/640/400',
     thumbnail_srcset: '',
+    app_icon: null,
     published_at: null,
     updated_at: null,
     fork_count: 8,
@@ -147,6 +151,7 @@ export const MOCK_SKETCHES: SketchCard[] = [
     thumbnail: 'https://picsum.photos/seed/ink/640/400',
     thumbnail_card_url: 'https://picsum.photos/seed/ink/640/400',
     thumbnail_srcset: '',
+    app_icon: null,
     published_at: null,
     updated_at: null,
     fork_count: 5,
@@ -164,6 +169,7 @@ export const MOCK_SKETCHES: SketchCard[] = [
     thumbnail: 'https://picsum.photos/seed/pulse/640/400',
     thumbnail_card_url: 'https://picsum.photos/seed/pulse/640/400',
     thumbnail_srcset: '',
+    app_icon: null,
     published_at: null,
     updated_at: null,
     fork_count: 3,
@@ -181,6 +187,7 @@ export const MOCK_SKETCHES: SketchCard[] = [
     thumbnail: 'https://picsum.photos/seed/crystal/640/400',
     thumbnail_card_url: 'https://picsum.photos/seed/crystal/640/400',
     thumbnail_srcset: '',
+    app_icon: null,
     published_at: null,
     updated_at: null,
     fork_count: 2,
@@ -198,6 +205,7 @@ export const MOCK_SKETCHES: SketchCard[] = [
     thumbnail: 'https://picsum.photos/seed/tidal/640/400',
     thumbnail_card_url: 'https://picsum.photos/seed/tidal/640/400',
     thumbnail_srcset: '',
+    app_icon: null,
     published_at: null,
     updated_at: null,
     fork_count: 1,
