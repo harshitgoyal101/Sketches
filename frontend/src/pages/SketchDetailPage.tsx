@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useSketch } from '@/hooks/useSketches'
 import { ApiError } from '@/api/client'
 import { forkSketch } from '@/api/sketches'
-import { useAuth } from '@/auth/AuthProvider'
 import { useGuest } from '@/guest/GuestProvider'
 import { primaryBtnClass, secondaryBtnClass } from '@/lib/form'
 

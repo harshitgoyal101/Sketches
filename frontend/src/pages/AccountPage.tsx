@@ -22,7 +22,7 @@ export function AccountPage() {
     queries: (gamesQuery.data ?? []).map((game) => ({
       queryKey: ['game-scores', game.slug, 'me'],
       queryFn: () => getGameScores(game.slug),
-      enabled: isAuthenticated && Boolean(games.slug),
+      enabled: isAuthenticated && Boolean(game.slug),
     })),
   })
 
