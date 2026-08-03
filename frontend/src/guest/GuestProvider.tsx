@@ -25,12 +25,10 @@ import {
   recordScoreOnProfile,
   saveGuestProfile,
   upsertDraft,
-  upsertPendingFork,
   writePendingAction,
 } from './storage'
 import type {
   GuestDraft,
-  GuestPendingFork,
   GuestProfile,
   GuestScore,
   PendingAction,
@@ -52,11 +50,11 @@ type GuestContextValue = {
   saveDraft: (draft: GuestDraft) => Promise<void>
   getDraft: (clientId: string) => GuestDraft | null
   recordScore: (entry: GuestScore) => Promise<RecordScoreResult | null>
-  queuePendingFork: (fork: GuestPendingFork) => Promise<void>
   refreshGuest: () => Promise<void>
   clearGuest: () => Promise<void>
   takePendingAction: () => PendingAction | null
   migrating: boolean
+  migrateError: string | null
 }
 
 const GuestContext = createContext<GuestContextValue | null>(null)
@@ -80,6 +78,8 @@ export function GuestProvider({ children }: GuestProviderProps) {
   const [authGateOpen, setAuthGateOpen] = useState(false)
   const [authReason, setAuthReason] = useState<string | undefined>()
   const [migrating, setMigrating] = useState(false)
+  const [migrateError, setMigrateError] = useState<string | null>(null)
+  const [migrateAttempt, setMigrateAttempt] = useState(0)
   const [keepScore, setKeepScore] = useState<{
     game: string
     score: number
@@ -150,17 +150,6 @@ export function GuestProvider({ children }: GuestProviderProps) {
   const getDraft = useCallback(
     (clientId: string) =>
       guest?.drafts.find((d) => d.client_id === clientId) ?? null,
-    [guest],
-  )
-
-  const queuePendingFork = useCallback(
-    async (fork: GuestPendingFork) => {
-      const base = guest ?? (await loadGuestProfile())
-      if (!base) return
-      const next = upsertPendingFork(base, fork)
-      await saveGuestProfile(next)
-      setGuest(next)
-    },
     [guest],
   )
 
@@ -289,6 +278,7 @@ export function GuestProvider({ children }: GuestProviderProps) {
     let cancelled = false
     migrateInFlight.current = true
     setMigrating(true)
+    setMigrateError(null)
     setAuthGateOpen(false)
     setKeepScore(null)
     ;(async () => {
@@ -311,8 +301,19 @@ export function GuestProvider({ children }: GuestProviderProps) {
           result.sketches || [],
           result.forks || [],
         )
-      } catch {
+      } catch (err) {
         migrateRanFor.current = null
+        if (!cancelled) {
+          const message =
+            err instanceof Error
+              ? err.message
+              : 'Could not move guest data to your account. Try again.'
+          setMigrateError(message)
+          setAuthGateOpen(true)
+          setAuthReason(
+            'We could not sync your guest drafts and scores. Sign in again or retry.',
+          )
+        }
       } finally {
         migrateInFlight.current = false
         if (!cancelled) setMigrating(false)
@@ -331,6 +332,7 @@ export function GuestProvider({ children }: GuestProviderProps) {
     refresh,
     takePendingAction,
     resumePending,
+    migrateAttempt,
   ])
 
   useEffect(() => {
@@ -375,11 +377,11 @@ export function GuestProvider({ children }: GuestProviderProps) {
       saveDraft,
       getDraft,
       recordScore,
-      queuePendingFork,
       refreshGuest,
       clearGuest,
       takePendingAction,
       migrating,
+      migrateError,
     }),
     [
       guest,
@@ -390,11 +392,11 @@ export function GuestProvider({ children }: GuestProviderProps) {
       saveDraft,
       getDraft,
       recordScore,
-      queuePendingFork,
       refreshGuest,
       clearGuest,
       takePendingAction,
       migrating,
+      migrateError,
     ],
   )
 
@@ -418,13 +420,29 @@ export function GuestProvider({ children }: GuestProviderProps) {
         onDismiss={() => setKeepScore(null)}
       />
       <AuthGate
-        open={authGateOpen && !isAuthenticated}
-        reason={authReason}
+        open={
+          (authGateOpen && !isAuthenticated) ||
+          Boolean(migrateError && isAuthenticated)
+        }
+        reason={migrateError || authReason}
         googleClientId={GOOGLE_CLIENT_ID || undefined}
-        onClose={() => setAuthGateOpen(false)}
+        onClose={() => {
+          setAuthGateOpen(false)
+          setMigrateError(null)
+        }}
         onGoogleCredential={(cred) => {
           void handleGoogle(cred)
         }}
+        migrateError={migrateError}
+        onRetryMigrate={
+          migrateError
+            ? () => {
+                migrateRanFor.current = null
+                setMigrateError(null)
+                setMigrateAttempt((n) => n + 1)
+              }
+            : undefined
+        }
       />
     </GuestContext.Provider>
   )

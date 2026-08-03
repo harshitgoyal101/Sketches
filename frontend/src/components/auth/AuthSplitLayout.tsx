@@ -1,8 +1,6 @@
 import { Code2, Users, Zap } from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { Moon, Sun } from 'lucide-react'
-import { useTheme } from '@/theme/ThemeProvider'
-import { cn } from '@/lib/utils'
+import { BrandLogo } from '@/components/BrandLogo'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import type { ReactNode } from 'react'
 
 type AuthSplitLayoutProps = {
@@ -12,8 +10,6 @@ type AuthSplitLayoutProps = {
 }
 
 export function AuthSplitLayout({ title, lead, children }: AuthSplitLayoutProps) {
-  const { theme, toggleTheme } = useTheme()
-
   return (
     <div className="grid min-h-dvh lg:grid-cols-2">
       <aside
@@ -39,18 +35,7 @@ export function AuthSplitLayout({ title, lead, children }: AuthSplitLayoutProps)
           }}
         />
 
-        <Link
-          to="/"
-          className="relative z-10 flex items-center gap-2 font-display text-lg font-semibold tracking-tight text-white"
-          aria-label="sketches101 home"
-        >
-          <span className="font-mono text-sm text-primary" aria-hidden>
-            {'[}]'}
-          </span>
-          <span>
-            sketches<span className="text-primary">101</span>
-          </span>
-        </Link>
+        <BrandLogo onDark className="relative z-10 text-lg" />
 
         <div className="relative z-10 max-w-md space-y-8">
           <h2 className="font-display text-4xl font-semibold leading-[1.1] tracking-tight xl:text-5xl">
@@ -81,24 +66,8 @@ export function AuthSplitLayout({ title, lead, children }: AuthSplitLayoutProps)
 
       <section className="relative flex min-h-dvh flex-col bg-background">
         <div className="flex items-center justify-between gap-3 px-4 py-4 sm:px-8">
-          <Link
-            to="/"
-            className="font-display text-base font-semibold tracking-tight text-foreground lg:invisible"
-          >
-            sketches<span className="text-primary">101</span>
-          </Link>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className={cn(
-              'inline-flex h-9 w-9 items-center justify-center rounded-btn border border-border text-muted hover:text-foreground',
-            )}
-            aria-label={
-              theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
-            }
-          >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
+          <BrandLogo className="text-base lg:invisible" />
+          <ThemeToggle />
         </div>
 
         <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 pb-12 sm:px-6">

@@ -1,10 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { TextEffect } from '@/components/motion-primitives/text-effect'
 import { AnimatedGroup } from '@/components/motion-primitives/animated-group'
+import { ChallengeStrip } from '@/components/ChallengeStrip'
 import { LandingHeroBackground } from '@/components/home/LandingHeroBackground'
 import { SketchCardView } from '@/components/SketchCardView'
 import { useAuth } from '@/auth/AuthProvider'
 import { useGuest } from '@/guest/GuestProvider'
+import { useContinueSketch } from '@/hooks/useContinueSketch'
 import { useHome } from '@/hooks/useSketches'
 import type { SketchCard } from '@/types/sketch'
 import { cn, prefersReducedMotion } from '@/lib/utils'
@@ -18,7 +20,7 @@ function FeaturedGrid({
 }) {
   if (reduceMotion) {
     return (
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-2.5 md:grid-cols-2 md:gap-5 lg:grid-cols-3">
         {sketches.map((sketch) => (
           <SketchCardView key={sketch.id} sketch={sketch} />
         ))}
@@ -27,7 +29,7 @@ function FeaturedGrid({
   }
   return (
     <AnimatedGroup
-      className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+      className="grid gap-2.5 md:grid-cols-2 md:gap-5 lg:grid-cols-3"
       preset="blur"
     >
       {sketches.map((sketch) => (
@@ -42,9 +44,9 @@ export function HomePage() {
   const { data, isPending } = useHome()
   const { isAuthenticated } = useAuth()
   const { requireAuth } = useGuest()
+  const { continueSketch } = useContinueSketch()
   const navigate = useNavigate()
   const featured = (data?.featured ?? []).slice(0, 3)
-  const background = data?.background
   const stats = data?.stats
 
   function onStartCreating() {
@@ -57,14 +59,16 @@ export function HomePage() {
     }
   }
 
+  const continueHref = continueSketch
+    ? `/sketches/${continueSketch.slug}/edit`
+    : '/sketches/new'
+  const continueLabel = continueSketch ? 'Continue' : 'Start a sketch'
+
   return (
     <div className="relative bg-background">
       {/* —— Hero —— */}
       <section className="relative isolate min-h-[min(100dvh,56rem)] overflow-hidden">
-        <LandingHeroBackground
-          dark={background?.dark ?? null}
-          light={background?.light ?? null}
-        />
+        <LandingHeroBackground />
 
         <div className="relative z-10 mx-auto flex min-h-[min(100dvh,56rem)] w-full max-w-[75rem] flex-col items-center justify-center px-5 pb-24 pt-20 text-center sm:px-8">
           <p className="home-eyebrow mb-5">
@@ -75,7 +79,11 @@ export function HomePage() {
             Sketches <span className="text-primary">101</span>
           </h1>
 
-          {reduceMotion ? (
+          {isAuthenticated ? (
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
+              Pick up where you left off, or open something you viewed recently.
+            </p>
+          ) : reduceMotion ? (
             <p className="mt-5 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
               The creative coding playground for artists and developers. Build,
               run, and share.
@@ -93,29 +101,41 @@ export function HomePage() {
           )}
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={onStartCreating}
-              className="home-btn home-btn-primary"
-            >
-              Start creating
-            </button>
-            <Link to="/sandbox" className="home-btn home-btn-ghost">
-              Try sandbox
-            </Link>
-            <Link to="/gallery" className="home-btn home-btn-ghost">
-              Browse gallery
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link to={continueHref} className="home-btn home-btn-primary">
+                  {continueLabel}
+                </Link>
+                <Link to="/explore/today" className="home-btn home-btn-ghost">
+                  Today
+                </Link>
+                <Link to="/gallery" className="home-btn home-btn-ghost">
+                  Browse gallery
+                </Link>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={onStartCreating}
+                  className="home-btn home-btn-primary"
+                >
+                  Start creating
+                </button>
+                <Link to="/sandbox" className="home-btn home-btn-ghost">
+                  Try sandbox
+                </Link>
+                <Link to="/explore/today" className="home-btn home-btn-ghost">
+                  Today
+                </Link>
+                <Link to="/gallery" className="home-btn home-btn-ghost">
+                  Browse gallery
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Scroll cue — hangs at bottom of hero, doesn't crowd CTAs */}
-        <div
-          className="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex justify-center"
-          aria-hidden
-        >
-          <span className="home-scroll-cue" />
-        </div>
       </section>
 
       {/* —— Stats (second fold) —— */}
@@ -145,8 +165,15 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* —— Weekly challenge (one job) —— */}
+      <section className="relative z-10 bg-background" aria-label="Weekly challenge">
+        <div className="mx-auto max-w-[75rem] px-5 py-10 sm:px-8 sm:py-12">
+          <ChallengeStrip />
+        </div>
+      </section>
+
       {/* —— Featured —— */}
-      <section className="relative z-10 bg-background">
+      <section className="relative z-10 border-t border-border bg-background">
         <div className="mx-auto max-w-[75rem] px-5 py-16 sm:px-8 sm:py-20">
           <div className="mx-auto max-w-2xl text-center">
             <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary">

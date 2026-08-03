@@ -1,5 +1,6 @@
 import json
 
+from django.core.cache import cache
 from django.http import JsonResponse
 
 
@@ -37,3 +38,33 @@ def require_login(request):
         },
         status=401,
     )
+
+
+def enforce_rate_limit(key, *, limit, window_seconds):
+    """
+    Cache-backed fixed-window rate limit.
+    Returns a 429 JsonResponse when exceeded, otherwise None.
+    """
+    cache_key = f"rl:{key}"
+    try:
+        count = cache.incr(cache_key)
+    except ValueError:
+        cache.add(cache_key, 1, timeout=window_seconds)
+        count = 1
+    if count > limit:
+        return json_response(
+            {
+                "ok": False,
+                "error": "Too many requests. Try again later.",
+                "code": "rate_limited",
+            },
+            status=429,
+        )
+    return None
+
+
+def client_ip(request):
+    forwarded = (request.META.get("HTTP_X_FORWARDED_FOR") or "").split(",")[0].strip()
+    if forwarded:
+        return forwarded
+    return request.META.get("REMOTE_ADDR") or "unknown"

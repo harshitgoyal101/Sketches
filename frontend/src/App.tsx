@@ -10,6 +10,9 @@ import { GalleryPage } from '@/pages/GalleryPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { SignupPage } from '@/pages/SignupPage'
 import { SketchDetailPage } from '@/pages/SketchDetailPage'
+import { MakerProfilePage } from '@/pages/MakerProfilePage'
+import { SavedPage } from '@/pages/SavedPage'
+import { ExploreTodayPage } from '@/pages/ExploreTodayPage'
 import { AccountPage } from '@/pages/AccountPage'
 import { CreateSketchPage } from '@/pages/CreateSketchPage'
 import { SketchSettingsPage } from '@/pages/SketchSettingsPage'
@@ -74,6 +77,9 @@ export default function App() {
                     element={<SketchSettingsPage />}
                   />
                   <Route path="sketches/:slug" element={<SketchDetailPage />} />
+                  <Route path="makers/:username" element={<MakerProfilePage />} />
+                  <Route path="saved" element={<SavedPage />} />
+                  <Route path="explore/today" element={<ExploreTodayPage />} />
                   <Route path="account" element={<AccountPage />} />
                   <Route path="login" element={<LoginPage />} />
                   <Route path="signup" element={<SignupPage />} />

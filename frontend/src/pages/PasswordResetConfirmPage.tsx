@@ -1,10 +1,16 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { LockKeyhole } from 'lucide-react'
 import { ApiError } from '@/api/client'
 import { confirmPasswordReset } from '@/api/auth'
 import { useAuth } from '@/auth/AuthProvider'
 import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout'
-import { fieldError, inputClass, labelClass, primaryBtnClass } from '@/lib/form'
+import { PasswordInput } from '@/components/auth/PasswordInput'
+import {
+  fieldError,
+  labelClass,
+  primaryBtnClass,
+} from '@/lib/form'
 
 export function PasswordResetConfirmPage() {
   const { uidb64 = '', token = '' } = useParams()
@@ -51,15 +57,16 @@ export function PasswordResetConfirmPage() {
       title="Choose a new password"
       lead="Use at least 8 characters with a letter, number, and symbol."
     >
+      <div className="mb-6 inline-flex h-11 w-11 items-center justify-center rounded-btn bg-primary/12 text-primary ring-1 ring-primary/20">
+        <LockKeyhole size={20} strokeWidth={2} aria-hidden />
+      </div>
       <form className="space-y-4" onSubmit={onSubmit}>
         <label className={labelClass}>
           <span className="text-muted">New password</span>
-          <input
-            type="password"
+          <PasswordInput
             required
             value={password1}
             onChange={(e) => setPassword1(e.target.value)}
-            className={inputClass}
             autoComplete="new-password"
           />
           {fieldError(fieldErrors, 'new_password1', 'password1') ? (
@@ -70,12 +77,10 @@ export function PasswordResetConfirmPage() {
         </label>
         <label className={labelClass}>
           <span className="text-muted">Confirm password</span>
-          <input
-            type="password"
+          <PasswordInput
             required
             value={password2}
             onChange={(e) => setPassword2(e.target.value)}
-            className={inputClass}
             autoComplete="new-password"
           />
           {fieldError(fieldErrors, 'new_password2', 'password2') ? (
@@ -92,14 +97,22 @@ export function PasswordResetConfirmPage() {
         <button
           type="submit"
           disabled={submitting}
-          className={`${primaryBtnClass} w-full justify-center`}
+          className={`${primaryBtnClass} w-full`}
         >
           {submitting ? 'Saving…' : 'Update password'}
         </button>
       </form>
       <p className="mt-6 text-center text-sm text-muted">
-        <Link to="/login" className="text-primary hover:underline">
-          Back to log in
+        Link expired?{' '}
+        <Link
+          to="/password-reset"
+          className="font-medium text-primary hover:underline"
+        >
+          Request a new one
+        </Link>
+        {' · '}
+        <Link to="/login" className="font-medium text-primary hover:underline">
+          Log in
         </Link>
       </p>
     </AuthSplitLayout>

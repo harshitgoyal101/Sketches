@@ -8,6 +8,13 @@ urlpatterns = [
     path("sketches/<slug:slug>/", views.api_sketch_detail, name="api_sketch_detail"),
     path("formats/", views.api_formats, name="api_formats"),
     path("tags/", views.api_tags, name="api_tags"),
+    path("makers/<str:username>/", views.api_maker_profile, name="api_maker_profile"),
+    path("explore/today/", views.api_explore_today, name="api_explore_today"),
+    path(
+        "challenges/current/",
+        views.api_challenge_current,
+        name="api_challenge_current",
+    ),
     path("starters/", manage_views.api_starters, name="api_starters"),
     path("auth/csrf/", auth_views.api_csrf, name="api_csrf"),
     path("auth/me/", auth_views.api_me, name="api_me"),
@@ -72,9 +79,19 @@ urlpatterns = [
         name="api_account_sketch_thumbnail",
     ),
     path(
+        "account/sketches/<slug:slug>/thumbnail/generate/",
+        manage_views.api_account_sketch_thumbnail_generate,
+        name="api_account_sketch_thumbnail_generate",
+    ),
+    path(
         "account/sketches/<slug:slug>/app-icon/",
         manage_views.api_account_sketch_app_icon,
         name="api_account_sketch_app_icon",
+    ),
+    path(
+        "account/sketches/<slug:slug>/app-icon/generate/",
+        manage_views.api_account_sketch_app_icon_generate,
+        name="api_account_sketch_app_icon_generate",
     ),
     path("preview/", manage_views.api_preview, name="api_preview"),
     path(

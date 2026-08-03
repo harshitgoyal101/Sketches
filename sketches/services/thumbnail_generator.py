@@ -68,11 +68,12 @@ CAPTURE_READY_SCRIPT = """
 
 
 def _thumbnail_size():
-    return getattr(settings, "SKETCH_THUMBNAIL_SIZE", (1280, 720))
+    return getattr(settings, "SKETCH_THUMBNAIL_SIZE", (1280, 800))
 
 
 def _thumbnail_background():
-    return getattr(settings, "SKETCH_THUMBNAIL_BACKGROUND", (239, 246, 255))
+    # Dark fill so any residual letterbox/matte matches the product UI.
+    return getattr(settings, "SKETCH_THUMBNAIL_BACKGROUND", (13, 13, 13))
 
 
 def _capture_timeout_ms():
@@ -89,9 +90,64 @@ def _prepare_embed_html_for_capture(sketch):
     found = finders.find("sketches/embed/processing.min.js")
     if found:
         html = html.replace(static_path, Path(found).as_uri())
+
+    # Force a known viewport before p5 reads windowWidth/windowHeight.
+    width, height = _thumbnail_size()
+    viewport_force = f"""
+<script>
+(function (w, h) {{
+  function force(obj, prop, value) {{
+    try {{
+      Object.defineProperty(obj, prop, {{
+        configurable: true,
+        enumerable: true,
+        get: function () {{ return value; }},
+      }});
+    }} catch (err) {{}}
+  }}
+  force(window, "innerWidth", w);
+  force(window, "innerHeight", h);
+  force(window, "outerWidth", w);
+  force(window, "outerHeight", h);
+}})({width}, {height});
+</script>
+<style>
+html, body {{
+  width: {width}px !important;
+  height: {height}px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: #0d0d0d !important;
+}}
+canvas {{
+  display: block !important;
+}}
+</style>
+"""
+    if "<head>" in html:
+        html = html.replace("<head>", f"<head>{viewport_force}", 1)
+
     if CAPTURE_READY_SCRIPT not in html:
         html = html.replace("</body>", f"{CAPTURE_READY_SCRIPT}\n</body>")
     return html
+
+
+def _capture_sketch_png(sketch):
+    """Run Playwright capture for a sketch; return PNG bytes or None."""
+    if not sketch.is_interactive:
+        return None
+    html = _prepare_embed_html_for_capture(sketch)
+    try:
+        return _capture_canvas_png(html)
+    except ImportError:
+        logger.warning(
+            "Playwright is not installed; skipped capture for %s", sketch.slug
+        )
+        return None
+    except Exception:
+        logger.exception("Canvas capture failed for %s", sketch.slug)
+        return None
 
 
 def _capture_canvas_png(html):
@@ -152,20 +208,73 @@ def _capture_canvas_png(html):
             browser.close()
 
 
-def _fit_image_to_box(image, box_w, box_h):
+def _cover_image_to_box(image, box_w, box_h):
+    """Scale image to cover the box and center-crop (no matte bars)."""
     src_w, src_h = image.size
     if src_w < 1 or src_h < 1:
         raise ValueError("Thumbnail source image has invalid dimensions.")
-    scale = min(box_w / src_w, box_h / src_h)
+    scale = max(box_w / src_w, box_h / src_h)
     new_w = max(1, round(src_w * scale))
     new_h = max(1, round(src_h * scale))
-    if (new_w, new_h) == image.size:
+    resized = (
+        image
+        if (new_w, new_h) == image.size
+        else image.resize((new_w, new_h), Image.Resampling.LANCZOS)
+    )
+    left = max(0, (resized.width - box_w) // 2)
+    top = max(0, (resized.height - box_h) // 2)
+    return resized.crop((left, top, left + box_w, top + box_h))
+
+
+def _pixel_near(pixel, color, tol=14):
+    return all(abs(int(pixel[i]) - int(color[i])) <= tol for i in range(3))
+
+
+def _trim_light_letterbox(image):
+    """
+    Strip legacy light pillar/letterbox columns/rows (≈ #eff6ff).
+
+    Older thumbnails were fitted onto a pale matte; after cover-crop into a
+    16:10 frame a 1px strip of that matte often remained on the sides.
+    """
+    legacy_matte = (239, 246, 255)
+    rgb = image.convert("RGBA")
+    width, height = rgb.size
+    if width < 4 or height < 4:
         return image
-    return image.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+    px = rgb.load()
+    max_trim_x = max(1, width // 4)
+    max_trim_y = max(1, height // 4)
+
+    def column_is_matte(x):
+        samples = [px[x, y] for y in range(0, height, max(1, height // 40))]
+        return all(_pixel_near(sample, legacy_matte) for sample in samples)
+
+    def row_is_matte(y):
+        samples = [px[x, y] for x in range(0, width, max(1, width // 40))]
+        return all(_pixel_near(sample, legacy_matte) for sample in samples)
+
+    left = 0
+    while left < max_trim_x and column_is_matte(left):
+        left += 1
+    right = width
+    while right > width - max_trim_x and right > left + 1 and column_is_matte(right - 1):
+        right -= 1
+    top = 0
+    while top < max_trim_y and row_is_matte(top):
+        top += 1
+    bottom = height
+    while bottom > height - max_trim_y and bottom > top + 1 and row_is_matte(bottom - 1):
+        bottom -= 1
+
+    if left == 0 and top == 0 and right == width and bottom == height:
+        return image
+    return rgb.crop((left, top, right, bottom))
 
 
 def _card_thumbnail_size():
-    return getattr(settings, "SKETCH_THUMBNAIL_CARD_SIZE", (640, 360))
+    return getattr(settings, "SKETCH_THUMBNAIL_CARD_SIZE", (640, 400))
 
 
 def _webp_quality():
@@ -175,12 +284,11 @@ def _webp_quality():
 def _prepare_thumbnail_rgb(png_bytes, size):
     box_w, box_h = size
     image = Image.open(BytesIO(png_bytes)).convert("RGBA")
-    fitted = _fit_image_to_box(image, box_w, box_h)
-
+    image = _trim_light_letterbox(image)
+    # Cover-crop fills the card frame; dark matte only shows through transparency.
+    covered = _cover_image_to_box(image, box_w, box_h)
     background = Image.new("RGBA", (box_w, box_h), (*_thumbnail_background(), 255))
-    offset_x = (box_w - fitted.width) // 2
-    offset_y = (box_h - fitted.height) // 2
-    background.paste(fitted, (offset_x, offset_y), fitted)
+    background.paste(covered, (0, 0), covered)
     return background.convert("RGB")
 
 
@@ -256,30 +364,34 @@ def generate_sketch_thumbnail(sketch, *, force=False):
 
     Returns True when a thumbnail was generated and saved.
     """
-    if not getattr(settings, "SKETCH_THUMBNAIL_AUTO_GENERATE", True):
+    if not getattr(settings, "SKETCH_THUMBNAIL_AUTO_GENERATE", True) and not force:
         return False
     if sketch.thumbnail and not force:
         return False
     if not sketch.is_interactive:
         return False
 
-    html = _prepare_embed_html_for_capture(sketch)
-    try:
-        png_bytes = _capture_canvas_png(html)
-    except ImportError:
-        logger.warning(
-            "Playwright is not installed; skipped thumbnail for %s", sketch.slug
-        )
-        return False
-    except Exception:
-        logger.exception("Thumbnail capture failed for %s", sketch.slug)
-        return False
-
+    png_bytes = _capture_sketch_png(sketch)
     if not png_bytes:
         logger.warning("No canvas screenshot produced for %s", sketch.slug)
         return False
 
     return save_sketch_thumbnail_bytes(sketch, png_bytes, force=force)
+
+
+def generate_sketch_app_icon(sketch, *, force=False):
+    """Server-side capture cropped to a square app icon."""
+    if sketch.app_icon and not force:
+        return False
+    if not sketch.is_interactive:
+        return False
+
+    png_bytes = _capture_sketch_png(sketch)
+    if not png_bytes:
+        logger.warning("No canvas screenshot produced for app icon %s", sketch.slug)
+        return False
+
+    return save_sketch_app_icon_bytes(sketch, png_bytes, force=force)
 
 
 def schedule_sketch_thumbnail_generation(sketch, *, force=False):

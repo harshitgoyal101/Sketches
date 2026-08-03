@@ -461,3 +461,39 @@ class SketchAsset(models.Model):
             "css": "css",
             "json": "json",
         }.get(ext, "javascript")
+
+
+class WeeklyChallenge(models.Model):
+    """Lightweight weekly prompt — strip links into gallery via tag."""
+
+    title = models.CharField(max_length=120)
+    slug = models.SlugField(max_length=120, unique=True)
+    prompt = models.TextField(
+        blank=True,
+        help_text="Short description shown in the challenge strip.",
+    )
+    tag = models.ForeignKey(
+        Tag,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="challenges",
+        help_text="Gallery filter for submissions (?tag=).",
+    )
+    starts_on = models.DateField()
+    ends_on = models.DateField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-starts_on", "-pk"]
+        verbose_name = "Weekly challenge"
+        verbose_name_plural = "Weekly challenges"
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)[:120]
+        super().save(*args, **kwargs)

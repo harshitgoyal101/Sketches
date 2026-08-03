@@ -30,7 +30,14 @@ from sketches.services.sketch_starters import (
     normalize_sketch_type,
 )
 
-from .http import form_errors, json_response, parse_json_body, require_login
+from .http import (
+    client_ip,
+    enforce_rate_limit,
+    form_errors,
+    json_response,
+    parse_json_body,
+    require_login,
+)
 
 User = get_user_model()
 
@@ -310,6 +317,14 @@ def api_resend_verification(request):
 @require_POST
 def api_google(request):
     """Exchange a Google Identity Services ID token for a Django session."""
+    limited = enforce_rate_limit(
+        f"google:{client_ip(request)}",
+        limit=30,
+        window_seconds=60,
+    )
+    if limited:
+        return limited
+
     if request.user.is_authenticated:
         return json_response({"ok": True, "user": serialize_user(request.user)})
 
@@ -376,6 +391,14 @@ def api_migrate_guest(request):
     denied = require_login(request)
     if denied:
         return denied
+
+    limited = enforce_rate_limit(
+        f"migrate:{request.user.pk}",
+        limit=10,
+        window_seconds=3600,
+    )
+    if limited:
+        return limited
 
     if len(request.body or b"") > MIGRATE_MAX_BODY_BYTES:
         return json_response(

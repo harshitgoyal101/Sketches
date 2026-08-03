@@ -4,6 +4,7 @@ import { ApiError } from '@/api/client'
 import { useAuth } from '@/auth/AuthProvider'
 import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout'
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton'
+import { PasswordInput } from '@/components/auth/PasswordInput'
 import { readPendingAction } from '@/guest/storage'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID || ''
@@ -114,11 +115,9 @@ export function LoginPage() {
           </label>
           <label className="block space-y-1.5 text-sm">
             <span className="text-muted">Password</span>
-            <input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-btn border border-border bg-surface px-3 py-2.5 text-foreground outline-none focus:border-primary"
               autoComplete="current-password"
               required
             />

@@ -11,7 +11,7 @@ from sketches.services.game_scores import (
 )
 
 from .auth_views import serialize_user
-from .http import json_response, parse_json_body, require_login
+from .http import enforce_rate_limit, json_response, parse_json_body, require_login
 
 LEADERBOARD_LIMIT = 20
 
@@ -92,6 +92,14 @@ def api_game_scores(request, slug):
     denied = require_login(request)
     if denied:
         return denied
+
+    limited = enforce_rate_limit(
+        f"score:{request.user.pk}:{slug}",
+        limit=60,
+        window_seconds=60,
+    )
+    if limited:
+        return limited
 
     data = parse_json_body(request)
     try:

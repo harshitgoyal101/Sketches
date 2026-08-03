@@ -101,11 +101,17 @@ def parse_filter_params(request, active_tag=None):
     sketch_types = _parse_multi_param(request, "type")
     author_usernames = _parse_multi_param(request, "author")
     sort = request.GET.get("sort", "featured").strip().lower()
-    if sort not in ("featured", "recent", "all"):
+    if sort not in ("featured", "recent", "all", "random"):
         sort = "featured"
 
     if active_tag and active_tag.slug not in tag_slugs:
         tag_slugs.insert(0, active_tag.slug)
+
+    exclude_slugs = _dedupe_preserve_order(
+        value.strip()
+        for value in (request.GET.get("exclude") or "").split(",")
+        if value.strip()
+    )[:50]
 
     return {
         "query": query,
@@ -113,6 +119,7 @@ def parse_filter_params(request, active_tag=None):
         "sketch_types": sketch_types,
         "author_usernames": author_usernames,
         "sort": sort,
+        "exclude_slugs": exclude_slugs,
     }
 
 
@@ -158,9 +165,15 @@ def apply_sketch_filters(queryset, request, active_tag=None):
                 | Q(author__username__icontains=query)
             ).distinct()
 
+    exclude_slugs = params.get("exclude_slugs") or []
+    if exclude_slugs:
+        queryset = queryset.exclude(slug__in=exclude_slugs)
+
     sort = params["sort"]
     if sort == "recent":
         queryset = queryset.order_by("-published_at", "-updated_at", "-pk")
+    elif sort == "random":
+        queryset = queryset.order_by("?")
     else:
         queryset = queryset.order_by("-updated_at", "-pk")
 

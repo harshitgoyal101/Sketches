@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { RotateCcw } from 'lucide-react'
 import { ApiError } from '@/api/client'
 import {
   createPreview,
@@ -8,37 +9,24 @@ import {
   saveSketchSource,
 } from '@/api/sketches'
 import { useAuth } from '@/auth/AuthProvider'
-import { SketchCodeEditor } from '@/components/ide/SketchCodeEditor'
+import {
+  IDE_AUTO_RUN_MS,
+  inferAssetType,
+  languageFromFilename,
+  readFilesOpenPreference,
+  uniqueFilename,
+  writeFilesOpenPreference,
+} from '@/components/ide/ideFiles'
+import { SketchIdeShell } from '@/components/ide/SketchIdeShell'
 import { primaryBtnClass, secondaryBtnClass } from '@/lib/form'
 import {
-  formatPreviewError,
   looksLikeProcessingSyntax,
   resolvePreviewError,
   PROCESSING_IN_P5_MESSAGE,
   type PreviewRuntimeError,
 } from '@/lib/previewErrors'
-import { cn } from '@/lib/utils'
+import { cn, toEmbedSrc } from '@/lib/utils'
 import type { SourceFile } from '@/types/sketch'
-
-function inferAssetType(filename: string): string {
-  const lower = filename.toLowerCase()
-  if (lower.endsWith('.css')) return 'css'
-  if (lower.endsWith('.json')) return 'json'
-  if (lower.endsWith('.js') || lower.endsWith('.mjs') || lower.endsWith('.pde')) {
-    return 'js'
-  }
-  return 'other'
-}
-
-function uniqueFilename(existing: string[], base: string): string {
-  if (!existing.includes(base)) return base
-  const dot = base.lastIndexOf('.')
-  const stem = dot > 0 ? base.slice(0, dot) : base
-  const ext = dot > 0 ? base.slice(dot) : ''
-  let n = 2
-  while (existing.includes(`${stem}${n}${ext}`)) n += 1
-  return `${stem}${n}${ext}`
-}
 
 function filesFromSketch(sketch: {
   files?: SourceFile[]
@@ -80,8 +68,12 @@ export function EditSketchPage() {
   const [running, setRunning] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewNonce, setPreviewNonce] = useState(0)
-  const [runtimeError, setRuntimeError] = useState<PreviewRuntimeError | null>(null)
-  const previewIframeRef = useRef<HTMLIFrameElement | null>(null)
+  const [filesOpen, setFilesOpen] = useState(() => readFilesOpenPreference())
+  const [runtimeError, setRuntimeError] = useState<PreviewRuntimeError | null>(
+    null,
+  )
+  const runtimeErrorRef = useRef<PreviewRuntimeError | null>(null)
+  runtimeErrorRef.current = runtimeError
   const runIdRef = useRef(0)
   const initializedSlug = useRef<string | null>(null)
 
@@ -93,12 +85,18 @@ export function EditSketchPage() {
     setTitle(sketch.title)
     const nextFiles = filesFromSketch(sketch)
     setFiles(nextFiles)
-    setActiveFilename(nextFiles.find((f) => f.is_main)?.filename ?? nextFiles[0]?.filename ?? '')
+    setActiveFilename(
+      nextFiles.find((f) => f.is_main)?.filename ?? nextFiles[0]?.filename ?? '',
+    )
     setDeletedAssetIds([])
     setDirty(false)
     setError(null)
     setStatus(null)
   }, [sketchQuery.data, slug, dirty])
+
+  useEffect(() => {
+    writeFilesOpenPreference(filesOpen)
+  }, [filesOpen])
 
   const activeFile = useMemo(
     () => files.find((file) => file.filename === activeFilename) ?? null,
@@ -110,39 +108,17 @@ export function EditSketchPage() {
     [files],
   )
 
-  const updateActiveContent = useCallback((content: string) => {
-    setFiles((prev) =>
-      prev.map((file) =>
-        file.filename === activeFilename ? { ...file, content } : file,
-      ),
-    )
-    setDirty(true)
-    setStatus(null)
-  }, [activeFilename])
-
-  const renameActiveFile = useCallback(
-    (nextName: string) => {
-      const trimmed = nextName.trim()
-      if (!trimmed || !activeFile || activeFile.is_main) return
-      if (files.some((f) => f.filename === trimmed && f.filename !== activeFilename)) {
-        setError('A file with that name already exists.')
-        return
-      }
+  const updateActiveContent = useCallback(
+    (content: string) => {
       setFiles((prev) =>
         prev.map((file) =>
-          file.filename === activeFilename
-            ? {
-                ...file,
-                filename: trimmed,
-                asset_type: inferAssetType(trimmed),
-              }
-            : file,
+          file.filename === activeFilename ? { ...file, content } : file,
         ),
       )
-      setActiveFilename(trimmed)
       setDirty(true)
+      setStatus(null)
     },
-    [activeFile, activeFilename, files],
+    [activeFilename],
   )
 
   const addFile = useCallback(() => {
@@ -165,16 +141,54 @@ export function EditSketchPage() {
     setDirty(true)
   }, [files])
 
-  const deleteActiveFile = useCallback(() => {
-    if (!activeFile || activeFile.is_main) return
-    if (activeFile.asset_id != null) {
-      setDeletedAssetIds((prev) => [...prev, activeFile.asset_id as number])
-    }
-    const remaining = files.filter((f) => f.filename !== activeFilename)
-    setFiles(remaining)
-    setActiveFilename(remaining.find((f) => f.is_main)?.filename ?? remaining[0]?.filename ?? '')
-    setDirty(true)
-  }, [activeFile, activeFilename, files])
+  const deleteFile = useCallback(
+    (filename: string) => {
+      const target = files.find((f) => f.filename === filename)
+      if (!target || target.is_main) return
+      if (target.asset_id != null) {
+        setDeletedAssetIds((prev) => [...prev, target.asset_id as number])
+      }
+      const remaining = files.filter((f) => f.filename !== filename)
+      setFiles(remaining)
+      if (activeFilename === filename) {
+        setActiveFilename(
+          remaining.find((f) => f.is_main)?.filename ??
+            remaining[0]?.filename ??
+            '',
+        )
+      }
+      setDirty(true)
+    },
+    [activeFilename, files],
+  )
+
+  const renameFile = useCallback(
+    (from: string, to: string) => {
+      const target = files.find((f) => f.filename === from)
+      if (!target || target.is_main) return false
+      if (files.some((f) => f.filename === to)) {
+        setError('A file with that name already exists.')
+        return false
+      }
+      setFiles((prev) =>
+        prev.map((file) =>
+          file.filename === from
+            ? {
+                ...file,
+                filename: to,
+                language: languageFromFilename(to),
+                asset_type: inferAssetType(to),
+              }
+            : file,
+        ),
+      )
+      if (activeFilename === from) setActiveFilename(to)
+      setDirty(true)
+      setError(null)
+      return true
+    },
+    [activeFilename, files],
+  )
 
   const runPreview = useCallback(async () => {
     if (!mainFile || !sketchQuery.data) return
@@ -208,9 +222,9 @@ export function EditSketchPage() {
         run_id: thisRun,
       })
       if (runIdRef.current !== thisRun) return
-      setPreviewUrl(url)
+      setPreviewUrl(toEmbedSrc(url))
       setPreviewNonce((n) => n + 1)
-      setStatus('Preview updated')
+      setStatus('Live')
     } catch (err) {
       if (runIdRef.current !== thisRun) return
       setError(err instanceof ApiError ? err.message : 'Preview failed')
@@ -219,35 +233,35 @@ export function EditSketchPage() {
     }
   }, [files, mainFile, sketchQuery.data])
 
+  useEffect(() => {
+    if (!mainFile || !sketchQuery.data) return
+    const timer = window.setTimeout(() => {
+      void runPreview()
+    }, IDE_AUTO_RUN_MS)
+    return () => window.clearTimeout(timer)
+  }, [files, mainFile, runPreview, sketchQuery.data?.slug])
+
   const restartPreview = useCallback(() => {
     if (!previewUrl) {
       void runPreview()
       return
     }
     setRuntimeError(null)
-    const frame = previewIframeRef.current
-    if (frame?.contentWindow) {
-      frame.contentWindow.postMessage({ type: 'sketch-restart' }, '*')
-      setStatus('Preview restarted')
-      return
-    }
     setPreviewNonce((n) => n + 1)
-    setStatus('Preview restarted')
+    setStatus('Restarted')
   }, [previewUrl, runPreview])
 
-  // Runtime errors from embed (error-reporter.js)
   useEffect(() => {
     function onMessage(event: MessageEvent) {
       const data = event.data
       if (!data || typeof data !== 'object') return
       if (data.type === 'sketch-preview-restart') {
+        if (runtimeErrorRef.current) return
         restartPreview()
         return
       }
       if (data.type !== 'sketch-preview-error') return
       if (data.runId != null && data.runId !== runIdRef.current) return
-      const sketchType = sketchQuery.data?.sketch_type ?? 'p5js'
-      const mainCode = mainFile?.content ?? ''
       setRuntimeError(
         resolvePreviewError(
           {
@@ -257,10 +271,11 @@ export function EditSketchPage() {
             col: data.col,
             stack: data.stack,
           },
-          sketchType,
-          mainCode,
+          sketchQuery.data?.sketch_type ?? 'p5js',
+          mainFile?.content ?? '',
         ),
       )
+      setStatus('Error')
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
@@ -284,7 +299,6 @@ export function EditSketchPage() {
       setStatus('Saved')
       setTitle(sketch.title)
       await sketchQuery.refetch()
-      // Refresh preview after save
       await runPreview()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not save')
@@ -292,14 +306,6 @@ export function EditSketchPage() {
       setSaving(false)
     }
   }, [deletedAssetIds, files, mainFile, runPreview, sketchQuery, slug, title])
-
-  // Auto-run once when sketch loads
-  useEffect(() => {
-    if (!sketchQuery.data || !mainFile) return
-    if (previewUrl) return
-    void runPreview()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sketchQuery.data?.slug])
 
   if (!authLoading && !isAuthenticated) {
     return <Navigate to="/login" replace />
@@ -321,209 +327,77 @@ export function EditSketchPage() {
     )
   }
 
-  const sketch = sketchQuery.data
-
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col">
-      <div className="border-b border-border px-4 py-3 sm:px-6">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-3">
-          <input
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value)
-              setDirty(true)
-            }}
-            className="min-w-[12rem] flex-1 rounded-btn border border-border bg-surface px-3 py-2 font-display text-base font-semibold text-foreground"
-            aria-label="Sketch title"
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void runPreview()}
-              disabled={running || !mainFile}
-              className={secondaryBtnClass}
+    <SketchIdeShell
+      eyebrow={sketchQuery.data?.sketch_type_label ?? 'Editor'}
+      title={title}
+      onTitleChange={(next) => {
+        setTitle(next)
+        setDirty(true)
+      }}
+      running={running}
+      status={status}
+      dirty={dirty}
+      error={error}
+      loading={sketchQuery.isPending && !sketchQuery.data}
+      loadingLabel="Loading editor…"
+      toolbar={
+        <>
+          <button
+            type="button"
+            onClick={restartPreview}
+            disabled={!mainFile}
+            className={cn(secondaryBtnClass, 'h-8 cursor-pointer gap-1.5 !px-2.5 !py-1 text-xs')}
+            title="Restart preview"
+          >
+            <RotateCcw size={13} aria-hidden />
+            Restart
+          </button>
+          <button
+            type="button"
+            onClick={() => void save()}
+            disabled={saving || !dirty}
+            className={cn(primaryBtnClass, 'h-8 cursor-pointer !px-3 !py-1 text-xs')}
+            title="Save (Ctrl/⌘S)"
+          >
+            {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
+          </button>
+          {slug ? (
+            <Link
+              to={`/sketches/${slug}/settings`}
+              className={cn(secondaryBtnClass, 'h-8 cursor-pointer !px-2.5 !py-1 text-xs')}
             >
-              {running ? 'Running…' : 'Run'}
-            </button>
-            <button
-              type="button"
-              onClick={restartPreview}
-              disabled={running || !mainFile}
-              className={secondaryBtnClass}
-              title="Restart the current preview without recompiling"
-            >
-              Restart
-            </button>
-            <button
-              type="button"
-              onClick={() => void save()}
-              disabled={saving || !dirty}
-              className={primaryBtnClass}
-            >
-              {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
-            </button>
-            {slug ? (
-              <Link to={`/sketches/${slug}/settings`} className={secondaryBtnClass}>
-                Settings
-              </Link>
-            ) : null}
-            {slug ? (
-              <Link to={`/sketches/${slug}`} className={secondaryBtnClass}>
-                View
-              </Link>
-            ) : null}
-          </div>
-        </div>
-        <div className="mx-auto mt-2 flex max-w-[1400px] items-center gap-3 text-xs text-muted">
-          <span>{sketch?.sketch_type_label ?? '…'}</span>
-          {dirty ? <span className="text-primary">Unsaved changes</span> : null}
-          {status ? <span className="text-primary">{status}</span> : null}
-          {error ? (
-            <span className="text-destructive" role="alert">
-              {error}
-            </span>
+              Settings
+            </Link>
           ) : null}
-        </div>
-      </div>
-
-      {sketchQuery.isPending && !sketch ? (
-        <p className="px-6 py-10 text-sm text-muted">Loading editor…</p>
-      ) : (
-        <div className="mx-auto grid w-full max-w-[1400px] flex-1 grid-cols-1 lg:grid-cols-[200px_minmax(0,1fr)_minmax(280px,1fr)]">
-          <aside className="border-b border-border p-3 lg:border-b-0 lg:border-r">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                Files
-              </p>
-              <button
-                type="button"
-                onClick={addFile}
-                className="text-xs text-primary hover:underline"
-              >
-                Add
-              </button>
-            </div>
-            <ul className="space-y-1">
-              {files.map((file) => (
-                <li key={file.filename}>
-                  <button
-                    type="button"
-                    onClick={() => setActiveFilename(file.filename)}
-                    className={cn(
-                      'flex w-full items-center justify-between rounded-btn px-2 py-1.5 text-left text-sm',
-                      file.filename === activeFilename
-                        ? 'bg-primary/15 text-primary'
-                        : 'text-muted hover:bg-surface hover:text-foreground',
-                    )}
-                  >
-                    <span className="truncate font-mono text-xs">{file.filename}</span>
-                    {file.is_main ? (
-                      <span className="ml-2 shrink-0 text-[10px] uppercase">main</span>
-                    ) : null}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {activeFile && !activeFile.is_main ? (
-              <div className="mt-4 space-y-2 border-t border-border pt-3">
-                <label className="block text-xs text-muted">
-                  Rename
-                  <input
-                    className="mt-1 w-full rounded-btn border border-border bg-surface px-2 py-1.5 font-mono text-xs text-foreground"
-                    defaultValue={activeFile.filename}
-                    key={activeFile.filename}
-                    onBlur={(e) => renameActiveFile(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        renameActiveFile((e.target as HTMLInputElement).value)
-                      }
-                    }}
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={deleteActiveFile}
-                  className="text-xs text-destructive hover:underline"
-                >
-                  Delete file
-                </button>
-              </div>
-            ) : null}
-          </aside>
-
-          <section className="flex min-h-[320px] flex-col border-b border-border lg:border-b-0 lg:border-r">
-            <div className="border-b border-border px-3 py-2 font-mono text-xs text-muted">
-              {activeFile?.filename ?? '—'}
-            </div>
-            <div className="min-h-[320px] flex-1 overflow-hidden [&_.cm-editor]:h-full [&_.cm-editor]:outline-none">
-              {activeFile ? (
-                <SketchCodeEditor
-                  key={activeFile.filename}
-                  filename={activeFile.filename}
-                  value={activeFile.content}
-                  onChange={updateActiveContent}
-                  className="h-full min-h-[320px]"
-                />
-              ) : null}
-            </div>
-          </section>
-
-          <section className="flex min-h-[280px] flex-col bg-background">
-            <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2 text-xs text-muted">
-              <span>Live preview</span>
-              {previewUrl ? (
-                <a
-                  href={previewUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  Open fullscreen
-                </a>
-              ) : null}
-            </div>
-            {runtimeError ? (
-              <div
-                className="border-b border-destructive/40 bg-destructive/10 px-3 py-2"
-                role="alert"
-              >
-                <div className="mb-1 flex items-center justify-between gap-2">
-                  <p className="text-xs font-medium text-destructive">
-                    {runtimeError.kind === 'processing-mismatch'
-                      ? 'Sketch type mismatch'
-                      : 'Sketch error'}
-                  </p>
-                  <button
-                    type="button"
-                    className="text-xs text-muted hover:text-foreground"
-                    onClick={() => setRuntimeError(null)}
-                  >
-                    Dismiss
-                  </button>
-                </div>
-                <pre className="max-h-36 overflow-auto whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-destructive">
-                  {formatPreviewError(runtimeError)}
-                </pre>
-              </div>
-            ) : null}
-            <div className="relative min-h-[280px] flex-1 bg-[#111]">
-              {previewUrl ? (
-                <iframe
-                  ref={previewIframeRef}
-                  key={`${previewUrl}#${previewNonce}`}
-                  title="Sketch preview"
-                  src={previewUrl}
-                  className="absolute inset-0 h-full w-full border-0"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-sm text-muted">
-                  {running ? 'Starting preview…' : 'Run to preview'}
-                </div>
-              )}
-            </div>
-          </section>
-        </div>
-      )}
-    </div>
+          {slug ? (
+            <Link
+              to={`/sketches/${slug}`}
+              className={cn(secondaryBtnClass, 'h-8 cursor-pointer !px-2.5 !py-1 text-xs')}
+            >
+              View
+            </Link>
+          ) : null}
+        </>
+      }
+      files={files}
+      activeFilename={activeFilename}
+      filesOpen={filesOpen}
+      onFilesOpenChange={setFilesOpen}
+      onSelectFile={setActiveFilename}
+      onAddFile={addFile}
+      onRenameFile={renameFile}
+      onDeleteFile={deleteFile}
+      onRenameError={(message) => setError(message)}
+      activeFile={activeFile}
+      onChangeContent={updateActiveContent}
+      previewUrl={previewUrl}
+      previewNonce={previewNonce}
+      runtimeError={runtimeError}
+      onRestart={restartPreview}
+      onDismissError={() => setRuntimeError(null)}
+      onPreviewResizeRestart={restartPreview}
+      onSave={save}
+    />
   )
 }

@@ -10,6 +10,7 @@ from .models import (
     Tag,
     TagCategory,
     UserProfile,
+    WeeklyChallenge,
 )
 
 
@@ -140,3 +141,13 @@ class SketchAdmin(admin.ModelAdmin):
         if not obj.author_id:
             obj.author = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(WeeklyChallenge)
+class WeeklyChallengeAdmin(admin.ModelAdmin):
+    list_display = ["title", "slug", "tag", "starts_on", "ends_on", "is_active"]
+    list_filter = ["is_active"]
+    search_fields = ["title", "prompt", "slug"]
+    prepopulated_fields = {"slug": ("title",)}
+    autocomplete_fields = ["tag"]
+    date_hierarchy = "starts_on"

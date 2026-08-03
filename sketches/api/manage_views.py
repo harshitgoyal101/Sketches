@@ -21,6 +21,8 @@ from sketches.services.sketch_starters import (
     normalize_sketch_type,
 )
 from sketches.services.thumbnail_generator import (
+    generate_sketch_app_icon,
+    generate_sketch_thumbnail,
     save_sketch_app_icon_bytes,
     save_sketch_thumbnail_bytes,
     schedule_sketch_thumbnail_generation,
@@ -29,7 +31,12 @@ from sketches.views_manage import PREVIEW_CACHE_TIMEOUT, _preview_cache_key
 
 from .auth_views import serialize_user
 from .http import form_errors, json_response, parse_json_body, require_login
-from .serializers import serialize_sketch_card, serialize_sketch_detail, serialize_tag
+from .serializers import (
+    _cache_busted_url,
+    serialize_sketch_card,
+    serialize_sketch_detail,
+    serialize_tag,
+)
 
 
 def _editable_sketch(request, slug):
@@ -45,6 +52,23 @@ def _editable_sketch(request, slug):
             status=403,
         )
     return sketch, None
+
+
+def _thumbnail_payload(sketch):
+    url = sketch.thumbnail.url if sketch.thumbnail else None
+    card = sketch.thumbnail_card_url or url
+    return {
+        "ok": True,
+        "url": _cache_busted_url(url, sketch) if url else None,
+        "thumbnail": _cache_busted_url(url, sketch) if url else None,
+        "thumbnail_card_url": _cache_busted_url(card, sketch) if card else None,
+    }
+
+
+def _app_icon_payload(sketch):
+    url = sketch.app_icon.url if sketch.app_icon else None
+    busted = _cache_busted_url(url, sketch) if url else None
+    return {"ok": True, "url": busted, "app_icon": busted}
 
 
 def _querydict_from_mapping(data, *, list_fields=None):
@@ -364,15 +388,47 @@ def api_account_sketch_thumbnail(request, slug):
         )
 
     sketch.refresh_from_db()
-    url = sketch.thumbnail.url if sketch.thumbnail else None
-    return json_response(
-        {
-            "ok": True,
-            "url": url,
-            "thumbnail": url,
-            "thumbnail_card_url": sketch.thumbnail_card_url or url,
-        }
-    )
+    return json_response(_thumbnail_payload(sketch))
+
+
+@require_POST
+def api_account_sketch_thumbnail_generate(request, slug):
+    """Server-side Playwright capture → thumbnail."""
+    denied = require_login(request)
+    if denied:
+        return denied
+
+    sketch, error = _editable_sketch(request, slug)
+    if error:
+        return error
+
+    if not sketch.is_interactive:
+        return json_response(
+            {"ok": False, "error": "Only p5.js and Processing sketches can be captured."},
+            status=400,
+        )
+
+    try:
+        saved = generate_sketch_thumbnail(sketch, force=True)
+    except Exception:
+        return json_response(
+            {"ok": False, "error": "Thumbnail generation failed."},
+            status=500,
+        )
+    if not saved:
+        return json_response(
+            {
+                "ok": False,
+                "error": (
+                    "Could not capture the sketch. Confirm it runs in the editor, "
+                    "then try again."
+                ),
+            },
+            status=500,
+        )
+
+    sketch.refresh_from_db()
+    return json_response(_thumbnail_payload(sketch))
 
 
 @require_POST
@@ -407,8 +463,47 @@ def api_account_sketch_app_icon(request, slug):
         )
 
     sketch.refresh_from_db()
-    url = sketch.app_icon.url if sketch.app_icon else None
-    return json_response({"ok": True, "url": url, "app_icon": url})
+    return json_response(_app_icon_payload(sketch))
+
+
+@require_POST
+def api_account_sketch_app_icon_generate(request, slug):
+    """Server-side Playwright capture → square app icon."""
+    denied = require_login(request)
+    if denied:
+        return denied
+
+    sketch, error = _editable_sketch(request, slug)
+    if error:
+        return error
+
+    if not sketch.is_interactive:
+        return json_response(
+            {"ok": False, "error": "Only p5.js and Processing sketches can be captured."},
+            status=400,
+        )
+
+    try:
+        saved = generate_sketch_app_icon(sketch, force=True)
+    except Exception:
+        return json_response(
+            {"ok": False, "error": "App icon generation failed."},
+            status=500,
+        )
+    if not saved:
+        return json_response(
+            {
+                "ok": False,
+                "error": (
+                    "Could not capture the sketch. Confirm it runs in the editor, "
+                    "then try again."
+                ),
+            },
+            status=500,
+        )
+
+    sketch.refresh_from_db()
+    return json_response(_app_icon_payload(sketch))
 
 
 def _infer_asset_type(filename):

@@ -1,53 +1,45 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { createPreview, getStarters } from '@/api/sketches'
+import { Link, useNavigate } from 'react-router-dom'
+import { RotateCcw } from 'lucide-react'
+import { ApiError } from '@/api/client'
+import {
+  createPreview,
+  createSketch,
+  getStarters,
+  saveSketchSource,
+} from '@/api/sketches'
 import { useAuth } from '@/auth/AuthProvider'
-import { SketchCodeEditor } from '@/components/ide/SketchCodeEditor'
+import {
+  IDE_AUTO_RUN_MS,
+  inferAssetType,
+  languageFromFilename,
+  readFilesOpenPreference,
+  uniqueFilename,
+  writeFilesOpenPreference,
+  type IdeFile,
+} from '@/components/ide/ideFiles'
+import { SketchIdeShell } from '@/components/ide/SketchIdeShell'
 import { useGuest } from '@/guest/GuestProvider'
 import type { GuestDraft } from '@/guest/types'
 import { primaryBtnClass, secondaryBtnClass } from '@/lib/form'
 import {
-  formatPreviewError,
   looksLikeProcessingSyntax,
   resolvePreviewError,
   PROCESSING_IN_P5_MESSAGE,
   type PreviewRuntimeError,
 } from '@/lib/previewErrors'
-import { cn } from '@/lib/utils'
+import { cn, toEmbedSrc } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 
 const SANDBOX_CLIENT_ID = 'sandbox-default'
-
-type LocalFile = {
-  filename: string
-  content: string
-  language: string
-  is_main: boolean
-  asset_type: string
-}
-
-function inferAssetType(filename: string): string {
-  const lower = filename.toLowerCase()
-  if (lower.endsWith('.css')) return 'css'
-  if (lower.endsWith('.json')) return 'json'
-  if (lower.endsWith('.js') || lower.endsWith('.mjs') || lower.endsWith('.pde')) {
-    return 'js'
-  }
-  return 'other'
-}
-
-function uniqueFilename(existing: string[], base: string): string {
-  if (!existing.includes(base)) return base
-  const dot = base.lastIndexOf('.')
-  const stem = dot > 0 ? base.slice(0, dot) : base
-  const ext = dot > 0 ? base.slice(dot) : ''
-  let n = 2
-  while (existing.includes(`${stem}${n}${ext}`)) n += 1
-  return `${stem}${n}${ext}`
-}
+const SANDBOX_SLUG_KEY = 'sketches101-sandbox-slug'
 
 const DEFAULT_P5 = `function setup() {
   createCanvas(windowWidth, windowHeight);
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
 }
 
 function draw() {
@@ -60,6 +52,7 @@ function draw() {
 
 export function SandboxPage() {
   const { isAuthenticated } = useAuth()
+  const navigate = useNavigate()
   const { guest, isReady, requireAuth, saveDraft, getDraft, recordScore } =
     useGuest()
   const startersQuery = useQuery({
@@ -69,17 +62,28 @@ export function SandboxPage() {
 
   const [title, setTitle] = useState('Sandbox sketch')
   const [sketchType, setSketchType] = useState('p5js')
-  const [files, setFiles] = useState<LocalFile[]>([])
+  const [files, setFiles] = useState<IdeFile[]>([])
   const [activeFilename, setActiveFilename] = useState('')
   const [dirty, setDirty] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [accountSlug, setAccountSlug] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem(SANDBOX_SLUG_KEY)
+    } catch {
+      return null
+    }
+  })
   const [running, setRunning] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewNonce, setPreviewNonce] = useState(0)
-  const [runtimeError, setRuntimeError] = useState<PreviewRuntimeError | null>(null)
-  const previewIframeRef = useRef<HTMLIFrameElement | null>(null)
+  const [filesOpen, setFilesOpen] = useState(() => readFilesOpenPreference())
+  const [runtimeError, setRuntimeError] = useState<PreviewRuntimeError | null>(
+    null,
+  )
+  const runtimeErrorRef = useRef<PreviewRuntimeError | null>(null)
+  runtimeErrorRef.current = runtimeError
   const runIdRef = useRef(0)
   const hydrated = useRef(false)
 
@@ -99,7 +103,9 @@ export function SandboxPage() {
       }))
       setFiles(nextFiles)
       setActiveFilename(
-        nextFiles.find((f) => f.is_main)?.filename ?? nextFiles[0]?.filename ?? '',
+        nextFiles.find((f) => f.is_main)?.filename ??
+          nextFiles[0]?.filename ??
+          '',
       )
       return
     }
@@ -159,15 +165,51 @@ export function SandboxPage() {
     setDirty(true)
   }, [files])
 
-  const deleteActiveFile = useCallback(() => {
-    if (!activeFile || activeFile.is_main) return
-    const remaining = files.filter((f) => f.filename !== activeFilename)
-    setFiles(remaining)
-    setActiveFilename(
-      remaining.find((f) => f.is_main)?.filename ?? remaining[0]?.filename ?? '',
-    )
-    setDirty(true)
-  }, [activeFile, activeFilename, files])
+  const deleteFile = useCallback(
+    (filename: string) => {
+      const target = files.find((f) => f.filename === filename)
+      if (!target || target.is_main) return
+      const remaining = files.filter((f) => f.filename !== filename)
+      setFiles(remaining)
+      if (activeFilename === filename) {
+        setActiveFilename(
+          remaining.find((f) => f.is_main)?.filename ??
+            remaining[0]?.filename ??
+            '',
+        )
+      }
+      setDirty(true)
+    },
+    [activeFilename, files],
+  )
+
+  const renameFile = useCallback(
+    (from: string, to: string) => {
+      const target = files.find((f) => f.filename === from)
+      if (!target || target.is_main) return false
+      if (files.some((f) => f.filename === to)) {
+        setError('A file with that name already exists.')
+        return false
+      }
+      setFiles((prev) =>
+        prev.map((file) =>
+          file.filename === from
+            ? {
+                ...file,
+                filename: to,
+                language: languageFromFilename(to),
+                asset_type: inferAssetType(to),
+              }
+            : file,
+        ),
+      )
+      if (activeFilename === from) setActiveFilename(to)
+      setDirty(true)
+      setError(null)
+      return true
+    },
+    [activeFilename, files],
+  )
 
   const runPreview = useCallback(async () => {
     if (!mainFile) return
@@ -198,9 +240,9 @@ export function SandboxPage() {
         run_id: thisRun,
       })
       if (runIdRef.current !== thisRun) return
-      setPreviewUrl(url)
+      setPreviewUrl(toEmbedSrc(url))
       setPreviewNonce((n) => n + 1)
-      setStatus('Preview updated')
+      setStatus('Live')
     } catch (err) {
       if (runIdRef.current !== thisRun) return
       setError(err instanceof Error ? err.message : 'Preview failed')
@@ -209,20 +251,22 @@ export function SandboxPage() {
     }
   }, [files, mainFile, sketchType])
 
+  useEffect(() => {
+    if (!mainFile) return
+    const timer = window.setTimeout(() => {
+      void runPreview()
+    }, IDE_AUTO_RUN_MS)
+    return () => window.clearTimeout(timer)
+  }, [files, sketchType, mainFile, runPreview])
+
   const restartPreview = useCallback(() => {
     if (!previewUrl) {
       void runPreview()
       return
     }
     setRuntimeError(null)
-    const frame = previewIframeRef.current
-    if (frame?.contentWindow) {
-      frame.contentWindow.postMessage({ type: 'sketch-restart' }, '*')
-      setStatus('Preview restarted')
-      return
-    }
     setPreviewNonce((n) => n + 1)
-    setStatus('Preview restarted')
+    setStatus('Restarted')
   }, [previewUrl, runPreview])
 
   useEffect(() => {
@@ -230,6 +274,7 @@ export function SandboxPage() {
       const data = event.data
       if (!data || typeof data !== 'object') return
       if (data.type === 'sketch-preview-restart') {
+        if (runtimeErrorRef.current) return
         restartPreview()
         return
       }
@@ -248,6 +293,7 @@ export function SandboxPage() {
           mainFile?.content ?? '',
         ),
       )
+      setStatus('Error')
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
@@ -272,24 +318,92 @@ export function SandboxPage() {
     await saveDraft(draft)
   }, [files, guest, mainFile, saveDraft, sketchType, title])
 
+  const saveToAccount = useCallback(async () => {
+    if (!mainFile) return
+    const sketchTitle = title.trim() || 'Sandbox sketch'
+    const sourceFiles = files.map((f) => ({
+      filename: f.filename,
+      content: f.content,
+      language: f.language,
+      is_main: f.is_main,
+      asset_type: f.asset_type,
+      asset_id: null as number | null,
+    }))
+
+    let slug = accountSlug
+    if (slug) {
+      try {
+        await saveSketchSource(slug, {
+          title: sketchTitle,
+          entry_filename: mainFile.filename,
+          files: sourceFiles,
+        })
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          slug = null
+        } else {
+          throw err
+        }
+      }
+    }
+
+    if (!slug) {
+      const created = await createSketch({
+        title: sketchTitle,
+        sketch_type: sketchType,
+        entry_filename: mainFile.filename,
+        code: mainFile.content,
+      })
+      slug = created.slug
+      if (files.length > 1 || files.some((f) => !f.is_main)) {
+        await saveSketchSource(slug, {
+          title: sketchTitle,
+          entry_filename: mainFile.filename,
+          files: sourceFiles,
+        })
+      }
+      setAccountSlug(slug)
+      try {
+        sessionStorage.setItem(SANDBOX_SLUG_KEY, slug)
+      } catch {
+        /* ignore */
+      }
+    }
+
+    setDirty(false)
+    setStatus('Saved to account')
+    navigate(`/sketches/${slug}/edit`, { replace: true })
+  }, [accountSlug, files, mainFile, navigate, sketchType, title])
+
   const onSave = useCallback(async () => {
     setSaving(true)
     setError(null)
     try {
+      if (isAuthenticated) {
+        await saveToAccount()
+        return
+      }
       await persistLocal()
       setDirty(false)
       setStatus('Saved locally')
-      if (!isAuthenticated) {
-        requireAuth({ type: 'save', clientId: SANDBOX_CLIENT_ID })
-      }
-    } catch {
-      setError('Could not save draft locally')
+      requireAuth({ type: 'save', clientId: SANDBOX_CLIENT_ID })
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : isAuthenticated
+            ? 'Could not save to account'
+            : 'Could not save draft locally',
+      )
     } finally {
       setSaving(false)
     }
-  }, [isAuthenticated, persistLocal, requireAuth])
+  }, [isAuthenticated, persistLocal, requireAuth, saveToAccount])
 
-  // Autosave drafts while guest
+  useEffect(() => {
+    writeFilesOpenPreference(filesOpen)
+  }, [filesOpen])
+
   useEffect(() => {
     if (!dirty || !guest || !mainFile) return
     const t = window.setTimeout(() => {
@@ -298,194 +412,89 @@ export function SandboxPage() {
     return () => window.clearTimeout(t)
   }, [dirty, guest, mainFile, persistLocal])
 
-  useEffect(() => {
-    if (!mainFile || previewUrl) return
-    void runPreview()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mainFile?.filename])
-
   if (!isReady) {
     return (
-      <p className="px-6 py-16 text-center text-sm text-muted">Loading sandbox…</p>
+      <p className="px-6 py-16 text-center text-sm text-muted">
+        Loading sandbox…
+      </p>
     )
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col">
-      <div className="border-b border-border px-4 py-3 sm:px-6">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-3">
-          <input
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value)
-              setDirty(true)
-            }}
-            className="min-w-[12rem] flex-1 rounded-btn border border-border bg-surface px-3 py-2 font-display text-base font-semibold text-foreground"
-            aria-label="Sketch title"
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void runPreview()}
-              disabled={running || !mainFile}
-              className={secondaryBtnClass}
-            >
-              {running ? 'Running…' : 'Run'}
-            </button>
-            <button
-              type="button"
-              onClick={restartPreview}
-              disabled={running || !mainFile}
-              className={secondaryBtnClass}
-            >
-              Restart
-            </button>
-            <button
-              type="button"
-              onClick={() => void onSave()}
-              disabled={saving}
-              className={primaryBtnClass}
-            >
-              {saving ? 'Saving…' : isAuthenticated ? 'Save to account' : 'Save'}
-            </button>
-            <button
-              type="button"
-              className={secondaryBtnClass}
-              onClick={() => {
-                void recordScore({
-                  game: 'sandbox-score',
-                  score: Math.floor(Math.random() * 900) + 100,
-                  played_at: new Date().toISOString(),
-                })
-              }}
-              title="Demo: post a local high score (Sprint 2)"
-            >
-              Demo score
-            </button>
-            <Link to="/gallery" className={secondaryBtnClass}>
-              Gallery
-            </Link>
-          </div>
-        </div>
-        <div className="mx-auto mt-2 flex max-w-[1400px] flex-wrap items-center gap-3 text-xs text-muted">
-          <span>Sandbox · {sketchType}</span>
-          {!isAuthenticated ? (
-            <span>Playing as {guest?.displayName ?? 'guest'} — sign in to keep forever</span>
-          ) : null}
-          {dirty ? <span className="text-primary">Unsaved changes</span> : null}
-          {status ? <span className="text-primary">{status}</span> : null}
-          {error ? (
-            <span className="text-destructive" role="alert">
-              {error}
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="mx-auto grid w-full max-w-[1400px] flex-1 grid-cols-1 lg:grid-cols-[200px_minmax(0,1fr)_minmax(280px,1fr)]">
-        <aside className="border-b border-border p-3 lg:border-b-0 lg:border-r">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">
-              Files
-            </p>
-            <button
-              type="button"
-              onClick={addFile}
-              className="text-xs text-primary hover:underline"
-            >
-              Add
-            </button>
-          </div>
-          <ul className="space-y-1">
-            {files.map((file) => (
-              <li key={file.filename}>
-                <button
-                  type="button"
-                  onClick={() => setActiveFilename(file.filename)}
-                  className={cn(
-                    'flex w-full items-center justify-between rounded-btn px-2 py-1.5 text-left text-sm',
-                    file.filename === activeFilename
-                      ? 'bg-primary/15 text-primary'
-                      : 'text-muted hover:bg-surface hover:text-foreground',
-                  )}
-                >
-                  <span className="truncate font-mono text-xs">{file.filename}</span>
-                  {file.is_main ? (
-                    <span className="ml-2 shrink-0 text-[10px] uppercase">main</span>
-                  ) : null}
-                </button>
-              </li>
-            ))}
-          </ul>
-          {activeFile && !activeFile.is_main ? (
-            <button
-              type="button"
-              onClick={deleteActiveFile}
-              className="mt-4 text-xs text-destructive hover:underline"
-            >
-              Delete file
-            </button>
-          ) : null}
-        </aside>
-
-        <section className="flex min-h-[320px] flex-col border-b border-border lg:border-b-0 lg:border-r">
-          <div className="border-b border-border px-3 py-2 font-mono text-xs text-muted">
-            {activeFile?.filename ?? '—'}
-          </div>
-          <div className="min-h-[320px] flex-1 overflow-hidden [&_.cm-editor]:h-full [&_.cm-editor]:outline-none">
-            {activeFile ? (
-              <SketchCodeEditor
-                key={activeFile.filename}
-                filename={activeFile.filename}
-                value={activeFile.content}
-                onChange={updateActiveContent}
-                className="h-full min-h-[320px]"
-              />
-            ) : null}
-          </div>
-        </section>
-
-        <section className="flex min-h-[280px] flex-col bg-background">
-          <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2 text-xs text-muted">
-            <span>Live preview</span>
-            {previewUrl ? (
-              <a
-                href={previewUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary hover:underline"
-              >
-                Open fullscreen
-              </a>
-            ) : null}
-          </div>
-          {runtimeError ? (
-            <div
-              className="border-b border-destructive/40 bg-destructive/10 px-3 py-2"
-              role="alert"
-            >
-              <pre className="max-h-36 overflow-auto whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-destructive">
-                {formatPreviewError(runtimeError)}
-              </pre>
-            </div>
-          ) : null}
-          <div className="relative min-h-[280px] flex-1 bg-[#111]">
-            {previewUrl ? (
-              <iframe
-                ref={previewIframeRef}
-                key={`${previewUrl}#${previewNonce}`}
-                title="Sketch preview"
-                src={previewUrl}
-                className="absolute inset-0 h-full w-full border-0"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-muted">
-                {running ? 'Starting preview…' : 'Run to preview'}
-              </div>
-            )}
-          </div>
-        </section>
-      </div>
-    </div>
+    <SketchIdeShell
+      eyebrow="Sandbox"
+      title={title}
+      onTitleChange={(next) => {
+        setTitle(next)
+        setDirty(true)
+      }}
+      running={running}
+      status={status}
+      dirty={dirty}
+      error={error}
+      toolbar={
+        <>
+          <button
+            type="button"
+            onClick={restartPreview}
+            disabled={!mainFile}
+            className={cn(secondaryBtnClass, 'h-8 cursor-pointer gap-1.5 !px-2.5 !py-1 text-xs')}
+            title="Restart preview"
+          >
+            <RotateCcw size={13} aria-hidden />
+            Restart
+          </button>
+          <button
+            type="button"
+            onClick={() => void onSave()}
+            disabled={saving}
+            className={cn(primaryBtnClass, 'h-8 cursor-pointer !px-3 !py-1 text-xs')}
+            title="Save (Ctrl/⌘S)"
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+          <Link
+            to="/gallery"
+            className={cn(secondaryBtnClass, 'h-8 cursor-pointer !px-2.5 !py-1 text-xs')}
+          >
+            Gallery
+          </Link>
+        </>
+      }
+      files={files}
+      activeFilename={activeFilename}
+      filesOpen={filesOpen}
+      onFilesOpenChange={setFilesOpen}
+      onSelectFile={setActiveFilename}
+      onAddFile={addFile}
+      onRenameFile={renameFile}
+      onDeleteFile={deleteFile}
+      onRenameError={(message) => setError(message)}
+      activeFile={activeFile}
+      onChangeContent={updateActiveContent}
+      previewUrl={previewUrl}
+      previewNonce={previewNonce}
+      runtimeError={runtimeError}
+      onRestart={restartPreview}
+      onDismissError={() => setRuntimeError(null)}
+      onPreviewResizeRestart={restartPreview}
+      onSave={onSave}
+      footer={
+        <button
+          type="button"
+          className="sr-only"
+          tabIndex={-1}
+          onClick={() => {
+            void recordScore({
+              game: 'sandbox-score',
+              score: Math.floor(Math.random() * 900) + 100,
+              played_at: new Date().toISOString(),
+            })
+          }}
+        >
+          Demo score
+        </button>
+      }
+    />
   )
 }

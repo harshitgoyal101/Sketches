@@ -13,10 +13,11 @@ export { ApiError }
 export type SketchListParams = {
   q?: string
   type?: string
-  sort?: 'featured' | 'recent' | 'all'
+  sort?: 'featured' | 'recent' | 'all' | 'random'
   page?: number
   tag?: string
   author?: string
+  exclude?: string
 }
 
 function toQuery(params: SketchListParams): string {
@@ -27,6 +28,7 @@ function toQuery(params: SketchListParams): string {
   if (params.page && params.page > 1) search.set('page', String(params.page))
   if (params.tag) search.set('tag', params.tag)
   if (params.author) search.set('author', params.author)
+  if (params.exclude) search.set('exclude', params.exclude)
   const qs = search.toString()
   return qs ? `?${qs}` : ''
 }
@@ -37,6 +39,47 @@ export async function getHome(): Promise<HomeResponse> {
   } catch {
     return MOCK_HOME
   }
+}
+
+export type MakerProfile = {
+  username: string
+  display_name: string
+  sketch_count: number
+  sketches: SketchCard[]
+}
+
+export async function getMakerProfile(username: string): Promise<MakerProfile> {
+  return fetchJson<MakerProfile>(
+    `/api/makers/${encodeURIComponent(username)}/`,
+  )
+}
+
+export type ExploreTodayResponse = {
+  date: string
+  sketch: SketchDetail | null
+  previous: { date: string; slug: string; title: string }[]
+}
+
+export async function getExploreToday(): Promise<ExploreTodayResponse> {
+  return fetchJson<ExploreTodayResponse>('/api/explore/today/')
+}
+
+export type WeeklyChallenge = {
+  title: string
+  slug: string
+  prompt: string
+  starts_on: string
+  ends_on: string
+  tag: { name: string; slug: string } | null
+  entry_count: number
+  gallery_url: string
+}
+
+export async function getCurrentChallenge(): Promise<WeeklyChallenge | null> {
+  const data = await fetchJson<{ challenge: WeeklyChallenge | null }>(
+    '/api/challenges/current/',
+  )
+  return data.challenge
 }
 
 export async function getSketches(
@@ -100,6 +143,8 @@ export async function getSketch(slug: string): Promise<SketchDetail> {
         can_edit: false,
         can_fork: false,
         forked_from: null,
+        related: [],
+        forks: [],
         assets: [],
       }
     }
@@ -261,6 +306,16 @@ export async function uploadSketchThumbnail(
   })
 }
 
+export async function generateSketchThumbnail(
+  slug: string,
+): Promise<{ url: string | null; thumbnail_card_url: string | null }> {
+  return fetchJson(`/api/account/sketches/${slug}/thumbnail/generate/`, {
+    method: 'POST',
+    body: {},
+    fallbackMessage: 'Could not generate thumbnail',
+  })
+}
+
 export async function uploadSketchAppIcon(
   slug: string,
   file: File,
@@ -269,6 +324,16 @@ export async function uploadSketchAppIcon(
   formData.append('image', file)
   return fetchMultipart(`/api/account/sketches/${slug}/app-icon/`, formData, {
     fallbackMessage: 'Could not upload app icon',
+  })
+}
+
+export async function generateSketchAppIcon(
+  slug: string,
+): Promise<{ url: string | null; app_icon: string | null }> {
+  return fetchJson(`/api/account/sketches/${slug}/app-icon/generate/`, {
+    method: 'POST',
+    body: {},
+    fallbackMessage: 'Could not generate app icon',
   })
 }
 

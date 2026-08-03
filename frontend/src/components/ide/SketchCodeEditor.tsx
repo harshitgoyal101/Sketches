@@ -5,6 +5,7 @@ import { css } from '@codemirror/lang-css'
 import { json } from '@codemirror/lang-json'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { EditorView } from '@codemirror/view'
+import { cn } from '@/lib/utils'
 import { useTheme } from '@/theme/ThemeProvider'
 
 function languageExtension(filename: string) {
@@ -23,6 +24,7 @@ const editorTheme = EditorView.theme({
   '.cm-scroller': {
     fontFamily: 'JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace',
     lineHeight: '1.55',
+    overflowX: 'auto',
   },
   '.cm-content': {
     padding: '12px 0',
@@ -47,29 +49,32 @@ export function SketchCodeEditor({
 }: SketchCodeEditorProps) {
   const { theme } = useTheme()
   const extensions = useMemo(
-    () => [languageExtension(filename), editorTheme, EditorView.lineWrapping],
+    () => [languageExtension(filename), editorTheme],
     [filename],
   )
 
   return (
-    <CodeMirror
-      value={value}
-      height="100%"
-      theme={theme === 'dark' ? oneDark : 'light'}
-      extensions={extensions}
-      onChange={onChange}
-      basicSetup={{
-        lineNumbers: true,
-        foldGutter: true,
-        highlightActiveLine: true,
-        highlightActiveLineGutter: true,
-        bracketMatching: true,
-        closeBrackets: true,
-        autocompletion: true,
-        indentOnInput: true,
-      }}
-      className={className}
-      aria-label="Source editor"
-    />
+    <div className={cn('h-full min-h-0', className)}>
+      <CodeMirror
+        value={value}
+        height="100%"
+        style={{ height: '100%' }}
+        theme={theme === 'dark' ? oneDark : 'light'}
+        extensions={extensions}
+        onChange={onChange}
+        basicSetup={{
+          lineNumbers: true,
+          foldGutter: true,
+          highlightActiveLine: true,
+          highlightActiveLineGutter: true,
+          bracketMatching: true,
+          closeBrackets: true,
+          autocompletion: true,
+          indentOnInput: true,
+        }}
+        className="h-full [&_.cm-editor]:h-full [&_.cm-editor]:outline-none"
+        aria-label="Source editor"
+      />
+    </div>
   )
 }

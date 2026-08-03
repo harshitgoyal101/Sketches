@@ -1,10 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { ImagePlus, Sparkles } from 'lucide-react'
 import { ApiError } from '@/api/client'
 import {
   getManageTags,
   getSketchSettings,
+  generateSketchAppIcon,
+  generateSketchThumbnail,
   publishSketch,
   updateSketchSettings,
   uploadSketchAppIcon,
@@ -47,6 +50,8 @@ export function SketchSettingsPage() {
   const [publishing, setPublishing] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadingIcon, setUploadingIcon] = useState(false)
+  const [generatingThumb, setGeneratingThumb] = useState(false)
+  const [generatingIcon, setGeneratingIcon] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
   const [message, setMessage] = useState<string | null>(null)
@@ -180,8 +185,56 @@ export function SketchSettingsPage() {
     }
   }
 
+  async function onGenerateThumbnail() {
+    if (!slug) return
+    setGeneratingThumb(true)
+    setFormError(null)
+    setMessage('Generating thumbnail from sketch…')
+    try {
+      const result = await generateSketchThumbnail(slug)
+      setThumbnailPreview(result.thumbnail_card_url || result.url)
+      setMessage('Thumbnail generated.')
+      await settingsQuery.refetch()
+    } catch (err) {
+      setMessage(null)
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : 'Could not generate a thumbnail from the sketch.',
+      )
+    } finally {
+      setGeneratingThumb(false)
+    }
+  }
+
+  async function onGenerateIcon() {
+    if (!slug) return
+    setGeneratingIcon(true)
+    setFormError(null)
+    setMessage('Generating app icon from sketch…')
+    try {
+      const result = await generateSketchAppIcon(slug)
+      setAppIconPreview(result.app_icon || result.url)
+      setMessage('App icon generated.')
+      await settingsQuery.refetch()
+    } catch (err) {
+      setMessage(null)
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : 'Could not generate an app icon from the sketch.',
+      )
+    } finally {
+      setGeneratingIcon(false)
+    }
+  }
+
   const sketch = settingsQuery.data?.sketch
   const isAdmin = settingsQuery.data?.is_admin ?? false
+  const canGenerate = Boolean(
+    sketch?.embed_url || sketch?.code || (sketch?.files && sketch.files.length > 0),
+  )
+  const busyMedia = uploading || uploadingIcon || generatingThumb || generatingIcon
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -272,64 +325,120 @@ export function SketchSettingsPage() {
             </div>
           </div>
 
-          <div className="space-y-3">
-            <p className="text-sm text-muted">Thumbnail</p>
+          <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Thumbnail</p>
+              <p className="mt-1 text-xs text-muted">
+                Gallery card image · 16:10. Generation runs on the server (~10–20s).
+              </p>
+            </div>
             {thumbnailPreview ? (
-              <img
-                src={thumbnailPreview}
-                alt=""
-                className="aspect-video max-w-md rounded-xl border border-border object-cover"
-              />
+              <div className="aspect-[16/10] w-full max-w-md overflow-hidden rounded-xl border border-border bg-[#0d0d0d]">
+                <img
+                  src={thumbnailPreview}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              </div>
             ) : (
-              <div className="flex aspect-video max-w-md items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted">
+              <div className="flex aspect-[16/10] w-full max-w-md items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted">
                 No thumbnail yet
               </div>
             )}
-            <label className={secondaryBtnClass}>
-              {uploading ? 'Uploading…' : 'Upload image'}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={uploading}
-                onChange={(e) =>
-                  void onThumbnailChange(e.target.files?.[0] ?? null)
-                }
-              />
-            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={!canGenerate || busyMedia}
+                onClick={() => void onGenerateThumbnail()}
+                className={cn(primaryBtnClass, 'gap-1.5')}
+              >
+                <Sparkles size={15} aria-hidden />
+                {generatingThumb
+                  ? 'Generating…'
+                  : thumbnailPreview
+                    ? 'Regenerate thumbnail'
+                    : 'Generate thumbnail'}
+              </button>
+              <label
+                className={cn(
+                  secondaryBtnClass,
+                  'cursor-pointer gap-1.5',
+                  busyMedia && 'pointer-events-none opacity-60',
+                )}
+              >
+                <ImagePlus size={15} aria-hidden />
+                {uploading ? 'Uploading…' : 'Upload image'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={busyMedia}
+                  onChange={(e) =>
+                    void onThumbnailChange(e.target.files?.[0] ?? null)
+                  }
+                />
+              </label>
+            </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
             <div>
-              <p className="text-sm text-muted">App icon</p>
+              <p className="text-sm font-medium text-foreground">App icon</p>
               <p className="mt-1 text-xs text-muted">
-                Square mark for mobile gallery lists (like a phone app icon).
-                Recommended 192×192.
+                Mobile gallery list mark · square 192×192. Generation runs on the
+                server (~10–20s).
               </p>
             </div>
-            {appIconPreview ? (
-              <img
-                src={appIconPreview}
-                alt=""
-                className="h-20 w-20 rounded-[1.15rem] border border-border object-cover shadow-sm"
-              />
-            ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-[1.15rem] border border-dashed border-border text-xs text-muted">
-                No icon
-              </div>
-            )}
-            <label className={secondaryBtnClass}>
-              {uploadingIcon ? 'Uploading…' : 'Upload icon'}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={uploadingIcon}
-                onChange={(e) =>
-                  void onAppIconChange(e.target.files?.[0] ?? null)
-                }
-              />
-            </label>
+            <div className="flex items-end gap-4">
+              {appIconPreview ? (
+                <img
+                  src={appIconPreview}
+                  alt=""
+                  className="sketch-app-icon shrink-0"
+                />
+              ) : (
+                <div className="sketch-app-icon shrink-0 text-[0.7rem] !text-muted">
+                  —
+                </div>
+              )}
+              <p className="pb-1 text-[11px] text-muted">
+                Preview at list size (3.25rem)
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={!canGenerate || busyMedia}
+                onClick={() => void onGenerateIcon()}
+                className={cn(primaryBtnClass, 'gap-1.5')}
+              >
+                <Sparkles size={15} aria-hidden />
+                {generatingIcon
+                  ? 'Generating…'
+                  : appIconPreview
+                    ? 'Regenerate icon'
+                    : 'Generate icon'}
+              </button>
+              <label
+                className={cn(
+                  secondaryBtnClass,
+                  'cursor-pointer gap-1.5',
+                  busyMedia && 'pointer-events-none opacity-60',
+                )}
+              >
+                <ImagePlus size={15} aria-hidden />
+                {uploadingIcon ? 'Uploading…' : 'Upload icon'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={busyMedia}
+                  onChange={(e) =>
+                    void onAppIconChange(e.target.files?.[0] ?? null)
+                  }
+                />
+              </label>
+            </div>
           </div>
 
           {isAdmin ? (

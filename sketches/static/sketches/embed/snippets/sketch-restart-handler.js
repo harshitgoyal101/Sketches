@@ -10,6 +10,14 @@
       initPixels();
     } else if (typeof resetSketch === "function") {
       resetSketch();
+    } else if (typeof resizeCanvas === "function" && typeof windowWidth === "number") {
+      try {
+        resizeCanvas(windowWidth, windowHeight);
+      } catch (err) {
+        window.location.reload();
+      }
+    } else {
+      window.location.reload();
     }
   }
 

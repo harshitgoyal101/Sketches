@@ -1,14 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
-<body style="font-family: sans-serif; line-height: 1.5; color: #1E293B;">
-  <p>Hi {{ user.username }},</p>
-  <p>Thanks for signing up for <strong>{{ site_name }}</strong>.</p>
-  <p>
-    <a href="{{ verify_url }}" style="display:inline-block;padding:0.75rem 1.25rem;background:#3B82F6;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:600;">
-      Verify email address
-    </a>
+{% extends "registration/email/email_base.html" %}
+
+{% block email_title %}Verify your email — {{ site_name }}{% endblock %}
+
+{% block email_content %}
+  <p style="margin:0 0 8px;font-family:Outfit,Inter,ui-sans-serif,system-ui,sans-serif;font-size:22px;font-weight:600;letter-spacing:-0.02em;color:#131B2E;">
+    Verify your email
   </p>
-  <p style="font-size:0.9rem;color:rgba(30,41,59,0.62);">Or copy this link:<br>{{ verify_url }}</p>
-  <p style="font-size:0.9rem;color:rgba(30,41,59,0.62);">If you did not create this account, you can ignore this message.</p>
-</body>
-</html>
+  <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#64748B;">
+    Hi {{ user.username }} — thanks for joining {{ site_name }}. Confirm your address to activate your account and start publishing sketches.
+  </p>
+  <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 20px;">
+    <tr>
+      <td style="border-radius:10px;background:#7B61FF;">
+        <a href="{{ verify_url }}" style="display:inline-block;padding:12px 22px;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:10px;">
+          Verify email address
+        </a>
+      </td>
+    </tr>
+  </table>
+  <p style="margin:0 0 8px;font-size:13px;line-height:1.55;color:#64748B;">
+    Or copy this link into your browser:
+  </p>
+  <p style="margin:0;font-size:12px;line-height:1.5;word-break:break-all;">
+    <a href="{{ verify_url }}" style="color:#7B61FF;text-decoration:none;">{{ verify_url }}</a>
+  </p>
+{% endblock %}
+
+{% block email_footer %}
+  If you did not create a {{ site_name }} account, you can ignore this message.
+{% endblock %}

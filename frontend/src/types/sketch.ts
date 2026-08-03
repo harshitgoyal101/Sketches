@@ -42,6 +42,8 @@ export type SketchDetail = SketchCard & {
     title: string
     author: SketchAuthor
   } | null
+  related?: SketchCard[]
+  forks?: SketchCard[]
   assets: {
     filename: string
     asset_type: string

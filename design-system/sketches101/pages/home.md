@@ -16,8 +16,9 @@ ALLOW: Text Effect (headline), In View (sections), Animated Group (featured), Sc
 BLOCK: Morphing Dialog, Magnetic, Glow spam
 
 ## CTAs
-- Primary: Start Creating → create/signup  
-- Ghost: Browse Gallery → `/sketches/`
+- Primary (guest): Start Creating → create/signup  
+- Ghost: Browse Gallery → `/gallery`
+- **Authed soft-swap:** Primary becomes **Continue** (most recently updated account sketch). Optional “Recently viewed” list (localStorage) below CTAs — still one composition, brand stays hero-level. No dashboard chrome in the first viewport.
 
 ## Light theme
 Supported via existing theme toggle; keep purple CTAs, light surfaces from MASTER light tokens.

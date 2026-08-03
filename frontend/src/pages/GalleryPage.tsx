@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
-import { NavLink, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { Search, X } from 'lucide-react'
+import { Search, Shuffle, X } from 'lucide-react'
+import { GalleryPlayMode } from '@/components/gallery/GalleryPlayMode'
+import { ChallengeStrip } from '@/components/ChallengeStrip'
 import { AnimatedGroup } from '@/components/motion-primitives/animated-group'
 import { SketchCardView } from '@/components/SketchCardView'
+import { SketchDetailAtmosphere } from '@/components/sketch/SketchDetailAtmosphere'
 import { getSketches } from '@/api/sketches'
 import { useAuth } from '@/auth/AuthProvider'
 import { useGuest } from '@/guest/GuestProvider'
@@ -26,10 +29,12 @@ const SORT_TABS: { key: SortKey; label: string }[] = [
 
 export function GalleryPage() {
   const reduceMotion = prefersReducedMotion()
-  const { isAuthenticated } = useAuth()
-  const { requireAuth } = useGuest()
+  const { user, isAuthenticated } = useAuth()
+  const { guest, requireAuth } = useGuest()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+
+  const welcomeName = user?.username || guest?.displayName || null
 
   function onGetStarted() {
     if (isAuthenticated) {
@@ -47,6 +52,7 @@ export function GalleryPage() {
   const query = searchParams.get('q') || ''
 
   const [queryInput, setQueryInput] = useState(query)
+  const [playOpen, setPlayOpen] = useState(false)
 
   const { data: formats } = useFormats()
   const { data: tags } = useTags()
@@ -102,7 +108,17 @@ export function GalleryPage() {
     ? activeTagName
     : query
       ? `Results for “${query}”`
-      : 'Discovery gallery'
+      : welcomeName
+        ? 'Discover the gallery'
+        : 'Explore sketches'
+
+  const pageLead = activeTagName
+    ? `Sketches tagged “${activeTagName}”.`
+    : activeFormatName
+      ? `${activeFormatName} sketches from the community.`
+      : query
+        ? 'Refine with formats and tags, or clear search to browse everything.'
+        : 'Browse staff picks, recent publishes, and community remixes — then fork what sparks an idea.'
 
   const hasFilters = Boolean(query || tag || format !== 'all' || sort !== 'featured')
 
@@ -129,40 +145,96 @@ export function GalleryPage() {
   const visibleTags = (tags ?? []).slice(0, 24)
 
   return (
-    <div className="min-h-[calc(100dvh-4rem)] bg-background">
-      <div className="mx-auto max-w-[75rem] px-5 py-10 sm:px-8 sm:py-12">
-        {/* Discovery header */}
-        <header className="mb-8 flex flex-col gap-6 lg:mb-10 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0 space-y-3">
-            <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary">
-              Discovery
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                {pageTitle}
-              </h1>
-              {typeof total === 'number' ? (
-                <span className="gallery-count-pill">
-                  {total} sketch{total === 1 ? '' : 'es'}
-                </span>
-              ) : null}
+    <div className="relative min-h-[calc(100dvh-4rem)] overflow-hidden bg-background">
+      <SketchDetailAtmosphere />
+      <div className="relative z-10 mx-auto max-w-[75rem] px-5 py-10 sm:px-8 sm:py-12">
+        {/* Welcome header */}
+        <header className="mb-10 space-y-6 lg:mb-12">
+          <div className="relative overflow-hidden border-b border-border/70 pb-8">
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div className="min-w-0 max-w-2xl space-y-3">
+                <p
+                  className={cn(
+                    'font-display font-semibold tracking-tight',
+                    'text-[clamp(1.35rem,3.2vw,2rem)] leading-tight',
+                    'text-foreground',
+                  )}
+                >
+                  {welcomeName ? (
+                    <>
+                      Welcome back,{' '}
+                      <span className="text-primary">{welcomeName}</span>
+                    </>
+                  ) : (
+                    <>
+                      Welcome to the{' '}
+                      <span className="text-primary">gallery</span>
+                    </>
+                  )}
+                </p>
+                <h1 className="font-display text-[clamp(1.85rem,4vw,2.75rem)] font-semibold tracking-tight text-foreground">
+                  {pageTitle}
+                </h1>
+                <p className="max-w-xl text-sm leading-relaxed text-muted sm:text-base">
+                  {pageLead}
+                </p>
+                {typeof total === 'number' ? (
+                  <p className="pt-1 text-xs text-muted">
+                    <span className="font-medium text-foreground/80">
+                      {total.toLocaleString()}
+                    </span>{' '}
+                    sketch{total === 1 ? '' : 'es'}
+                    {hasFilters ? ' match your filters' : ' in the gallery'}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="relative flex flex-wrap items-center gap-2">
+                <Link
+                  to="/explore/today"
+                  className="cursor-pointer rounded-btn border border-border/80 bg-background/55 px-3 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40"
+                >
+                  Today
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setPlayOpen(true)}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-btn border border-border/80 bg-background/55 px-3 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40"
+                >
+                  <Shuffle size={16} aria-hidden />
+                  Surprise me
+                </button>
+                <button
+                  type="button"
+                  onClick={onGetStarted}
+                  className="home-btn home-btn-primary !min-h-10 !rounded-btn !px-4 !py-2 !text-sm"
+                >
+                  {isAuthenticated ? 'New sketch' : 'Start creating'}
+                </button>
+              </div>
             </div>
-            <p className="max-w-xl text-sm leading-relaxed text-muted sm:text-base">
-              {activeTagName
-                ? `Sketches tagged “${activeTagName}”.`
-                : activeFormatName
-                  ? `${activeFormatName} sketches from the community.`
-                  : 'Explore creative coding sketches — filter by format, tag, or search.'}
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <nav
-              className="flex rounded-btn border border-border p-0.5"
-              aria-label="Workspace"
+          <nav
+            className="flex w-fit rounded-btn border border-border/80 bg-background/40 p-0.5 backdrop-blur-sm"
+            aria-label="Workspace"
+          >
+            <NavLink
+              to="/gallery"
+              className={({ isActive }) =>
+                cn(
+                  'rounded-[0.5rem] px-3 py-1.5 text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-primary/15 text-primary'
+                    : 'text-muted hover:text-foreground',
+                )
+              }
             >
+              Explore
+            </NavLink>
+            {isAuthenticated ? (
               <NavLink
-                to="/gallery"
+                to="/account"
                 className={({ isActive }) =>
                   cn(
                     'rounded-[0.5rem] px-3 py-1.5 text-sm font-medium transition-colors',
@@ -172,33 +244,13 @@ export function GalleryPage() {
                   )
                 }
               >
-                Explore
+                My sketches
               </NavLink>
-              {isAuthenticated ? (
-                <NavLink
-                  to="/account"
-                  className={({ isActive }) =>
-                    cn(
-                      'rounded-[0.5rem] px-3 py-1.5 text-sm font-medium transition-colors',
-                      isActive
-                        ? 'bg-primary/15 text-primary'
-                        : 'text-muted hover:text-foreground',
-                    )
-                  }
-                >
-                  My sketches
-                </NavLink>
-              ) : null}
-            </nav>
-            <button
-              type="button"
-              onClick={onGetStarted}
-              className="home-btn home-btn-primary !min-h-10 !rounded-btn !px-4 !py-2 !text-sm"
-            >
-              {isAuthenticated ? 'New sketch' : 'Get started'}
-            </button>
-          </div>
+            ) : null}
+          </nav>
         </header>
+
+        <ChallengeStrip compact className="mb-8" />
 
         {/* Search */}
         <form
@@ -220,7 +272,7 @@ export function GalleryPage() {
               value={queryInput}
               onChange={(e) => setQueryInput(e.target.value)}
               placeholder="Search sketches, tags, or creators…"
-              className="w-full rounded-xl border border-border bg-surface py-3 pl-10 pr-10 text-sm text-foreground outline-none placeholder:text-muted focus:border-primary"
+              className="w-full rounded-xl border border-border/80 bg-background/55 py-3 pl-10 pr-10 text-sm text-foreground outline-none backdrop-blur-sm placeholder:text-muted focus:border-primary"
               autoComplete="off"
             />
             {queryInput ? (
@@ -370,7 +422,7 @@ export function GalleryPage() {
             Could not load sketches.
           </p>
         ) : sketches.length === 0 ? (
-          <div className="rounded-xl border border-border bg-surface px-6 py-16 text-center">
+          <div className="rounded-xl border border-border/80 bg-background/55 px-6 py-16 text-center backdrop-blur-sm">
             <p className="font-display text-lg font-semibold text-foreground">
               No sketches match
             </p>
@@ -386,14 +438,14 @@ export function GalleryPage() {
             </button>
           </div>
         ) : reduceMotion ? (
-          <div className="grid gap-3 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-2.5 sm:gap-4 md:auto-rows-fr md:grid-cols-2 md:gap-5 lg:grid-cols-3 xl:grid-cols-4">
             {sketches.map((sketch) => (
               <SketchCardView key={sketch.id} sketch={sketch} />
             ))}
           </div>
         ) : (
           <AnimatedGroup
-            className="grid gap-3 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            className="grid gap-2.5 sm:gap-4 md:auto-rows-fr md:grid-cols-2 md:gap-5 lg:grid-cols-3 xl:grid-cols-4"
             preset="fade"
           >
             {sketches.map((sketch) => (
@@ -420,6 +472,8 @@ export function GalleryPage() {
           </p>
         ) : null}
       </div>
+
+      <GalleryPlayMode open={playOpen} onClose={() => setPlayOpen(false)} />
     </div>
   )
 }

@@ -14,6 +14,18 @@ def _absolute_url(request, path):
     return request.build_absolute_uri(path)
 
 
+def _cache_busted_url(url, sketch):
+    """Append updated_at so browsers do not keep stale thumbnail/app-icon bytes."""
+    if not url or not sketch:
+        return url
+    updated = getattr(sketch, "updated_at", None)
+    if not updated:
+        return url
+    version = int(updated.timestamp())
+    join = "&" if "?" in url else "?"
+    return f"{url}{join}v={version}"
+
+
 def serialize_author(user):
     if user is None:
         return None
@@ -39,15 +51,19 @@ def serialize_sketch_card(sketch, request=None):
 
     thumbnail = ""
     if sketch.thumbnail:
-        thumbnail = _absolute_url(request, sketch.thumbnail.url)
+        thumbnail = _cache_busted_url(
+            _absolute_url(request, sketch.thumbnail.url), sketch
+        )
 
-    card_url = sketch.thumbnail_card_url or thumbnail
+    card_url = sketch.thumbnail_card_url or (sketch.thumbnail.url if sketch.thumbnail else "")
     if card_url:
-        card_url = _absolute_url(request, card_url)
+        card_url = _cache_busted_url(_absolute_url(request, card_url), sketch)
 
     app_icon = ""
     if sketch.app_icon:
-        app_icon = _absolute_url(request, sketch.app_icon.url)
+        app_icon = _cache_busted_url(
+            _absolute_url(request, sketch.app_icon.url), sketch
+        )
 
     srcset = sketch.thumbnail_srcset
     if srcset and request is not None:
@@ -58,8 +74,17 @@ def serialize_sketch_card(sketch, request=None):
             if not part:
                 continue
             url, _, descriptor = part.partition(" ")
-            abs_url = _absolute_url(request, url)
+            abs_url = _cache_busted_url(_absolute_url(request, url), sketch)
             parts.append(f"{abs_url} {descriptor}".strip())
+        srcset = ", ".join(parts)
+    elif srcset:
+        parts = []
+        for part in srcset.split(","):
+            part = part.strip()
+            if not part:
+                continue
+            url, _, descriptor = part.partition(" ")
+            parts.append(f"{_cache_busted_url(url, sketch)} {descriptor}".strip())
         srcset = ", ".join(parts)
 
     return {

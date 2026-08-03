@@ -4,7 +4,7 @@
   "page_styles": {
     "fullscreen": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n  background: transparent;\n  touch-action: none;\n  overscroll-behavior: none;\n}\ncanvas {\n  display: block;\n  touch-action: none;\n}",
     "preview": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  min-height: 100%;\n  overflow: hidden;\n  background: #eff6ff;\n  cursor: pointer;\n  touch-action: none;\n}\ncanvas {\n  display: block;\n  cursor: auto;\n  touch-action: none;\n}",
-    "live": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  min-height: 100%;\n  overflow: hidden;\n  background: #eff6ff;\n  touch-action: none;\n}\ncanvas {\n  display: block;\n  touch-action: none;\n}"
+    "live": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n  background: #0a0a0c;\n  touch-action: none;\n}\ncanvas {\n  display: block;\n  touch-action: none;\n}"
   },
   "head_snippets": {
     "fullscreen": ["mouse-bridge.js", "sketch-restart-handler.js"],

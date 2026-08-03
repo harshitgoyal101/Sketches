@@ -8,6 +8,8 @@ type AuthGateProps = {
   googleClientId?: string
   onClose: () => void
   onGoogleCredential: (credential: string) => void
+  migrateError?: string | null
+  onRetryMigrate?: () => void
 }
 
 export function AuthGate({
@@ -16,6 +18,8 @@ export function AuthGate({
   googleClientId,
   onClose,
   onGoogleCredential,
+  migrateError,
+  onRetryMigrate,
 }: AuthGateProps) {
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -34,6 +38,8 @@ export function AuthGate({
   }, [open])
 
   if (!open) return null
+
+  const isMigrateFailure = Boolean(migrateError)
 
   return (
     <div
@@ -59,54 +65,80 @@ export function AuthGate({
         />
         <div className="p-6 sm:p-7">
           <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary">
-            Sign in required
+            {isMigrateFailure ? 'Sync needed' : 'Sign in required'}
           </p>
           <h2
             id="auth-gate-title"
             className="mt-2 font-display text-2xl font-semibold tracking-tight text-foreground"
           >
-            Keep your work
+            {isMigrateFailure ? 'Could not sync guest data' : 'Keep your work'}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted">
             {reason ||
               'Sign in to save, fork, or create sketches. Guest drafts and scores move to your account.'}
           </p>
+          {migrateError ? (
+            <p className="mt-3 rounded-btn border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+              {migrateError}
+            </p>
+          ) : null}
 
           <div className="mt-6 space-y-3">
-            <GoogleSignInButton
-              clientId={googleClientId}
-              onCredential={onGoogleCredential}
-            />
+            {isMigrateFailure && onRetryMigrate ? (
+              <>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-center rounded-btn bg-primary py-2.5 text-sm font-semibold text-[var(--color-on-primary)] hover:bg-primary-hover"
+                  onClick={onRetryMigrate}
+                >
+                  Retry sync
+                </button>
+                <button
+                  type="button"
+                  className="w-full py-2 text-sm text-muted transition-colors hover:text-foreground"
+                  onClick={onClose}
+                >
+                  Dismiss
+                </button>
+              </>
+            ) : (
+              <>
+                <GoogleSignInButton
+                  clientId={googleClientId}
+                  onCredential={onGoogleCredential}
+                />
 
-            <div className="relative py-1 text-center text-[11px] uppercase tracking-[0.16em] text-muted">
-              <span className="relative z-10 bg-surface px-3">or</span>
-              <span
-                className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border"
-                aria-hidden
-              />
-            </div>
+                <div className="relative py-1 text-center text-[11px] uppercase tracking-[0.16em] text-muted">
+                  <span className="relative z-10 bg-surface px-3">or</span>
+                  <span
+                    className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border"
+                    aria-hidden
+                  />
+                </div>
 
-            <Link
-              to="/login"
-              className="flex w-full items-center justify-center rounded-btn border border-border bg-background py-2.5 text-sm font-semibold text-foreground transition-colors hover:border-primary/40"
-              onClick={onClose}
-            >
-              Continue with email
-            </Link>
-            <Link
-              to="/signup"
-              className="flex w-full items-center justify-center rounded-btn bg-primary py-2.5 text-sm font-semibold text-[var(--color-on-primary)] hover:bg-primary-hover"
-              onClick={onClose}
-            >
-              Create account
-            </Link>
-            <button
-              type="button"
-              className="w-full py-2 text-sm text-muted transition-colors hover:text-foreground"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
+                <Link
+                  to="/login"
+                  className="flex w-full items-center justify-center rounded-btn border border-border bg-background py-2.5 text-sm font-semibold text-foreground transition-colors hover:border-primary/40"
+                  onClick={onClose}
+                >
+                  Continue with email
+                </Link>
+                <Link
+                  to="/signup"
+                  className="flex w-full items-center justify-center rounded-btn bg-primary py-2.5 text-sm font-semibold text-[var(--color-on-primary)] hover:bg-primary-hover"
+                  onClick={onClose}
+                >
+                  Create account
+                </Link>
+                <button
+                  type="button"
+                  className="w-full py-2 text-sm text-muted transition-colors hover:text-foreground"
+                  onClick={onClose}
+                >
+                  Cancel
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

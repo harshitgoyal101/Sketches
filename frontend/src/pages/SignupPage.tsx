@@ -1,8 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import { Mail } from 'lucide-react'
 import { ApiError } from '@/api/client'
 import { useAuth } from '@/auth/AuthProvider'
+import { AuthEmailStatus } from '@/components/auth/AuthEmailStatus'
 import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout'
+import { PasswordInput } from '@/components/auth/PasswordInput'
 
 function fieldError(
   errors: Record<string, string[]>,
@@ -31,22 +34,19 @@ export function SignupPage() {
 
   if (doneEmail) {
     return (
-      <AuthSplitLayout
-        title="Check your email"
-        lead={
-          <>
-            We sent a verification link to{' '}
-            <span className="text-foreground">{doneEmail}</span>. Verify your
-            address before logging in.
-          </>
-        }
-      >
-        <Link
-          to="/login"
-          className="inline-flex w-full items-center justify-center rounded-btn bg-primary px-5 py-2.5 text-sm font-semibold text-[var(--color-on-primary)] hover:bg-primary-hover"
+      <AuthSplitLayout title="Check your email">
+        <AuthEmailStatus
+          icon={<Mail size={22} strokeWidth={2} />}
+          title="Verify your address"
+          primaryHref="/login"
+          primaryLabel="Go to log in"
+          secondaryHref="/resend-verification"
+          secondaryLabel="Resend verification"
         >
-          Go to log in
-        </Link>
+          We sent a verification link to{' '}
+          <span className="font-medium text-foreground">{doneEmail}</span>.
+          Open it to activate your account before logging in.
+        </AuthEmailStatus>
       </AuthSplitLayout>
     )
   }
@@ -111,11 +111,9 @@ export function SignupPage() {
         </label>
         <label className="block space-y-1.5 text-sm">
           <span className="text-muted">Password</span>
-          <input
-            type="password"
+          <PasswordInput
             value={password1}
             onChange={(e) => setPassword1(e.target.value)}
-            className="w-full rounded-btn border border-border bg-surface px-3 py-2.5 text-foreground outline-none focus:border-primary"
             autoComplete="new-password"
             required
           />
@@ -127,11 +125,9 @@ export function SignupPage() {
         </label>
         <label className="block space-y-1.5 text-sm">
           <span className="text-muted">Confirm password</span>
-          <input
-            type="password"
+          <PasswordInput
             value={password2}
             onChange={(e) => setPassword2(e.target.value)}
-            className="w-full rounded-btn border border-border bg-surface px-3 py-2.5 text-foreground outline-none focus:border-primary"
             autoComplete="new-password"
             required
           />

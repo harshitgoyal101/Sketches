@@ -1070,7 +1070,7 @@ class ThumbnailGeneratorTests(TestCase):
         self.assertIn("function setup()", html)
         self.assertIn("background: transparent", html)
 
-    def test_prepare_thumbnail_image_letterboxes_to_target_size(self):
+    def test_prepare_thumbnail_image_covers_target_size(self):
         processed = _prepare_thumbnail_image(self._sample_png(), (1280, 720))
         image = Image.open(BytesIO(processed))
         self.assertEqual(image.size, (1280, 720))
@@ -1082,9 +1082,12 @@ class ThumbnailGeneratorTests(TestCase):
         processed = _prepare_thumbnail_image(buffer.getvalue(), (1280, 720))
         image = Image.open(BytesIO(processed))
         self.assertEqual(image.size, (1280, 720))
-        # Sketch should be scaled up, not a tiny strip in the corner.
+        # Cover-crop fills the frame — no light/dark letterbox bars at the edges.
         pixels = image.load()
-        self.assertNotEqual(pixels[0, 0], pixels[640, 360])
+        self.assertNotEqual(pixels[0, 0], (13, 13, 13))
+        self.assertNotEqual(pixels[1279, 719], (13, 13, 13))
+        # Roughly the source blue after WebP encode.
+        self.assertGreater(pixels[0, 0][2], 200)
 
     def test_prepare_thumbnail_image_scales_down_large_canvas(self):
         buffer = BytesIO()
@@ -1227,6 +1230,29 @@ class SketchApiTests(TestCase):
         self.assertNotIn("hidden-draft", slugs)
         self.assertEqual(payload["total"], 1)
 
+    def test_api_sketch_list_sort_random_and_exclude(self):
+        Sketch.objects.create(
+            title="API Pulse",
+            slug="api-pulse",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            author=self.author,
+        )
+        response = self.client.get("/api/sketches/", {"sort": "random"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["filters"]["sort"], "random")
+        self.assertGreaterEqual(response.json()["total"], 2)
+
+        excluded = self.client.get(
+            "/api/sketches/",
+            {"sort": "random", "exclude": "api-orbit"},
+        )
+        self.assertEqual(excluded.status_code, 200)
+        slugs = [item["slug"] for item in excluded.json()["results"]]
+        self.assertNotIn("api-orbit", slugs)
+        self.assertIn("api-pulse", slugs)
+
     def test_api_sketch_detail(self):
         response = self.client.get("/api/sketches/api-orbit/")
         self.assertEqual(response.status_code, 200)
@@ -1236,6 +1262,51 @@ class SketchApiTests(TestCase):
         self.assertEqual(payload["author"]["username"], "api-user")
         self.assertIn("embed_url", payload)
         self.assertIn("code", payload)
+        self.assertIn("related", payload)
+        self.assertIn("forks", payload)
+
+    def test_api_sketch_detail_related_and_forks(self):
+        from sketches.models import Tag
+
+        tag = Tag.objects.create(name="Noise", slug="noise")
+        self.sketch.tags.add(tag)
+        peer = Sketch.objects.create(
+            title="API Peer",
+            slug="api-peer",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            author=self.author,
+        )
+        peer.tags.add(tag)
+        remix = Sketch.objects.create(
+            title="API Remix",
+            slug="api-remix",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.PUBLISHED,
+            author=self.author,
+            forked_from=self.sketch,
+        )
+        Sketch.objects.create(
+            title="Draft Remix",
+            slug="draft-remix",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() {}",
+            status=Sketch.Status.DRAFT,
+            author=self.author,
+            forked_from=self.sketch,
+        )
+
+        response = self.client.get("/api/sketches/api-orbit/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        related_slugs = [item["slug"] for item in payload["related"]]
+        self.assertIn("api-peer", related_slugs)
+        self.assertNotIn("api-orbit", related_slugs)
+        fork_slugs = [item["slug"] for item in payload["forks"]]
+        self.assertIn(remix.slug, fork_slugs)
+        self.assertNotIn("draft-remix", fork_slugs)
 
     def test_api_sketch_detail_draft_404_for_anonymous(self):
         response = self.client.get("/api/sketches/hidden-draft/")
@@ -1249,10 +1320,71 @@ class SketchApiTests(TestCase):
         self.assertEqual(tags.status_code, 200)
         self.assertIn("results", tags.json())
 
+    def test_api_maker_profile_public_published_only(self):
+        from sketches.models import UserProfile
+
+        UserProfile.objects.update_or_create(
+            user=self.author,
+            defaults={"display_name": "API Maker"},
+        )
+        response = self.client.get("/api/makers/api-user/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["username"], "api-user")
+        self.assertEqual(payload["display_name"], "API Maker")
+        self.assertEqual(payload["sketch_count"], 1)
+        slugs = [item["slug"] for item in payload["sketches"]]
+        self.assertIn("api-orbit", slugs)
+        self.assertNotIn("hidden-draft", slugs)
+
+        missing = self.client.get("/api/makers/nobody-here/")
+        self.assertEqual(missing.status_code, 404)
+
+    def test_api_explore_today_returns_published_pick(self):
+        response = self.client.get("/api/explore/today/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("date", payload)
+        self.assertIsNotNone(payload["sketch"])
+        self.assertEqual(payload["sketch"]["slug"], "api-orbit")
+        self.assertIsInstance(payload["previous"], list)
+
+        again = self.client.get("/api/explore/today/").json()
+        self.assertEqual(again["sketch"]["slug"], payload["sketch"]["slug"])
+        self.assertEqual(again["date"], payload["date"])
+
+    def test_api_challenge_current(self):
+        from datetime import date, timedelta
+
+        from sketches.models import Tag, WeeklyChallenge
+
+        tag = Tag.objects.create(name="Challenge Tag", slug="challenge-tag")
+        self.sketch.tags.add(tag)
+        today = date.today()
+        WeeklyChallenge.objects.create(
+            title="Wave forms",
+            slug="wave-forms",
+            prompt="Oscillate something beautiful.",
+            tag=tag,
+            starts_on=today - timedelta(days=1),
+            ends_on=today + timedelta(days=5),
+            is_active=True,
+        )
+        response = self.client.get("/api/challenges/current/")
+        self.assertEqual(response.status_code, 200)
+        challenge = response.json()["challenge"]
+        self.assertIsNotNone(challenge)
+        self.assertEqual(challenge["slug"], "wave-forms")
+        self.assertEqual(challenge["tag"]["slug"], "challenge-tag")
+        self.assertGreaterEqual(challenge["entry_count"], 1)
+
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class AuthApiTests(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
         user_model = get_user_model()
         self.user = user_model.objects.create_user(
             username="authuser",
@@ -1528,6 +1660,62 @@ class AuthApiTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(too_high.status_code, 400)
+
+    def test_enforce_rate_limit_helper(self):
+        import json as json_lib
+
+        from django.core.cache import cache
+
+        from sketches.api.http import enforce_rate_limit
+
+        cache.clear()
+        key = "test:rl:helper"
+        for _ in range(3):
+            self.assertIsNone(
+                enforce_rate_limit(key, limit=3, window_seconds=60)
+            )
+        blocked = enforce_rate_limit(key, limit=3, window_seconds=60)
+        self.assertIsNotNone(blocked)
+        self.assertEqual(blocked.status_code, 429)
+        self.assertEqual(
+            json_lib.loads(blocked.content).get("code"), "rate_limited"
+        )
+
+    def test_migrate_guest_rate_limited(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.client.force_login(self.user)
+        for i in range(10):
+            response = self.client.post(
+                "/api/auth/migrate-guest/",
+                data=json.dumps(
+                    {
+                        "guest_id": f"guest-rl-{i}",
+                        "display_name": "Ada",
+                        "drafts": [],
+                        "scores": [],
+                        "pending_forks": [],
+                    }
+                ),
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 200, msg=f"call {i}")
+        blocked = self.client.post(
+            "/api/auth/migrate-guest/",
+            data=json.dumps(
+                {
+                    "guest_id": "guest-rl-overflow",
+                    "display_name": "Ada",
+                    "drafts": [],
+                    "scores": [],
+                    "pending_forks": [],
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(blocked.status_code, 429)
+        self.assertEqual(blocked.json().get("code"), "rate_limited")
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])

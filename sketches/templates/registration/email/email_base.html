@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>{% block email_title %}{{ site_name }}{% endblock %}</title>
+</head>
+<body style="margin:0;padding:0;background:#F8FAFC;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#131B2E;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F8FAFC;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td style="height:4px;line-height:4px;font-size:0;background:#7B61FF;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="padding:28px 28px 8px;text-align:left;">
+              <table role="presentation" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="width:32px;height:32px;border-radius:8px;background:#7B61FF;color:#FFFFFF;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;font-weight:700;text-align:center;vertical-align:middle;line-height:32px;">
+                    [}]
+                  </td>
+                  <td style="padding-left:10px;font-family:Outfit,Inter,ui-sans-serif,system-ui,sans-serif;font-size:16px;font-weight:600;color:#131B2E;letter-spacing:-0.02em;">
+                    sketches<span style="color:#7B61FF;">101</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:12px 28px 28px;">
+              {% block email_content %}{% endblock %}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 28px 24px;border-top:1px solid #E2E8F0;font-size:12px;line-height:1.55;color:#64748B;text-align:left;">
+              {% block email_footer %}
+              You’re receiving this because of an account action on {{ site_name }}.
+              {% endblock %}
+            </td>
+          </tr>
+        </table>
+        <p style="margin:16px 0 0;font-size:11px;line-height:1.5;color:#94A3B8;text-align:center;">
+          Creative coding playground · {{ site_name }}
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
