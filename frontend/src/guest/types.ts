@@ -1,6 +1,7 @@
 /** Guest profile schema (client-only). Schema version for migrations. */
 
 export const GUEST_SCHEMA_VERSION = 2
+/** Guest display name + profile retention in IndexedDB / localStorage. */
 export const GUEST_TTL_MS = 30 * 24 * 60 * 60 * 1000
 export const GUEST_SCORE_HISTORY_CAP = 50
 export const GUEST_PENDING_FORK_CAP = 10

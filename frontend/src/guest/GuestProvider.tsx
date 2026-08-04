@@ -23,6 +23,7 @@ import {
   markGuestMigrated,
   readPendingAction,
   recordScoreOnProfile,
+  restoreGuestFromRememberedName,
   saveGuestProfile,
   upsertDraft,
   writePendingAction,
@@ -93,9 +94,15 @@ export function GuestProvider({ children }: GuestProviderProps) {
   }, [])
 
   useEffect(() => {
+    if (authLoading) return
     let cancelled = false
     ;(async () => {
-      const profile = await loadGuestProfile()
+      let profile = await loadGuestProfile()
+      // After migrate/clear, the full profile is gone but the display name
+      // can still be within its 30-day window — restore silently for guests.
+      if (!profile && !isAuthenticated) {
+        profile = await restoreGuestFromRememberedName()
+      }
       if (!cancelled) {
         setGuest(profile)
         setIsReady(true)
@@ -104,7 +111,7 @@ export function GuestProvider({ children }: GuestProviderProps) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [authLoading, isAuthenticated])
 
   const createGuest = useCallback(async (name: string) => {
     const profile = createGuestProfile(name)

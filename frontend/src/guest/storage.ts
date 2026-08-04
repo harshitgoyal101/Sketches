@@ -74,20 +74,76 @@ async function idbClear(): Promise<void> {
   }
 }
 
+function writeStoredDisplayName(displayName: string, expiresAt: string) {
+  try {
+    localStorage.setItem(
+      LS_GUEST_NAME,
+      JSON.stringify({
+        display_name: displayName.trim().slice(0, 80) || 'Guest',
+        expires_at: expiresAt,
+      }),
+    )
+  } catch {
+    /* ignore quota */
+  }
+}
+
 function mirrorLocal(profile: GuestProfile | null) {
   try {
     if (!profile) {
+      // Keep LS_GUEST_NAME — it has its own 30-day TTL and should survive
+      // migrate/clear so we can silently restore a guest without re-asking.
       localStorage.removeItem(LS_GUEST_ID)
-      localStorage.removeItem(LS_GUEST_NAME)
       localStorage.removeItem(LS_GUEST_PROFILE)
       return
     }
     localStorage.setItem(LS_GUEST_ID, profile.guestId)
-    localStorage.setItem(LS_GUEST_NAME, profile.displayName)
+    writeStoredDisplayName(profile.displayName, profile.expiresAt)
     localStorage.setItem(LS_GUEST_PROFILE, JSON.stringify(profile))
   } catch {
     /* ignore quota */
   }
+}
+
+type StoredDisplayName = {
+  display_name: string
+  expires_at: string
+}
+
+/** Read guest display name (+ expiry) if still within the 30-day window. */
+export function readStoredDisplayNamePayload(): StoredDisplayName | null {
+  try {
+    const raw = localStorage.getItem(LS_GUEST_NAME)
+    if (!raw) return null
+
+    // Legacy plain-string name — adopt it with a fresh 30-day window.
+    if (!raw.startsWith('{')) {
+      const name = raw.trim().slice(0, 80)
+      if (!name) return null
+      const expires_at = new Date(Date.now() + GUEST_TTL_MS).toISOString()
+      writeStoredDisplayName(name, expires_at)
+      return { display_name: name, expires_at }
+    }
+
+    const parsed = JSON.parse(raw) as {
+      display_name?: string
+      expires_at?: string
+    }
+    const display_name = (parsed.display_name || '').trim().slice(0, 80)
+    if (!display_name || !parsed.expires_at) return null
+    if (Date.parse(parsed.expires_at) <= Date.now()) {
+      localStorage.removeItem(LS_GUEST_NAME)
+      return null
+    }
+    return { display_name, expires_at: parsed.expires_at }
+  } catch {
+    return null
+  }
+}
+
+/** Read guest display name from localStorage if still within the 30-day window. */
+export function readStoredDisplayName(): string | null {
+  return readStoredDisplayNamePayload()?.display_name ?? null
 }
 
 function readLocalMirror(): GuestProfile | null {
@@ -133,14 +189,18 @@ function normalize(profile: GuestProfile | null): GuestProfile | null {
   return upgraded
 }
 
-export function createGuestProfile(displayName: string): GuestProfile {
+export function createGuestProfile(
+  displayName: string,
+  expiresAt?: string,
+): GuestProfile {
   const now = Date.now()
   return {
     schemaVersion: GUEST_SCHEMA_VERSION,
     guestId: crypto.randomUUID(),
     displayName: displayName.trim().slice(0, 80) || 'Guest',
     createdAt: new Date(now).toISOString(),
-    expiresAt: new Date(now + GUEST_TTL_MS).toISOString(),
+    expiresAt:
+      expiresAt ?? new Date(now + GUEST_TTL_MS).toISOString(),
     drafts: [],
     pendingForks: [],
     gameHistory: [],
@@ -163,6 +223,21 @@ export async function loadGuestProfile(): Promise<GuestProfile | null> {
   mirrorLocal(null)
   await idbClear()
   return null
+}
+
+/**
+ * Recreate a guest profile from the remembered display name (30-day TTL).
+ * Used after migrate/clear or when the full profile was lost but the name remains.
+ */
+export async function restoreGuestFromRememberedName(): Promise<GuestProfile | null> {
+  const remembered = readStoredDisplayNamePayload()
+  if (!remembered) return null
+  const restored = createGuestProfile(
+    remembered.display_name,
+    remembered.expires_at,
+  )
+  await saveGuestProfile(restored)
+  return restored
 }
 
 export async function saveGuestProfile(profile: GuestProfile): Promise<void> {
