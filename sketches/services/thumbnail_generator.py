@@ -145,8 +145,9 @@ def _capture_sketch_png(sketch):
             "Playwright is not installed; skipped capture for %s", sketch.slug
         )
         return None
-    except Exception:
-        logger.exception("Canvas capture failed for %s", sketch.slug)
+    except Exception as exc:
+        # Common on shared hosts (e.g. PythonAnywhere): no Chromium binary / sandbox.
+        logger.exception("Canvas capture failed for %s: %s", sketch.slug, exc)
         return None
 
 

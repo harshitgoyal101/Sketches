@@ -1,6 +1,6 @@
 ## Current status
 
-React is the primary UI at **`/`**.
+React is the primary UI at `/`.
 
 - Gallery: search, formats, **tags** (URL-synced `?tag=` / `?type=` / `?q=` / `?sort=`), load more
 - Auth, create/settings, IDE, fork, password reset
@@ -29,6 +29,7 @@ VITE_GOOGLE_OAUTH_CLIENT_ID=....apps.googleusercontent.com
 ```
 
 Without these, AuthGate still offers email login/signup.
+
 ## Deploy (PythonAnywhere / production)
 
 From a machine with Node 20+:
@@ -52,3 +53,4 @@ Env: `SPA_AT_ROOT=true` (default). Set `false` only if you need classic Django H
 3. Reload the web app
 4. Confirm `/` shows the React shell (`#root`), `/gallery` returns 200, `/api/formats/` JSON works
 5. Sign in → open a sketch → **Edit** → Run / Restart / error panel
+

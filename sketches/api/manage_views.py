@@ -420,11 +420,12 @@ def api_account_sketch_thumbnail_generate(request, slug):
             {
                 "ok": False,
                 "error": (
-                    "Could not capture the sketch. Confirm it runs in the editor, "
-                    "then try again."
+                    "Server capture unavailable (Playwright/Chromium not available "
+                    "on this host). Use browser generate, or upload an image."
                 ),
+                "code": "capture_unavailable",
             },
-            status=500,
+            status=503,
         )
 
     sketch.refresh_from_db()
@@ -495,11 +496,12 @@ def api_account_sketch_app_icon_generate(request, slug):
             {
                 "ok": False,
                 "error": (
-                    "Could not capture the sketch. Confirm it runs in the editor, "
-                    "then try again."
+                    "Server capture unavailable (Playwright/Chromium not available "
+                    "on this host). Use browser generate, or upload an image."
                 ),
+                "code": "capture_unavailable",
             },
-            status=500,
+            status=503,
         )
 
     sketch.refresh_from_db()

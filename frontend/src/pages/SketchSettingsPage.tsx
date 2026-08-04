@@ -6,8 +6,7 @@ import { ApiError } from '@/api/client'
 import {
   getManageTags,
   getSketchSettings,
-  generateSketchAppIcon,
-  generateSketchThumbnail,
+  createPreview,
   publishSketch,
   updateSketchSettings,
   uploadSketchAppIcon,
@@ -21,6 +20,13 @@ import {
   primaryBtnClass,
   secondaryBtnClass,
 } from '@/lib/form'
+import {
+  APP_ICON_CAPTURE_SIZE,
+  THUMBNAIL_CAPTURE_SIZE,
+  blobToFile,
+  blobToSquareIcon,
+  captureFromEmbedUrl,
+} from '@/lib/sketchCapture'
 import { cn } from '@/lib/utils'
 
 export function SketchSettingsPage() {
@@ -185,13 +191,59 @@ export function SketchSettingsPage() {
     }
   }
 
+  async function resolveCaptureUrl(): Promise<string> {
+    const sketch = settingsQuery.data?.sketch
+    if (!sketch) {
+      throw new Error('Sketch is still loading.')
+    }
+
+    const files =
+      sketch.files && sketch.files.length > 0
+        ? sketch.files
+        : [
+            {
+              filename: sketch.entry_filename || 'sketch.js',
+              content: sketch.code || '',
+              language: 'javascript',
+              is_main: true,
+              asset_type: 'js',
+              asset_id: null,
+            },
+          ]
+    const main = files.find((f) => f.is_main) ?? files[0]
+    if (main?.content?.trim()) {
+      try {
+        return await createPreview({
+          sketch_type: sketch.sketch_type,
+          main_code: main.content,
+          assets: files
+            .filter((f) => !f.is_main)
+            .map((f) => ({
+              asset_type: f.asset_type || 'js',
+              content: f.content,
+            })),
+          mode: 'fullscreen',
+          run_id: Date.now(),
+        })
+      } catch {
+        /* fall through to saved embed */
+      }
+    }
+
+    if (sketch.embed_url) return sketch.embed_url
+    throw new Error('No runnable sketch source found. Open the editor and save first.')
+  }
+
   async function onGenerateThumbnail() {
     if (!slug) return
     setGeneratingThumb(true)
     setFormError(null)
-    setMessage('Generating thumbnail from sketch…')
+    setMessage('Capturing thumbnail…')
     try {
-      const result = await generateSketchThumbnail(slug)
+      const captureUrl = await resolveCaptureUrl()
+      const blob = await captureFromEmbedUrl(captureUrl, THUMBNAIL_CAPTURE_SIZE)
+      const file = blobToFile(blob, 'thumbnail.png')
+      const result = await uploadSketchThumbnail(slug, file)
       setThumbnailPreview(result.thumbnail_card_url || result.url)
       setMessage('Thumbnail generated.')
       await settingsQuery.refetch()
@@ -211,9 +263,13 @@ export function SketchSettingsPage() {
     if (!slug) return
     setGeneratingIcon(true)
     setFormError(null)
-    setMessage('Generating app icon from sketch…')
+    setMessage('Capturing icon…')
     try {
-      const result = await generateSketchAppIcon(slug)
+      const captureUrl = await resolveCaptureUrl()
+      const captured = await captureFromEmbedUrl(captureUrl, APP_ICON_CAPTURE_SIZE)
+      const iconBlob = await blobToSquareIcon(captured)
+      const file = blobToFile(iconBlob, 'app-icon.png')
+      const result = await uploadSketchAppIcon(slug, file)
       setAppIconPreview(result.app_icon || result.url)
       setMessage('App icon generated.')
       await settingsQuery.refetch()
@@ -329,7 +385,7 @@ export function SketchSettingsPage() {
             <div>
               <p className="text-sm font-medium text-foreground">Thumbnail</p>
               <p className="mt-1 text-xs text-muted">
-                Gallery card image · 16:10. Generation runs on the server (~10–20s).
+                Gallery card image · 16:10. Captures in your browser (~a few seconds).
               </p>
             </div>
             {thumbnailPreview ? (
@@ -385,8 +441,7 @@ export function SketchSettingsPage() {
             <div>
               <p className="text-sm font-medium text-foreground">App icon</p>
               <p className="mt-1 text-xs text-muted">
-                Mobile gallery list mark · square 192×192. Generation runs on the
-                server (~10–20s).
+                Mobile gallery list mark · square 192×192. Captures in your browser.
               </p>
             </div>
             <div className="flex items-end gap-4">
