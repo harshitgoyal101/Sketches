@@ -98,13 +98,34 @@ WSGI_APPLICATION = 'sketch_gallery.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
+# Local default: SQLite. Production (PythonAnywhere): set DB_ENGINE=mysql + vars below.
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+_db_engine = os.environ.get("DB_ENGINE", "sqlite").lower().strip()
+if _db_engine == "mysql":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": os.environ["DB_NAME"],
+            "USER": os.environ["DB_USER"],
+            "PASSWORD": os.environ["DB_PASSWORD"],
+            "HOST": os.environ["DB_HOST"],
+            "PORT": os.environ.get("DB_PORT", "3306"),
+            "OPTIONS": {
+                "charset": "utf8mb4",
+                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+        }
     }
-}
+    _db_test_name = os.environ.get("DB_TEST_NAME", "").strip()
+    if _db_test_name:
+        DATABASES["default"]["TEST"] = {"NAME": _db_test_name}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
@@ -190,6 +211,11 @@ SKETCH_THUMBNAIL_CAPTURE_TIMEOUT_MS = 15000
 SKETCH_THUMBNAIL_SETTLE_MS = 2000
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# Allow Google Identity Services popup to return the credential to this window.
+# Default Django "same-origin" severs window.opener and strands users on
+# accounts.google.com/gsi/transform.
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
 
 SITE_NAME = os.environ.get("SITE_NAME", "sketches101")
 SITE_URL = os.environ.get("SITE_URL", "http://127.0.0.1:8000")

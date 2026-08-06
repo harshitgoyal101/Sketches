@@ -50,13 +50,15 @@ Also: rate limits on migrate / scores / Google; authed sandbox **Save to account
 ### Games / scores
 
 - Models: `Game`, `GameScore`  
-- Seeded: `orbit-run`, `sandbox-score`  
-- Embeds can post scores:
+- Seeded games: `orbit-run`, `sandbox-score`  
+- Playable sketch: **Orbit Run** at `/sketches/orbit-run/` — `python manage.py load_orbit_run_sketch` (or `seed_production_data --with-games`)  
+- Embeds post scores:
 
 ```js
 parent.postMessage({ type: 'sketches101-score', game: 'orbit-run', score: 1200 }, '*')
 ```
 
+Guests keep a local best; on a personal best they can sign in to persist. Account page lists high scores.
 ### Design system
 
 Page-level rules under [`design-system/sketches101/`](design-system/sketches101/) (Master + per-page overrides). Figma reference linked from Master.

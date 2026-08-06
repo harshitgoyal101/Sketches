@@ -37,6 +37,7 @@ export function GoogleSignInButton({
       if (!window.google?.accounts?.id || !btnRef.current) return
       window.google.accounts.id.initialize({
         client_id: clientId,
+        use_fedcm_for_button: true,
         callback: (response: { credential: string }) => {
           onCredential(response.credential)
         },

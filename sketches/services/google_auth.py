@@ -20,10 +20,16 @@ def verify_google_id_token(credential: str) -> dict:
         raise GoogleAuthError("Missing credential.")
 
     try:
+        import requests  # noqa: F401 — required by google.auth.transport.requests
         from google.auth.transport import requests as google_requests
         from google.oauth2 import id_token
     except ImportError as exc:
-        raise GoogleAuthError("google-auth is not installed.") from exc
+        missing = getattr(exc, "name", None) or str(exc)
+        raise GoogleAuthError(
+            "Google sign-in dependencies missing "
+            f"({missing}). In the web app virtualenv run: "
+            "pip install 'google-auth>=2.28' 'requests>=2.31'"
+        ) from exc
 
     try:
         claims = id_token.verify_oauth2_token(
