@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Bookmark, Maximize2 } from 'lucide-react'
 import { useSketch } from '@/hooks/useSketches'
 import { ApiError } from '@/api/client'
@@ -155,6 +155,10 @@ export function SketchDetailPage() {
         </Link>
       </div>
     )
+  }
+
+  if (sketch.is_game && slug) {
+    return <Navigate to={`/games/${slug}`} replace />
   }
 
   const detail = sketch

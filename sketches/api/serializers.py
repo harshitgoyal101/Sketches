@@ -105,6 +105,7 @@ def serialize_sketch_card(sketch, request=None):
         "fork_count": fork_count,
         "tags": [serialize_tag(tag) for tag in sketch.tags.all()],
         "description_html": render_markdown(sketch.description or ""),
+        "is_game": bool(getattr(sketch, "is_game", False)),
     }
 
 
@@ -132,12 +133,18 @@ def serialize_background_sketch(sketch, request=None):
     }
 
 
-def serialize_sketch_detail(sketch, request, *, can_edit=False, can_fork=False):
+def serialize_sketch_detail(
+    sketch,
+    request,
+    *,
+    can_edit=False,
+    can_fork=False,
+    include_source=True,
+):
     data = serialize_sketch_card(sketch, request)
     data.update(
         {
             "entry_filename": sketch.entry_filename,
-            "code": sketch.code,
             "embed_url": _absolute_url(
                 request, reverse("sketch_embed", kwargs={"slug": sketch.slug})
             ),
@@ -153,18 +160,24 @@ def serialize_sketch_detail(sketch, request, *, can_edit=False, can_fork=False):
             "title": source.title,
             "author": serialize_author(source.author),
         }
-    data["assets"] = [
-        {
-            "filename": asset.filename,
-            "asset_type": asset.asset_type,
-            "asset_id": asset.pk,
-            "order": asset.order,
-        }
-        for asset in sketch.assets.all()
-    ]
-    data["files"] = [
-        serialize_source_file(item) for item in sketch.get_source_files()
-    ]
+    if include_source:
+        data["code"] = sketch.code
+        data["assets"] = [
+            {
+                "filename": asset.filename,
+                "asset_type": asset.asset_type,
+                "asset_id": asset.pk,
+                "order": asset.order,
+            }
+            for asset in sketch.assets.all()
+        ]
+        data["files"] = [
+            serialize_source_file(item) for item in sketch.get_source_files()
+        ]
+    else:
+        data["code"] = ""
+        data["assets"] = []
+        data["files"] = []
     return data
 
 

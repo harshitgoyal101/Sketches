@@ -312,17 +312,31 @@ export function EditSketchPage() {
   }
 
   if (sketchQuery.isError) {
+    const denied =
+      sketchQuery.error instanceof ApiError && sketchQuery.error.status === 403
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
         <h1 className="font-display text-2xl font-semibold">Cannot open editor</h1>
         <p className="mt-2 text-sm text-muted">
-          {sketchQuery.error instanceof ApiError
-            ? sketchQuery.error.message
-            : 'Something went wrong.'}
+          {denied
+            ? 'Only the game owner or an admin can edit this game.'
+            : sketchQuery.error instanceof ApiError
+              ? sketchQuery.error.message
+              : 'Something went wrong.'}
         </p>
-        <Link to="/account" className="mt-4 inline-block text-primary hover:underline">
-          Back to account
-        </Link>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-4">
+          {slug ? (
+            <Link
+              to={`/games/${slug}`}
+              className="text-primary hover:underline"
+            >
+              Play game
+            </Link>
+          ) : null}
+          <Link to="/account" className="text-primary hover:underline">
+            Back to account
+          </Link>
+        </div>
       </div>
     )
   }

@@ -18,6 +18,8 @@ export type SketchListParams = {
   tag?: string
   author?: string
   exclude?: string
+  /** When true, list only published games (is_game). */
+  games?: boolean
 }
 
 function toQuery(params: SketchListParams): string {
@@ -29,6 +31,7 @@ function toQuery(params: SketchListParams): string {
   if (params.tag) search.set('tag', params.tag)
   if (params.author) search.set('author', params.author)
   if (params.exclude) search.set('exclude', params.exclude)
+  if (params.games) search.set('games', '1')
   const qs = search.toString()
   return qs ? `?${qs}` : ''
 }
@@ -266,6 +269,7 @@ export type UpdateSettingsPayload = {
   description?: string
   tags?: string[]
   status?: string
+  is_game?: boolean
 }
 
 export async function updateSketchSettings(

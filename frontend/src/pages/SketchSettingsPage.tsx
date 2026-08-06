@@ -49,6 +49,7 @@ export function SketchSettingsPage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState('draft')
+  const [isGame, setIsGame] = useState(false)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
   const [appIconPreview, setAppIconPreview] = useState<string | null>(null)
@@ -68,6 +69,7 @@ export function SketchSettingsPage() {
     setTitle(sketch.title)
     setDescription(sketch.description)
     setStatus(sketch.status)
+    setIsGame(Boolean(sketch.is_game))
     setSelectedTags(sketch.tags.map((t) => t.slug))
     setThumbnailPreview(sketch.thumbnail_card_url || sketch.thumbnail)
     setAppIconPreview(sketch.app_icon)
@@ -114,10 +116,12 @@ export function SketchSettingsPage() {
         description: string
         tags: string[]
         status?: string
+        is_game: boolean
       } = {
         title,
         description,
         tags: selectedTags,
+        is_game: isGame,
       }
       if (settingsQuery.data?.is_admin) {
         payload.status = status
@@ -519,6 +523,24 @@ export function SketchSettingsPage() {
               <span className="font-medium text-foreground">{status}</span>
             </p>
           )}
+
+          <label className="flex cursor-pointer items-start gap-3 rounded-btn border border-border/80 bg-background/40 px-3 py-3">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary/40"
+              checked={isGame}
+              onChange={(e) => setIsGame(e.target.checked)}
+            />
+            <span>
+              <span className="block text-sm font-medium text-foreground">
+                List as game
+              </span>
+              <span className="mt-0.5 block text-xs text-muted">
+                Play-only on the Games page — visitors cannot see source, fork, or
+                open the editor.
+              </span>
+            </span>
+          </label>
 
           {formError ? (
             <p className="text-sm text-destructive" role="alert">

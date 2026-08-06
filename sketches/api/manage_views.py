@@ -302,6 +302,11 @@ def api_account_sketch_settings(request, slug):
 
     previous_status = sketch.status
     sketch = form.save()
+
+    if "is_game" in data:
+        sketch.is_game = bool(data.get("is_game"))
+        sketch.save(update_fields=["is_game"])
+
     publishing = (
         is_admin
         and sketch.status == Sketch.Status.PUBLISHED

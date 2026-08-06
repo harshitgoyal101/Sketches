@@ -1382,6 +1382,147 @@ class SketchApiTests(TestCase):
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
+class GameSketchApiTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.author = user_model.objects.create_user(
+            username="game-author", password="secret"
+        )
+        self.visitor = user_model.objects.create_user(
+            username="game-visitor", password="secret"
+        )
+        self.sketch = Sketch.objects.create(
+            title="Normal Sketch",
+            slug="normal-sketch",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() { createCanvas(100, 100); }",
+            status=Sketch.Status.PUBLISHED,
+            author=self.author,
+        )
+        self.game = Sketch.objects.create(
+            title="Finger Game",
+            slug="finger-game",
+            sketch_type=Sketch.SketchType.P5JS,
+            code="function setup() { createCanvas(200, 200); }",
+            status=Sketch.Status.PUBLISHED,
+            author=self.author,
+            is_game=True,
+            entry_filename="sketch.js",
+        )
+        self.client = Client()
+
+    def test_gallery_list_excludes_games(self):
+        response = self.client.get("/api/sketches/")
+        self.assertEqual(response.status_code, 200)
+        slugs = [item["slug"] for item in response.json()["results"]]
+        self.assertIn("normal-sketch", slugs)
+        self.assertNotIn("finger-game", slugs)
+
+    def test_games_list_returns_only_games(self):
+        response = self.client.get("/api/sketches/", {"games": "1"})
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        slugs = [item["slug"] for item in payload["results"]]
+        self.assertEqual(slugs, ["finger-game"])
+        self.assertTrue(payload["filters"]["games"])
+        self.assertTrue(payload["results"][0]["is_game"])
+
+    def test_public_game_detail_omits_source(self):
+        response = self.client.get("/api/sketches/finger-game/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["is_game"])
+        self.assertEqual(payload["code"], "")
+        self.assertEqual(payload["files"], [])
+        self.assertFalse(payload["can_fork"])
+        self.assertFalse(payload["can_edit"])
+        self.assertIn("embed_url", payload)
+
+    def test_game_cannot_be_forked(self):
+        self.client.force_login(self.visitor)
+        response = self.client.post(f"/api/sketches/{self.game.slug}/fork/")
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            Sketch.objects.filter(forked_from=self.game, author=self.visitor).exists()
+        )
+
+    def test_owner_can_toggle_is_game_in_settings(self):
+        self.client.force_login(self.author)
+        response = self.client.patch(
+            f"/api/account/sketches/{self.sketch.slug}/settings/",
+            data=json.dumps(
+                {
+                    "title": self.sketch.title,
+                    "description": self.sketch.description or "",
+                    "tags": [],
+                    "is_game": True,
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.sketch.refresh_from_db()
+        self.assertTrue(self.sketch.is_game)
+        self.assertTrue(response.json()["sketch"]["is_game"])
+
+    def test_visitor_cannot_manage_game(self):
+        self.client.force_login(self.visitor)
+        detail = self.client.get(f"/api/account/sketches/{self.game.slug}/")
+        self.assertEqual(detail.status_code, 403)
+        settings = self.client.get(
+            f"/api/account/sketches/{self.game.slug}/settings/"
+        )
+        self.assertEqual(settings.status_code, 403)
+        source = self.client.post(
+            f"/api/account/sketches/{self.game.slug}/source/",
+            data=json.dumps(
+                {
+                    "title": "Hacked",
+                    "entry_filename": "sketch.js",
+                    "files": [
+                        {
+                            "filename": "sketch.js",
+                            "content": "function setup() {}",
+                            "is_main": True,
+                            "asset_id": None,
+                            "asset_type": "js",
+                        }
+                    ],
+                    "deleted_asset_ids": [],
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(source.status_code, 403)
+        self.game.refresh_from_db()
+        self.assertEqual(self.game.title, "Finger Game")
+
+    def test_owner_can_manage_game(self):
+        self.client.force_login(self.author)
+        detail = self.client.get(f"/api/account/sketches/{self.game.slug}/")
+        self.assertEqual(detail.status_code, 200)
+        self.assertTrue(detail.json()["can_edit"])
+        self.assertIn("createCanvas", detail.json()["code"])
+
+    def test_staff_can_manage_others_game(self):
+        self.visitor.is_staff = True
+        self.visitor.save(update_fields=["is_staff"])
+        self.client.force_login(self.visitor)
+        detail = self.client.get(f"/api/account/sketches/{self.game.slug}/")
+        self.assertEqual(detail.status_code, 200)
+        self.assertTrue(detail.json()["can_edit"])
+
+    def test_owner_public_game_detail_shows_can_edit(self):
+        self.client.force_login(self.author)
+        response = self.client.get("/api/sketches/finger-game/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["can_edit"])
+        self.assertEqual(payload["code"], "")
+        self.assertFalse(payload["can_fork"])
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
 class AuthApiTests(TestCase):
     def setUp(self):
         from django.core.cache import cache

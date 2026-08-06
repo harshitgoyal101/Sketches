@@ -29,6 +29,8 @@ export type SketchCard = {
   updated_at: string | null
   fork_count: number
   tags: SketchTag[]
+  /** When true, sketch is listed under /games as play-only. */
+  is_game?: boolean
 }
 
 export type SketchDetail = SketchCard & {

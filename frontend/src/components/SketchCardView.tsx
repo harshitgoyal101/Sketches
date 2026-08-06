@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { Play } from 'lucide-react'
 import type { SketchCard } from '@/types/sketch'
 import { cn } from '@/lib/utils'
 
@@ -10,6 +11,7 @@ type Props = {
 
 /**
  * Sketch list card: app-icon list rows on mobile, glass thumbnail cards from md up.
+ * Games link straight into fullscreen play.
  */
 export function SketchCardView({ sketch, className, showStatus = false }: Props) {
   const thumb = sketch.thumbnail_card_url || sketch.thumbnail || ''
@@ -17,10 +19,12 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
   const author = sketch.author?.username ?? 'anonymous'
   const tags = sketch.tags?.slice(0, 2) ?? []
   const initial = (sketch.title.trim().charAt(0) || '?').toUpperCase()
+  const isGame = Boolean(sketch.is_game)
+  const href = isGame ? `/games/${sketch.slug}` : `/sketches/${sketch.slug}`
 
   return (
     <Link
-      to={`/sketches/${sketch.slug}`}
+      to={href}
       className={cn(
         'group cursor-pointer outline-none transition-[border-color,transform,box-shadow,background-color] duration-200',
         // Mobile: app-icon list row
@@ -36,7 +40,7 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
         'dark:md:hover:shadow-[0_8px_28px_-12px_rgba(123,97,255,0.35),inset_0_1px_0_0_rgba(255,255,255,0.16)]',
         className,
       )}
-      aria-label={`${sketch.title} by ${author}`}
+      aria-label={isGame ? `Play ${sketch.title}` : `${sketch.title} by ${author}`}
     >
       {/* Mobile app icon */}
       <div className="sketch-app-icon shrink-0 md:hidden" aria-hidden>
@@ -67,7 +71,7 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
           </div>
         )}
         <span className="pointer-events-none absolute left-2.5 top-2.5 rounded-md border border-black/10 bg-white/80 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-foreground backdrop-blur-md dark:border-white/20 dark:bg-black/40 dark:text-white">
-          {sketch.sketch_type_label}
+          {isGame ? 'Game' : sketch.sketch_type_label}
         </span>
         {showStatus ? (
           <span
@@ -81,6 +85,14 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
             {sketch.status}
           </span>
         ) : null}
+        {isGame ? (
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25 transition-colors duration-200 group-hover:bg-black/40">
+            <span className="inline-flex items-center gap-1.5 rounded-btn bg-primary px-3.5 py-2 text-xs font-semibold text-[var(--color-on-primary)] shadow-lg transition-transform duration-200 group-hover:scale-105">
+              <Play size={12} fill="currentColor" aria-hidden />
+              Play
+            </span>
+          </span>
+        ) : null}
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:min-h-[6.75rem] md:gap-1.5 md:bg-gradient-to-b md:from-transparent md:to-white/50 md:p-3.5 dark:md:to-black/20">
@@ -88,7 +100,12 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
           <h3 className="line-clamp-2 min-w-0 font-display text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
             {sketch.title}
           </h3>
-          {showStatus ? (
+          {isGame ? (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary md:hidden">
+              <Play size={10} fill="currentColor" aria-hidden />
+              Play
+            </span>
+          ) : showStatus ? (
             <span
               className={cn(
                 'shrink-0 rounded-md border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide md:hidden',

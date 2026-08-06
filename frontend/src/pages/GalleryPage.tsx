@@ -3,7 +3,6 @@ import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Search, Shuffle, X } from 'lucide-react'
 import { GalleryPlayMode } from '@/components/gallery/GalleryPlayMode'
-import { ChallengeStrip } from '@/components/ChallengeStrip'
 import { AnimatedGroup } from '@/components/motion-primitives/animated-group'
 import { SketchCardView } from '@/components/SketchCardView'
 import { SketchDetailAtmosphere } from '@/components/sketch/SketchDetailAtmosphere'
@@ -108,9 +107,9 @@ export function GalleryPage() {
     ? activeTagName
     : query
       ? `Results for “${query}”`
-      : welcomeName
-        ? 'Discover the gallery'
-        : 'Explore sketches'
+        : welcomeName
+        ? 'Discover sketches'
+        : 'Sketches'
 
   const pageLead = activeTagName
     ? `Sketches tagged “${activeTagName}”.`
@@ -191,10 +190,10 @@ export function GalleryPage() {
 
               <div className="relative flex flex-wrap items-center gap-2">
                 <Link
-                  to="/explore/today"
+                  to="/games"
                   className="cursor-pointer rounded-btn border border-border/80 bg-background/55 px-3 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40"
                 >
-                  Today
+                  Games
                 </Link>
                 <button
                   type="button"
@@ -204,13 +203,22 @@ export function GalleryPage() {
                   <Shuffle size={16} aria-hidden />
                   Surprise me
                 </button>
-                <button
-                  type="button"
-                  onClick={onGetStarted}
-                  className="home-btn home-btn-primary !min-h-10 !rounded-btn !px-4 !py-2 !text-sm"
-                >
-                  {isAuthenticated ? 'New sketch' : 'Start creating'}
-                </button>
+                {isAuthenticated ? (
+                  <Link
+                    to="/account"
+                    className="home-btn home-btn-primary !min-h-10 !rounded-btn !px-4 !py-2 !text-sm"
+                  >
+                    Account
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onGetStarted}
+                    className="home-btn home-btn-primary !min-h-10 !rounded-btn !px-4 !py-2 !text-sm"
+                  >
+                    Get started
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -230,7 +238,20 @@ export function GalleryPage() {
                 )
               }
             >
-              Explore
+              Sketches
+            </NavLink>
+            <NavLink
+              to="/games"
+              className={({ isActive }) =>
+                cn(
+                  'rounded-[0.5rem] px-3 py-1.5 text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-primary/15 text-primary'
+                    : 'text-muted hover:text-foreground',
+                )
+              }
+            >
+              Games
             </NavLink>
             {isAuthenticated ? (
               <NavLink
@@ -244,13 +265,11 @@ export function GalleryPage() {
                   )
                 }
               >
-                My sketches
+                Account
               </NavLink>
             ) : null}
           </nav>
         </header>
-
-        <ChallengeStrip compact className="mb-8" />
 
         {/* Search */}
         <form

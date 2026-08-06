@@ -232,6 +232,8 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
 SITE_NAME = os.environ.get("SITE_NAME", "sketches101")
 SITE_URL = os.environ.get("SITE_URL", "http://127.0.0.1:8000")
 
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
 # Google Identity Services (SPA ID-token → POST /api/auth/google/)
 GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
 

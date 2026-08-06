@@ -1,11 +1,14 @@
 from django.core.management.base import BaseCommand
 
 from sketches.models import Sketch
-from sketches.services.thumbnail_generator import generate_sketch_thumbnail
+from sketches.services.thumbnail_generator import (
+    generate_sketch_app_icon,
+    generate_sketch_thumbnail,
+)
 
 
 class Command(BaseCommand):
-    help = "Generate gallery thumbnails for published sketches."
+    help = "Generate gallery thumbnails and app icons for sketches (including games)."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -15,12 +18,22 @@ class Command(BaseCommand):
         parser.add_argument(
             "--force",
             action="store_true",
-            help="Regenerate even when a thumbnail already exists.",
+            help="Regenerate even when media already exists.",
         )
         parser.add_argument(
             "--all-statuses",
             action="store_true",
             help="Include drafts (default: published only).",
+        )
+        parser.add_argument(
+            "--thumbnails-only",
+            action="store_true",
+            help="Skip app icon generation.",
+        )
+        parser.add_argument(
+            "--icons-only",
+            action="store_true",
+            help="Skip thumbnail generation.",
         )
 
     def handle(self, *args, **options):
@@ -34,16 +47,37 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("No matching sketches found."))
             return
 
-        generated = 0
-        skipped = 0
+        do_thumbs = not options["icons_only"]
+        do_icons = not options["thumbnails_only"]
+        force = options["force"]
+
+        thumb_ok = thumb_skip = icon_ok = icon_skip = 0
         for sketch in queryset.iterator():
-            if generate_sketch_thumbnail(sketch, force=options["force"]):
-                generated += 1
-                self.stdout.write(self.style.SUCCESS(f"Generated thumbnail for {sketch.slug}"))
-            else:
-                skipped += 1
-                self.stdout.write(f"Skipped {sketch.slug}")
+            label = "game" if sketch.is_game else "sketch"
+            if do_thumbs:
+                if generate_sketch_thumbnail(sketch, force=force):
+                    thumb_ok += 1
+                    self.stdout.write(
+                        self.style.SUCCESS(f"[{label}] thumbnail {sketch.slug}")
+                    )
+                else:
+                    thumb_skip += 1
+                    self.stdout.write(f"[{label}] thumbnail skipped {sketch.slug}")
+            if do_icons:
+                # Reload so icon save sees any thumbnail field updates.
+                sketch.refresh_from_db()
+                if generate_sketch_app_icon(sketch, force=force):
+                    icon_ok += 1
+                    self.stdout.write(
+                        self.style.SUCCESS(f"[{label}] app icon {sketch.slug}")
+                    )
+                else:
+                    icon_skip += 1
+                    self.stdout.write(f"[{label}] app icon skipped {sketch.slug}")
 
         self.stdout.write(
-            self.style.SUCCESS(f"Done. Generated {generated}, skipped {skipped}.")
+            self.style.SUCCESS(
+                f"Done. Thumbnails {thumb_ok} generated / {thumb_skip} skipped. "
+                f"Icons {icon_ok} generated / {icon_skip} skipped."
+            )
         )

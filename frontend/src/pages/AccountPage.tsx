@@ -1,13 +1,51 @@
 import { Link, Navigate } from 'react-router-dom'
 import { useQueries, useQuery } from '@tanstack/react-query'
+import {
+  Bookmark,
+  CalendarDays,
+  FlaskConical,
+  PencilLine,
+  Play,
+} from 'lucide-react'
 import { getGameScores, listGames } from '@/api/games'
 import { getAccountSketches } from '@/api/sketches'
 import { SketchCardView } from '@/components/SketchCardView'
 import { useAuth } from '@/auth/AuthProvider'
+import { useContinueSketch } from '@/hooks/useContinueSketch'
 import { primaryBtnClass, secondaryBtnClass } from '@/lib/form'
+import { cn } from '@/lib/utils'
+import type { SketchCard } from '@/types/sketch'
+
+const HUB_LINKS = [
+  {
+    to: '/sketches/new',
+    label: 'New sketch',
+    hint: 'Start a blank canvas',
+    icon: PencilLine,
+  },
+  {
+    to: '/sandbox',
+    label: 'Sandbox',
+    hint: 'Try without publishing',
+    icon: FlaskConical,
+  },
+  {
+    to: '/saved',
+    label: 'Saved',
+    hint: 'Bookmarks you keep',
+    icon: Bookmark,
+  },
+  {
+    to: '/explore/today',
+    label: 'Today',
+    hint: 'Daily featured piece',
+    icon: CalendarDays,
+  },
+] as const
 
 export function AccountPage() {
   const { user, isAuthenticated, isLoading, logout } = useAuth()
+  const { continueSketch } = useContinueSketch()
   const sketchesQuery = useQuery({
     queryKey: ['account-sketches'],
     queryFn: getAccountSketches,
@@ -38,7 +76,9 @@ export function AccountPage() {
     )
   }
 
-  const sketches = sketchesQuery.data?.results ?? []
+  const all = sketchesQuery.data?.results ?? []
+  const mySketches = all.filter((s) => !s.is_game)
+  const myGames = all.filter((s) => s.is_game)
   const displayName = user.display_name || user.username
   const myScores = (gamesQuery.data ?? [])
     .map((game, index) => {
@@ -51,6 +91,11 @@ export function AccountPage() {
     score: number
     played_at: string
   }[]
+
+  const continueHref = continueSketch
+    ? `/sketches/${continueSketch.slug}/edit`
+    : '/sketches/new'
+  const continueLabel = continueSketch ? 'Continue sketch' : 'Start a sketch'
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -77,11 +122,8 @@ export function AccountPage() {
           ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to="/sketches/new" className={primaryBtnClass}>
-            New sketch
-          </Link>
-          <Link to="/sandbox" className={secondaryBtnClass}>
-            Sandbox
+          <Link to={continueHref} className={primaryBtnClass}>
+            {continueLabel}
           </Link>
           <button
             type="button"
@@ -93,8 +135,45 @@ export function AccountPage() {
         </div>
       </div>
 
+      <section className="mb-12" aria-label="Workspace">
+        <h2 className="font-display text-lg font-semibold">Workspace</h2>
+        <p className="mt-1 text-sm text-muted">
+          Create, save, and daily picks live here — not in the main nav.
+        </p>
+        <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {HUB_LINKS.map(({ to, label, hint, icon: Icon }) => (
+            <li key={to}>
+              <Link
+                to={to}
+                className={cn(
+                  'flex h-full flex-col gap-1 rounded-xl border border-border bg-surface px-4 py-4',
+                  'transition-colors hover:border-primary/40 hover:bg-primary/5',
+                )}
+              >
+                <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Icon size={16} className="text-primary" aria-hidden />
+                  {label}
+                </span>
+                <span className="text-xs text-muted">{hint}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 flex flex-wrap gap-3 text-sm">
+          <Link to="/gallery" className="text-primary hover:underline">
+            Browse sketches
+          </Link>
+          <span className="text-border" aria-hidden>
+            ·
+          </span>
+          <Link to="/games" className="text-primary hover:underline">
+            Play games
+          </Link>
+        </div>
+      </section>
+
       {myScores.length > 0 ? (
-        <section className="mb-10">
+        <section className="mb-12">
           <h2 className="font-display text-lg font-semibold">High scores</h2>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {myScores.map((row) => (
@@ -108,34 +187,96 @@ export function AccountPage() {
                 <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-foreground">
                   {row.score.toLocaleString()}
                 </p>
+                <Link
+                  to={`/games/${row.game.slug}`}
+                  className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <Play size={12} aria-hidden />
+                  Play again
+                </Link>
               </li>
             ))}
           </ul>
         </section>
       ) : null}
 
+      <OwnedSection
+        title="Your sketches"
+        emptyLabel="No sketches yet."
+        createLabel="Create your first sketch"
+        items={mySketches}
+        pending={sketchesQuery.isPending}
+        browseTo="/gallery"
+        browseLabel="Browse gallery"
+      />
+
+      <OwnedSection
+        title="Your games"
+        emptyLabel="No games yet. Mark a published sketch as a game in Settings."
+        createLabel="New sketch"
+        items={myGames}
+        pending={sketchesQuery.isPending}
+        browseTo="/games"
+        browseLabel="Browse games"
+        className="mt-12"
+      />
+    </div>
+  )
+}
+
+function OwnedSection({
+  title,
+  emptyLabel,
+  createLabel,
+  items,
+  pending,
+  browseTo,
+  browseLabel,
+  className,
+}: {
+  title: string
+  emptyLabel: string
+  createLabel: string
+  items: SketchCard[]
+  pending: boolean
+  browseTo: string
+  browseLabel: string
+  className?: string
+}) {
+  return (
+    <section className={className}>
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="font-display text-lg font-semibold">Your sketches</h2>
-        <Link to="/gallery" className="text-sm text-primary hover:underline">
-          Browse gallery
+        <h2 className="font-display text-lg font-semibold">{title}</h2>
+        <Link to={browseTo} className="text-sm text-primary hover:underline">
+          {browseLabel}
         </Link>
       </div>
 
-      {sketchesQuery.isPending ? (
-        <p className="text-sm text-muted">Loading sketches…</p>
-      ) : sketches.length === 0 ? (
+      {pending ? (
+        <p className="text-sm text-muted">Loading…</p>
+      ) : items.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center">
-          <p className="text-sm text-muted">No sketches yet.</p>
+          <p className="text-sm text-muted">{emptyLabel}</p>
           <Link to="/sketches/new" className={`${primaryBtnClass} mt-4`}>
-            Create your first sketch
+            {createLabel}
           </Link>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {sketches.map((sketch) => (
+          {items.map((sketch) => (
             <div key={sketch.id} className="space-y-2">
               <SketchCardView sketch={sketch} showStatus />
               <div className="flex flex-wrap gap-2 px-1 text-xs">
+                <Link
+                  to={
+                    sketch.is_game
+                      ? `/games/${sketch.slug}`
+                      : `/sketches/${sketch.slug}`
+                  }
+                  className="text-muted hover:text-primary"
+                >
+                  {sketch.is_game ? 'Play' : 'View'}
+                </Link>
                 <Link
                   to={`/sketches/${sketch.slug}/edit`}
                   className="text-muted hover:text-primary"
@@ -161,6 +302,6 @@ export function AccountPage() {
           ))}
         </div>
       )}
-    </div>
+    </section>
   )
 }

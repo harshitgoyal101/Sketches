@@ -98,10 +98,11 @@ class SketchAdmin(admin.ModelAdmin):
         "is_home_background",
         "landing_ide_theme",
         "is_landing_ide",
+        "is_game",
         "author",
         "published_at",
     ]
-    list_filter = ["status", "sketch_type", "home_background_theme", "tags"]
+    list_filter = ["status", "sketch_type", "is_game", "home_background_theme", "tags"]
     search_fields = ["title", "description", "code"]
     prepopulated_fields = {"slug": ("title",)}
     filter_horizontal = ["tags"]
@@ -120,6 +121,7 @@ class SketchAdmin(admin.ModelAdmin):
                     "is_home_background",
                     "landing_ide_theme",
                     "is_landing_ide",
+                    "is_game",
                     "author",
                     "forked_from",
                     "fork_by",

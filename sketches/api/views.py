@@ -39,13 +39,17 @@ def _published_sketches():
 
 
 def _home_featured_sketches():
-    return _published_sketches().filter(is_home_background=False).exclude(
+    return _published_sketches().filter(is_home_background=False, is_game=False).exclude(
         Q(is_landing_ide=True) | Q(landing_ide_theme__in=["dark", "light"])
     )
 
 
 def _json(data, *, status=200):
     return JsonResponse(data, status=status, json_dumps_params={"ensure_ascii": False})
+
+
+def _truthy_query_flag(value):
+    return str(value or "").strip().lower() in ("1", "true", "yes")
 
 
 @require_GET
@@ -74,7 +78,13 @@ def api_home(request):
 
 @require_GET
 def api_sketch_list(request):
-    queryset, filter_params = apply_sketch_filters(_published_sketches(), request)
+    queryset = _published_sketches()
+    games_only = _truthy_query_flag(request.GET.get("games"))
+    if games_only:
+        queryset = queryset.filter(is_game=True)
+    else:
+        queryset = queryset.filter(is_game=False)
+    queryset, filter_params = apply_sketch_filters(queryset, request)
     paginator = Paginator(queryset, 12)
     page_obj = paginator.get_page(request.GET.get("page"))
     return _json(
@@ -91,6 +101,7 @@ def api_sketch_list(request):
                 "type": filter_params["sketch_types"],
                 "author": filter_params["author_usernames"],
                 "sort": filter_params["sort"],
+                "games": games_only,
             },
         }
     )
@@ -109,30 +120,37 @@ def api_sketch_detail(request, slug):
     if sketch.status != PUBLISHED and not can_edit_sketch(request.user, sketch):
         raise Http404
 
-    first_tag = sketch.tags.first()
-    if first_tag:
-        related_qs = (
-            _published_sketches()
-            .filter(tags=first_tag)
-            .exclude(pk=sketch.pk)[:4]
-        )
+    is_editor = can_edit_sketch(request.user, sketch)
+    # Public game payloads never include source; owners use manage/account APIs.
+    include_source = not sketch.is_game
+    if sketch.is_game:
+        # Play-only for non-owners; owner/staff may edit via IDE/settings.
+        can_edit = is_editor
+        can_fork = False
     else:
-        related_qs = (
-            _published_sketches()
-            .exclude(pk=sketch.pk)
-            .order_by("-published_at", "-updated_at", "-pk")[:4]
-        )
+        can_edit = is_editor
+        can_fork = can_fork_sketch(request.user, sketch)
+
+    first_tag = sketch.tags.first()
+    related_base = _published_sketches().filter(is_game=False)
+    if first_tag:
+        related_qs = related_base.filter(tags=first_tag).exclude(pk=sketch.pk)[:4]
+    else:
+        related_qs = related_base.exclude(pk=sketch.pk).order_by(
+            "-published_at", "-updated_at", "-pk"
+        )[:4]
     forks_qs = (
         _published_sketches()
-        .filter(forked_from=sketch)
+        .filter(forked_from=sketch, is_game=False)
         .order_by("-published_at", "-updated_at", "-pk")[:8]
     )
 
     payload = serialize_sketch_detail(
         sketch,
         request,
-        can_edit=can_edit_sketch(request.user, sketch),
-        can_fork=can_fork_sketch(request.user, sketch),
+        can_edit=can_edit,
+        can_fork=can_fork,
+        include_source=include_source,
     )
     payload["related"] = [serialize_sketch_card(s, request) for s in related_qs]
     payload["forks"] = [serialize_sketch_card(s, request) for s in forks_qs]

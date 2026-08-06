@@ -157,6 +157,10 @@ class Sketch(models.Model):
         choices=[("", "—")] + list(HomeBackgroundTheme.choices),
         help_text="When set, this sketch opens from the home Interactive IDE section for that theme.",
     )
+    is_game = models.BooleanField(
+        default=False,
+        help_text="List on the Games page as play-only (no public source, fork, or edit).",
+    )
     tags = models.ManyToManyField(Tag, blank=True, related_name="sketches")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -417,8 +421,14 @@ class GameScore(models.Model):
     class Meta:
         ordering = ["-score", "-played_at"]
         indexes = [
-            models.Index(fields=["game", "-score"]),
-            models.Index(fields=["user", "game", "-score"]),
+            models.Index(
+                fields=["game", "-score"],
+                name="sketches_ga_game_id_7f0c0a_idx",
+            ),
+            models.Index(
+                fields=["user", "game", "-score"],
+                name="sketches_ga_user_id_6a1b2c_idx",
+            ),
         ]
 
     def __str__(self):
