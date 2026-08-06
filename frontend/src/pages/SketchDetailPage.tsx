@@ -93,9 +93,11 @@ export function SketchDetailPage() {
   }
 
   // Forward pointer into the embed so the page can still scroll over the stage
-  // (iframe uses pointer-events: none unless fullscreen).
+  // (iframe uses pointer-events: none unless fullscreen). In fullscreen the
+  // iframe gets native mouse events — do not forward, or stale _parentMouse*
+  // overrides live mouseX/mouseY in sketch pointer helpers.
   useEffect(() => {
-    if (!embedSrc) return
+    if (!embedSrc || stageFullscreen) return
 
     function sendPointer(clientX: number, clientY: number, phase: string) {
       const iframe = iframeRef.current
@@ -125,7 +127,16 @@ export function SketchDetailPage() {
       window.removeEventListener('pointerdown', onDown)
       window.removeEventListener('pointerup', onUp)
     }
-  }, [embedSrc])
+  }, [embedSrc, stageFullscreen])
+
+  // Tell the embed to drop parent-forwarded coords when entering fullscreen
+  // so pointer helpers fall back to native mouseX/mouseY.
+  useEffect(() => {
+    if (!stageFullscreen) return
+    const win = iframeRef.current?.contentWindow
+    if (!win) return
+    win.postMessage({ type: 'sketch-mouse-clear' }, '*')
+  }, [stageFullscreen])
 
   if (isPending) {
     return (
