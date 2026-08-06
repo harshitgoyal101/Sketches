@@ -213,18 +213,20 @@ export function SketchSettingsPage() {
     const main = files.find((f) => f.is_main) ?? files[0]
     if (main?.content?.trim()) {
       try {
-        return await createPreview({
-          sketch_type: sketch.sketch_type,
-          main_code: main.content,
-          assets: files
-            .filter((f) => !f.is_main)
-            .map((f) => ({
-              asset_type: f.asset_type || 'js',
-              content: f.content,
-            })),
-          mode: 'fullscreen',
-          run_id: Date.now(),
-        })
+        return (
+          await createPreview({
+            sketch_type: sketch.sketch_type,
+            main_code: main.content,
+            assets: files
+              .filter((f) => !f.is_main)
+              .map((f) => ({
+                asset_type: f.asset_type || 'js',
+                content: f.content,
+              })),
+            mode: 'fullscreen',
+            run_id: Date.now(),
+          })
+        ).url
       } catch {
         /* fall through to saved embed */
       }

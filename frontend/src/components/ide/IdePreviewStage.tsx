@@ -5,7 +5,7 @@ import type { PreviewRuntimeError } from '@/lib/previewErrors'
 import { cn } from '@/lib/utils'
 
 type IdePreviewStageProps = {
-  previewUrl: string | null
+  previewHtml: string | null
   previewNonce: number
   running: boolean
   runtimeError: PreviewRuntimeError | null
@@ -18,7 +18,7 @@ type IdePreviewStageProps = {
 }
 
 export function IdePreviewStage({
-  previewUrl,
+  previewHtml,
   previewNonce,
   running,
   runtimeError,
@@ -36,7 +36,7 @@ export function IdePreviewStage({
   useEffect(() => {
     onHostReady?.(hostRef.current)
     return () => onHostReady?.(null)
-  }, [onHostReady, runtimeError, previewUrl])
+  }, [onHostReady, runtimeError, previewHtml])
 
   useEffect(() => {
     function syncFullscreen() {
@@ -109,11 +109,11 @@ export function IdePreviewStage({
             onDismiss={onDismissError}
             variant="panel"
           />
-        ) : previewUrl ? (
+        ) : previewHtml ? (
           <iframe
-            key={`${previewUrl}#${previewNonce}`}
+            key={`preview#${previewNonce}`}
             title="Sketch preview"
-            src={previewUrl}
+            srcDoc={previewHtml}
             className={cn(
               'absolute inset-0 h-full w-full border-0',
               splitting && 'pointer-events-none',

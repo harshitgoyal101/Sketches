@@ -558,12 +558,16 @@ def api_preview(request):
 
     preview_id = uuid.uuid4().hex
     cache.set(
-        _preview_cache_key(request, preview_id),
+        _preview_cache_key(preview_id),
         html,
         PREVIEW_CACHE_TIMEOUT,
     )
     return json_response(
-        {"ok": True, "url": reverse("sketch_preview_embed", kwargs={"preview_id": preview_id})}
+        {
+            "ok": True,
+            "url": reverse("sketch_preview_embed", kwargs={"preview_id": preview_id}),
+            "html": html,
+        }
     )
 
 

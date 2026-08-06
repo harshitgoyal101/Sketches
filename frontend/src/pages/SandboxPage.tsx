@@ -28,7 +28,7 @@ import {
   PROCESSING_IN_P5_MESSAGE,
   type PreviewRuntimeError,
 } from '@/lib/previewErrors'
-import { cn, toEmbedSrc } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 
 const SANDBOX_CLIENT_ID = 'sandbox-default'
@@ -76,7 +76,7 @@ export function SandboxPage() {
     }
   })
   const [running, setRunning] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null)
   const [previewNonce, setPreviewNonce] = useState(0)
   const [filesOpen, setFilesOpen] = useState(() => readFilesOpenPreference())
   const [runtimeError, setRuntimeError] = useState<PreviewRuntimeError | null>(
@@ -227,7 +227,7 @@ export function SandboxPage() {
     }
 
     try {
-      const url = await createPreview({
+      const preview = await createPreview({
         sketch_type: sketchType,
         main_code: mainFile.content,
         assets: files
@@ -240,7 +240,7 @@ export function SandboxPage() {
         run_id: thisRun,
       })
       if (runIdRef.current !== thisRun) return
-      setPreviewUrl(toEmbedSrc(url))
+      setPreviewHtml(preview.html)
       setPreviewNonce((n) => n + 1)
       setStatus('Live')
     } catch (err) {
@@ -260,14 +260,14 @@ export function SandboxPage() {
   }, [files, sketchType, mainFile, runPreview])
 
   const restartPreview = useCallback(() => {
-    if (!previewUrl) {
+    if (!previewHtml) {
       void runPreview()
       return
     }
     setRuntimeError(null)
     setPreviewNonce((n) => n + 1)
     setStatus('Restarted')
-  }, [previewUrl, runPreview])
+  }, [previewHtml, runPreview])
 
   useEffect(() => {
     function onMessage(event: MessageEvent) {
@@ -472,7 +472,7 @@ export function SandboxPage() {
       onRenameError={(message) => setError(message)}
       activeFile={activeFile}
       onChangeContent={updateActiveContent}
-      previewUrl={previewUrl}
+      previewHtml={previewHtml}
       previewNonce={previewNonce}
       runtimeError={runtimeError}
       onRestart={restartPreview}

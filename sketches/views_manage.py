@@ -31,17 +31,13 @@ from .services.thumbnail_generator import (
 )
 
 PUBLISHED = Sketch.Status.PUBLISHED
-PREVIEW_CACHE_TIMEOUT = 120
+PREVIEW_CACHE_TIMEOUT = 600
 
 
-def _preview_cache_key(request, preview_id):
-    if request.user.is_authenticated:
-        owner = str(request.user.pk)
-    else:
-        if not request.session.session_key:
-            request.session.create()
-        owner = f"anon:{request.session.session_key}"
-    return f"sketch_preview:{owner}:{preview_id}"
+def _preview_cache_key(preview_id):
+    # UUID is unguessable; do not scope by user/session — that caused false 404s
+    # when auth/session differed between the POST that cached and the iframe GET.
+    return f"sketch_preview:{preview_id}"
 
 
 @require_POST
@@ -74,18 +70,23 @@ def sketch_preview_cache(request):
 
     preview_id = uuid.uuid4().hex
     cache.set(
-        _preview_cache_key(request, preview_id),
+        _preview_cache_key(preview_id),
         html,
         PREVIEW_CACHE_TIMEOUT,
     )
-    return JsonResponse({"url": reverse("sketch_preview_embed", kwargs={"preview_id": preview_id})})
+    return JsonResponse(
+        {
+            "url": reverse("sketch_preview_embed", kwargs={"preview_id": preview_id}),
+            "html": html,
+        }
+    )
 
 
 @xframe_options_sameorigin
 def sketch_preview_embed(request, preview_id):
-    html = cache.get(_preview_cache_key(request, preview_id))
+    html = cache.get(_preview_cache_key(preview_id))
     if html is None:
-        raise Http404
+        raise Http404("Preview expired. Run the sketch again.")
     return HttpResponse(html, content_type="text/html; charset=utf-8")
 
 

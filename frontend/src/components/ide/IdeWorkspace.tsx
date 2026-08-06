@@ -25,7 +25,7 @@ type MobileTab = 'code' | 'preview'
 type IdeWorkspaceProps = {
   activeFile: IdeFile | null
   onChangeContent: (content: string) => void
-  previewUrl: string | null
+  previewHtml: string | null
   previewNonce: number
   running: boolean
   runtimeError: PreviewRuntimeError | null
@@ -41,7 +41,7 @@ type IdeWorkspaceProps = {
 export function IdeWorkspace({
   activeFile,
   onChangeContent,
-  previewUrl,
+  previewHtml,
   previewNonce,
   running,
   runtimeError,
@@ -142,7 +142,7 @@ export function IdeWorkspace({
   }, [])
 
   useEffect(() => {
-    if (!previewHost || !previewUrl) return
+    if (!previewHost || !previewHtml) return
 
     let lastW = 0
     let lastH = 0
@@ -172,7 +172,7 @@ export function IdeWorkspace({
         previewRestartTimer.current = 0
       }
     }
-  }, [previewHost, previewUrl, schedulePreviewRestart])
+  }, [previewHost, previewHtml, schedulePreviewRestart])
 
   useEffect(() => {
     if (mobileTab !== 'preview') return
@@ -350,7 +350,7 @@ export function IdeWorkspace({
         </div>
 
         <IdePreviewStage
-          previewUrl={previewUrl}
+          previewHtml={previewHtml}
           previewNonce={previewNonce}
           running={running}
           runtimeError={runtimeError}

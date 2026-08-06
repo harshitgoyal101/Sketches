@@ -961,6 +961,8 @@ class ProcessingPreviewViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertIn("url", payload)
+        self.assertIn("html", payload)
+        self.assertIn("new Processing(canvas", payload["html"])
 
         embed_response = client.get(payload["url"])
         self.assertEqual(embed_response.status_code, 200)
@@ -1927,8 +1929,11 @@ class IdeApiTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 200)
-        url = response.json()["url"]
+        payload = response.json()
+        url = payload["url"]
         self.assertTrue(url.startswith("/accounts/sketches/preview/"))
+        self.assertIn("html", payload)
+        self.assertIn("function setup", payload["html"])
         embed = self.client.get(url)
         self.assertEqual(embed.status_code, 200)
         self.assertIn("function setup", embed.content.decode())

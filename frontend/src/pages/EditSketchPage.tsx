@@ -25,7 +25,7 @@ import {
   PROCESSING_IN_P5_MESSAGE,
   type PreviewRuntimeError,
 } from '@/lib/previewErrors'
-import { cn, toEmbedSrc } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import type { SourceFile } from '@/types/sketch'
 
 function filesFromSketch(sketch: {
@@ -66,7 +66,7 @@ export function EditSketchPage() {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [running, setRunning] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null)
   const [previewNonce, setPreviewNonce] = useState(0)
   const [filesOpen, setFilesOpen] = useState(() => readFilesOpenPreference())
   const [runtimeError, setRuntimeError] = useState<PreviewRuntimeError | null>(
@@ -209,7 +209,7 @@ export function EditSketchPage() {
     }
 
     try {
-      const url = await createPreview({
+      const preview = await createPreview({
         sketch_type: sketchQuery.data.sketch_type,
         main_code: mainFile.content,
         assets: files
@@ -222,7 +222,7 @@ export function EditSketchPage() {
         run_id: thisRun,
       })
       if (runIdRef.current !== thisRun) return
-      setPreviewUrl(toEmbedSrc(url))
+      setPreviewHtml(preview.html)
       setPreviewNonce((n) => n + 1)
       setStatus('Live')
     } catch (err) {
@@ -242,14 +242,14 @@ export function EditSketchPage() {
   }, [files, mainFile, runPreview, sketchQuery.data?.slug])
 
   const restartPreview = useCallback(() => {
-    if (!previewUrl) {
+    if (!previewHtml) {
       void runPreview()
       return
     }
     setRuntimeError(null)
     setPreviewNonce((n) => n + 1)
     setStatus('Restarted')
-  }, [previewUrl, runPreview])
+  }, [previewHtml, runPreview])
 
   useEffect(() => {
     function onMessage(event: MessageEvent) {
@@ -391,7 +391,7 @@ export function EditSketchPage() {
       onRenameError={(message) => setError(message)}
       activeFile={activeFile}
       onChangeContent={updateActiveContent}
-      previewUrl={previewUrl}
+      previewHtml={previewHtml}
       previewNonce={previewNonce}
       runtimeError={runtimeError}
       onRestart={restartPreview}

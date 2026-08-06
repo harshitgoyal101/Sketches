@@ -212,6 +212,18 @@ SKETCH_THUMBNAIL_SETTLE_MS = 2000
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
+# Shared across workers (LocMem is per-process and breaks live preview iframes
+# when POST /api/preview/ and GET /accounts/sketches/preview/<id>/ hit different
+# processes — common on PythonAnywhere / multi-worker deploys).
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": str(BASE_DIR / ".cache" / "django"),
+        "TIMEOUT": 300,
+        "OPTIONS": {"MAX_ENTRIES": 1000},
+    }
+}
+
 # Allow Google Identity Services popup to return the credential to this window.
 # Default Django "same-origin" severs window.opener and strands users on
 # accounts.google.com/gsi/transform.

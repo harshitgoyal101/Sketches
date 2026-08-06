@@ -345,13 +345,18 @@ export type PreviewPayload = {
   run_id?: number
 }
 
-export async function createPreview(payload: PreviewPayload): Promise<string> {
-  const data = await fetchJson<{ ok: boolean; url: string }>('/api/preview/', {
+export type PreviewResult = {
+  url: string
+  html: string
+}
+
+export async function createPreview(payload: PreviewPayload): Promise<PreviewResult> {
+  const data = await fetchJson<{ ok: boolean; url: string; html: string }>('/api/preview/', {
     method: 'POST',
     body: payload,
     fallbackMessage: 'Preview failed',
   })
-  return data.url
+  return { url: data.url, html: data.html }
 }
 
 export type SaveSourcePayload = {

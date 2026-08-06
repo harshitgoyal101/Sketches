@@ -28,7 +28,7 @@ type SketchIdeShellProps = {
   onRenameError?: (message: string | null) => void
   activeFile: IdeFile | null
   onChangeContent: (content: string) => void
-  previewUrl: string | null
+  previewHtml: string | null
   previewNonce: number
   runtimeError: PreviewRuntimeError | null
   onRestart: () => void
@@ -63,7 +63,7 @@ export function SketchIdeShell({
   onRenameError,
   activeFile,
   onChangeContent,
-  previewUrl,
+  previewHtml,
   previewNonce,
   runtimeError,
   onRestart,
@@ -154,7 +154,7 @@ export function SketchIdeShell({
           <IdeWorkspace
             activeFile={activeFile}
             onChangeContent={onChangeContent}
-            previewUrl={previewUrl}
+            previewHtml={previewHtml}
             previewNonce={previewNonce}
             running={running}
             runtimeError={runtimeError}

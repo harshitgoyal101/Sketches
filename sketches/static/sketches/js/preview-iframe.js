@@ -21,6 +21,13 @@ window.SketchPreviewIframe = (function () {
     }
 
     const payload = await response.json();
+    // Prefer srcdoc so preview works even if the short-lived cache URL 404s
+    // (multi-worker LocMem, expiry, session key mismatch).
+    if (payload.html) {
+      iframe.removeAttribute("src");
+      iframe.srcdoc = payload.html;
+      return;
+    }
     iframe.removeAttribute("srcdoc");
     iframe.src = payload.url;
   }
