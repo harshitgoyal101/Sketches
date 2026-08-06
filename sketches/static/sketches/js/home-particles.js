@@ -1,22 +1,21 @@
 /**
  * Particle-network home background (Django fallback).
- * Same motion everywhere: random wander, mutual + mouse repulsion.
- * Density scales with canvas size. Light theme uses deeper purple.
+ * Dense mesh, strong mouse/touch repulsion. Dark theme = bright white.
  */
 (function () {
   var SPEED_MIN = 0.12;
   var SPEED_MAX = 0.38;
-  var REPEL_DIST = 56;
-  var REPEL_STRENGTH = 0.045;
-  var MAX_SPEED = 0.55;
-  var DAMPING = 0.992;
-  var WANDER = 0.018;
-  var MOUSE_REPEL_DIST = 140;
-  var MOUSE_REPEL_STRENGTH = 0.085;
-  var MAX_DIST = 140;
-  var PX_PER_PARTICLE = 12000;
-  var MIN_PARTICLES = 24;
-  var MAX_PARTICLES = 140;
+  var REPEL_DIST = 52;
+  var REPEL_STRENGTH = 0.04;
+  var MAX_SPEED = 1.45;
+  var DAMPING = 0.986;
+  var WANDER = 0.016;
+  var MOUSE_REPEL_DIST = 240;
+  var MOUSE_REPEL_STRENGTH = 0.32;
+  var MAX_DIST = 128;
+  var PX_PER_PARTICLE = 5500;
+  var MIN_PARTICLES = 56;
+  var MAX_PARTICLES = 240;
 
   function randomSlowVelocity() {
     var angle = Math.random() * Math.PI * 2;
@@ -79,8 +78,8 @@
       return {
         bg: [13, 13, 13],
         col: [255, 255, 255],
-        dotA: 0.5,
-        lineA: 0.13,
+        dotA: 0.78,
+        lineA: 0.26,
       };
     }
 
@@ -103,7 +102,7 @@
           y: Math.random() * H,
           vx: v.vx,
           vy: v.vy,
-          r: 1.5 + Math.random() * 1.5,
+          r: 1.4 + Math.random() * 1.4,
         });
       }
     }
@@ -149,7 +148,7 @@
 
     function applyMouseRepulsion() {
       if (!mouseActive) return;
-      var i, n, dx, dy, d2, dist, force;
+      var i, n, dx, dy, d2, dist, t, force;
       for (i = 0; i < nodes.length; i++) {
         n = nodes[i];
         dx = n.x - mouseX;
@@ -157,9 +156,8 @@
         d2 = dx * dx + dy * dy;
         if (d2 === 0 || d2 > mouseRepelDist2) continue;
         dist = Math.sqrt(d2);
-        force =
-          ((MOUSE_REPEL_DIST - dist) / MOUSE_REPEL_DIST) *
-          MOUSE_REPEL_STRENGTH;
+        t = 1 - dist / MOUSE_REPEL_DIST;
+        force = t * t * MOUSE_REPEL_STRENGTH;
         n.vx += (dx / dist) * force;
         n.vy += (dy / dist) * force;
       }

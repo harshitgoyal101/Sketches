@@ -12,18 +12,19 @@ type Node = {
 
 const SPEED_MIN = 0.12
 const SPEED_MAX = 0.38
-const REPEL_DIST = 56
-const REPEL_STRENGTH = 0.045
-const MAX_SPEED = 0.55
-const DAMPING = 0.992
-const WANDER = 0.018
-const MOUSE_REPEL_DIST = 140
-const MOUSE_REPEL_STRENGTH = 0.085
-const MAX_DIST = 140
-/** One particle roughly per this many CSS px² */
-const PX_PER_PARTICLE = 12_000
-const MIN_PARTICLES = 24
-const MAX_PARTICLES = 140
+const REPEL_DIST = 52
+const REPEL_STRENGTH = 0.04
+const MAX_SPEED = 1.45
+const DAMPING = 0.986
+const WANDER = 0.016
+/** Wide, strong cursor push — denser field needs a bigger influence radius. */
+const MOUSE_REPEL_DIST = 240
+const MOUSE_REPEL_STRENGTH = 0.32
+const MAX_DIST = 128
+/** One particle roughly per this many CSS px² (lower = denser). */
+const PX_PER_PARTICLE = 5_500
+const MIN_PARTICLES = 56
+const MAX_PARTICLES = 240
 
 function randomSlowVelocity(): { vx: number; vy: number } {
   const angle = Math.random() * Math.PI * 2
@@ -52,9 +53,8 @@ function particleCount(width: number, height: number) {
 }
 
 /**
- * Home hero particle network: slow random drift, soft mutual repulsion,
- * and cursor repulsion. Density scales with canvas size; same motion on
- * every viewport. Light theme uses a deeper purple so dots pop.
+ * Home hero particle network: denser field, strong cursor repulsion.
+ * Dark theme: bright white mesh. Light theme: deep purple.
  */
 export function HomeParticles() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -93,8 +93,8 @@ export function HomeParticles() {
       return {
         bg: [13, 13, 13] as const,
         col: [255, 255, 255] as const,
-        dotA: 0.5,
-        lineA: 0.13,
+        dotA: 0.78,
+        lineA: 0.26,
       }
     }
 
@@ -117,7 +117,7 @@ export function HomeParticles() {
           y: Math.random() * H,
           vx,
           vy,
-          r: 1.5 + Math.random() * 1.5,
+          r: 1.4 + Math.random() * 1.4,
         })
       }
     }
@@ -168,9 +168,9 @@ export function HomeParticles() {
         const d2 = dx * dx + dy * dy
         if (d2 === 0 || d2 > mouseRepelDist2) continue
         const dist = Math.sqrt(d2)
-        const force =
-          ((MOUSE_REPEL_DIST - dist) / MOUSE_REPEL_DIST) *
-          MOUSE_REPEL_STRENGTH
+        // Quadratic falloff — strong near cursor, still feels interactive at edge
+        const t = 1 - dist / MOUSE_REPEL_DIST
+        const force = t * t * MOUSE_REPEL_STRENGTH
         n.vx += (dx / dist) * force
         n.vy += (dy / dist) * force
       }

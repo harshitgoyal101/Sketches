@@ -9,25 +9,27 @@ from sketches.models import Sketch
 MESH_PALETTES = {
     Sketch.HomeBackgroundTheme.DARK: {
         "bg": (13, 13, 13),
-        "dot_a": 0.5,
-        "line_max_a": 0.13,
+        "dot_a": 0.78,
+        "line_max_a": 0.26,
         "col": (255, 255, 255),
     },
     Sketch.HomeBackgroundTheme.LIGHT: {
         "bg": (248, 250, 252),
-        "dot_a": 0.35,
-        "line_max_a": 0.08,
-        "col": (123, 97, 255),
+        "dot_a": 0.55,
+        "line_max_a": 0.14,
+        "col": (72, 42, 210),
     },
 }
 
 
 def build_mesh_code(*, bg, dot_a, line_max_a, col):
-    return f"""const N = 90;
-const MAX_DIST = 150;
-const REPEL_R = 110;
-const REPEL_F = 0.9;
-const MAX_SPEED = 1.2;
+    return f"""const PX_PER = 5500;
+const MIN_N = 56;
+const MAX_N = 240;
+const MAX_DIST = 128;
+const REPEL_R = 240;
+const REPEL_F = 2.6;
+const MAX_SPEED = 2.4;
 const BG = [{bg[0]}, {bg[1]}, {bg[2]}];
 const DOT_A = {dot_a};
 const LINE_MAX_A = {line_max_a};
@@ -56,6 +58,11 @@ function targetPixelDensity() {{
   return Math.min(dpr, 2);
 }}
 
+function particleCount() {{
+  const area = Math.max(0, width) * Math.max(0, height);
+  return Math.min(MAX_N, Math.max(MIN_N, Math.round(area / PX_PER)));
+}}
+
 function applyCanvas() {{
   resizeCanvas(windowWidth, windowHeight);
   pixelDensity(targetPixelDensity());
@@ -74,13 +81,14 @@ function windowResized() {{
 
 function initNodes() {{
   nodes = [];
-  for (let i = 0; i < N; i++) {{
+  const n = particleCount();
+  for (let i = 0; i < n; i++) {{
     nodes.push({{
       x: random(width),
       y: random(height),
       vx: random(-0.25, 0.25),
       vy: random(-0.25, 0.25),
-      r: random(1.5, 3.0),
+      r: random(1.4, 2.8),
     }});
   }}
 }}
@@ -101,12 +109,13 @@ function draw() {{
     const ry = n.y - my;
     const rd = Math.sqrt(rx * rx + ry * ry);
     if (rd < REPEL_R && rd > 0) {{
-      const f = (1 - rd / REPEL_R) * REPEL_F;
+      const t = 1 - rd / REPEL_R;
+      const f = t * t * REPEL_F;
       n.vx += (rx / rd) * f;
       n.vy += (ry / rd) * f;
     }}
-    n.vx *= 0.97;
-    n.vy *= 0.97;
+    n.vx *= 0.986;
+    n.vy *= 0.986;
     const spd = Math.sqrt(n.vx * n.vx + n.vy * n.vy);
     if (spd > MAX_SPEED) {{
       n.vx = (n.vx / spd) * MAX_SPEED;
