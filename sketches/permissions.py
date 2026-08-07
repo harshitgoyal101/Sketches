@@ -2,7 +2,7 @@ from .models import Sketch
 
 
 def can_edit_sketch(user, sketch=None):
-    """Authors may edit their own sketches; staff/admins may edit any sketch."""
+    """Authors may edit their own sketches; staff may edit any sketch."""
     if not user.is_authenticated:
         return False
     if sketch is None:
@@ -11,26 +11,14 @@ def can_edit_sketch(user, sketch=None):
 
 
 def can_access_sketch_editor(user, sketch):
-    """Who may open the live IDE for a sketch.
-
-    - Games: owner or staff only (play-only for everyone else).
-    - Published non-games: anyone can open the browser editor.
-    - Drafts: owner or staff only.
-    """
-    if getattr(sketch, "is_game", False):
-        return can_edit_sketch(user, sketch)
+    """Published sketches are editable in the browser by anyone; drafts stay private."""
     if sketch.status == Sketch.Status.PUBLISHED:
         return True
     return can_edit_sketch(user, sketch)
 
 
 def can_fork_sketch(user, sketch):
-    """Logged-in non-authors may fork published sketches into their own account.
-
-    Games cannot be forked (keeps source private).
-    """
-    if getattr(sketch, "is_game", False):
-        return False
+    """Logged-in non-authors may fork published sketches into their own account."""
     if not user.is_authenticated:
         return False
     if can_edit_sketch(user, sketch):

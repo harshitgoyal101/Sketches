@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { RotateCcw } from 'lucide-react'
+import { Pause, Play, RotateCcw } from 'lucide-react'
 import { ApiError } from '@/api/client'
 import {
   createPreview,
@@ -66,6 +66,7 @@ export function EditSketchPage() {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [running, setRunning] = useState(false)
+  const [previewPaused, setPreviewPaused] = useState(false)
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
   const [previewNonce, setPreviewNonce] = useState(0)
   const [filesOpen, setFilesOpen] = useState(() => readFilesOpenPreference())
@@ -234,12 +235,28 @@ export function EditSketchPage() {
   }, [files, mainFile, sketchQuery.data])
 
   useEffect(() => {
-    if (!mainFile || !sketchQuery.data) return
+    if (!mainFile || !sketchQuery.data || previewPaused) return
     const timer = window.setTimeout(() => {
       void runPreview()
     }, IDE_AUTO_RUN_MS)
     return () => window.clearTimeout(timer)
-  }, [files, mainFile, runPreview, sketchQuery.data?.slug])
+  }, [files, mainFile, previewPaused, runPreview, sketchQuery.data?.slug])
+
+  const togglePreviewPause = useCallback(() => {
+    setPreviewPaused((paused) => {
+      const next = !paused
+      if (next) {
+        setStatus('Paused')
+        setRunning(false)
+      } else {
+        setStatus('Live')
+        queueMicrotask(() => {
+          void runPreview()
+        })
+      }
+      return next
+    })
+  }, [runPreview])
 
   const restartPreview = useCallback(() => {
     if (!previewHtml) {
@@ -248,15 +265,15 @@ export function EditSketchPage() {
     }
     setRuntimeError(null)
     setPreviewNonce((n) => n + 1)
-    setStatus('Restarted')
-  }, [previewHtml, runPreview])
+    setStatus(previewPaused ? 'Paused' : 'Restarted')
+  }, [previewHtml, previewPaused, runPreview])
 
   useEffect(() => {
     function onMessage(event: MessageEvent) {
       const data = event.data
       if (!data || typeof data !== 'object') return
       if (data.type === 'sketch-preview-restart') {
-        if (runtimeErrorRef.current) return
+        if (runtimeErrorRef.current || previewPaused) return
         restartPreview()
         return
       }
@@ -279,7 +296,12 @@ export function EditSketchPage() {
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [mainFile?.content, restartPreview, sketchQuery.data?.sketch_type])
+  }, [
+    mainFile?.content,
+    previewPaused,
+    restartPreview,
+    sketchQuery.data?.sketch_type,
+  ])
 
   const save = useCallback(async () => {
     if (!slug || !mainFile) return
@@ -350,6 +372,7 @@ export function EditSketchPage() {
         setDirty(true)
       }}
       running={running}
+      previewPaused={previewPaused}
       status={status}
       dirty={dirty}
       error={error}
@@ -357,6 +380,25 @@ export function EditSketchPage() {
       loadingLabel="Loading editor…"
       toolbar={
         <>
+          <button
+            type="button"
+            onClick={togglePreviewPause}
+            disabled={!mainFile}
+            className={cn(secondaryBtnClass, 'h-8 cursor-pointer gap-1.5 !px-2.5 !py-1 text-xs')}
+            title={
+              previewPaused
+                ? 'Resume live preview (auto-reload while editing)'
+                : 'Pause live preview (stop auto-reload while editing)'
+            }
+            aria-pressed={previewPaused}
+          >
+            {previewPaused ? (
+              <Play size={13} aria-hidden />
+            ) : (
+              <Pause size={13} aria-hidden />
+            )}
+            {previewPaused ? 'Resume' : 'Pause'}
+          </button>
           <button
             type="button"
             onClick={restartPreview}
@@ -410,7 +452,7 @@ export function EditSketchPage() {
       runtimeError={runtimeError}
       onRestart={restartPreview}
       onDismissError={() => setRuntimeError(null)}
-      onPreviewResizeRestart={restartPreview}
+      onPreviewResizeRestart={previewPaused ? () => {} : restartPreview}
       onSave={save}
     />
   )

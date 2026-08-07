@@ -45,7 +45,7 @@ def _published_sketches():
 
 def _home_featured_sketches():
     """Published sketches shown on the home page grid (excludes live background)."""
-    return _published_sketches().filter(is_home_background=False, is_game=False).exclude(
+    return _published_sketches().filter(is_home_background=False).exclude(
         Q(is_landing_ide=True) | Q(landing_ide_theme__in=["dark", "light"])
     )
 
@@ -86,8 +86,8 @@ def landing_ide_redirect(request):
 
 
 def _gallery_sketches():
-    """All published sketches for gallery list, tags, and search (excludes games)."""
-    return _published_sketches().filter(is_game=False)
+    """All published sketches for gallery list, tags, and search."""
+    return _published_sketches()
 
 
 def _get_sketch_file_content(sketch, filename):

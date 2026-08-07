@@ -7,8 +7,6 @@ import { GuestProvider } from '@/guest/GuestProvider'
 import { ThemeProvider } from '@/theme/ThemeProvider'
 import { HomePage } from '@/pages/HomePage'
 import { GalleryPage } from '@/pages/GalleryPage'
-import { GamesPage } from '@/pages/GamesPage'
-import { GamePlayPage } from '@/pages/GamePlayPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { SignupPage } from '@/pages/SignupPage'
 import { SketchDetailPage } from '@/pages/SketchDetailPage'
@@ -57,8 +55,6 @@ export default function App() {
                 <Route element={<AppShell />}>
                   <Route index element={<HomePage />} />
                   <Route path="gallery" element={<GalleryPage />} />
-                  <Route path="games" element={<GamesPage />} />
-                  <Route path="games/:slug" element={<GamePlayPage />} />
                   <Route path="sketches/new" element={<CreateSketchPage />} />
                   <Route
                     path="sandbox"

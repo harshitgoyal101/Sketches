@@ -12,6 +12,7 @@ type SketchIdeShellProps = {
   onTitleChange: (title: string) => void
   titlePlaceholder?: string
   running: boolean
+  previewPaused?: boolean
   status: string | null
   dirty: boolean
   error: string | null
@@ -47,6 +48,7 @@ export function SketchIdeShell({
   onTitleChange,
   titlePlaceholder = 'Untitled sketch',
   running,
+  previewPaused = false,
   status,
   dirty,
   error,
@@ -110,16 +112,22 @@ export function SketchIdeShell({
               'hidden items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] sm:inline-flex',
               running
                 ? 'border-primary/35 text-primary'
-                : 'border-border/80 text-muted',
+                : previewPaused
+                  ? 'border-amber-500/40 text-amber-600 dark:text-amber-400'
+                  : 'border-border/80 text-muted',
             )}
           >
             <span
               className={cn(
                 'h-1.5 w-1.5 rounded-full',
-                running ? 'animate-pulse bg-primary' : 'bg-muted',
+                running
+                  ? 'animate-pulse bg-primary'
+                  : previewPaused
+                    ? 'bg-amber-500'
+                    : 'bg-muted',
               )}
             />
-            {running ? 'Updating…' : status || 'Live'}
+            {running ? 'Updating…' : previewPaused ? 'Paused' : status || 'Live'}
           </span>
           {dirty ? (
             <span className="hidden text-[11px] text-primary md:inline">Unsaved</span>
@@ -157,6 +165,7 @@ export function SketchIdeShell({
             previewHtml={previewHtml}
             previewNonce={previewNonce}
             running={running}
+            previewPaused={previewPaused}
             runtimeError={runtimeError}
             onRestart={onRestart}
             onDismissError={onDismissError}

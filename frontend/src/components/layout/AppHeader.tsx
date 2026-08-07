@@ -1,25 +1,19 @@
-import {
-  type FormEvent,
-  type ReactNode,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from 'react'
+import { type FormEvent, useEffect, useId, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Menu, Search, X } from 'lucide-react'
 import { useAuth } from '@/auth/AuthProvider'
 import { BrandLogo } from '@/components/BrandLogo'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { useContinueSketch } from '@/hooks/useContinueSketch'
 import { useTheme } from '@/theme/ThemeProvider'
 import { useGuest } from '@/guest/GuestProvider'
 import { cn } from '@/lib/utils'
 
-/** Primary public destinations only — everything else lives on Account. */
 const DESKTOP_NAV = [
   { to: '/', label: 'Home', end: true },
-  { to: '/gallery', label: 'Sketches' },
-  { to: '/games', label: 'Games' },
+  { to: '/gallery', label: 'Explore' },
+  { to: '/explore/today', label: 'Today' },
+  { to: '/saved', label: 'Saved' },
 ] as const
 
 type AppHeaderProps = {
@@ -30,6 +24,7 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
   const { theme } = useTheme()
   const { user, isLoading, logout } = useAuth()
   const { requireAuth } = useGuest()
+  const { continueSketch } = useContinueSketch()
   const location = useLocation()
   const navigate = useNavigate()
   const [scrolled, setScrolled] = useState(false)
@@ -95,11 +90,11 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
 
   function onGetStarted() {
     if (user) {
-      navigate('/account')
+      navigate('/sketches/new')
       return
     }
     if (requireAuth({ type: 'create' })) {
-      navigate('/account')
+      navigate('/sketches/new')
     }
   }
 
@@ -122,35 +117,31 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
       'rounded-btn px-2.5 py-1.5 text-sm font-medium transition-colors duration-200',
-      overHeroDark
-        ? isActive
-          ? 'bg-white/15 text-white'
-          : 'text-white/75 hover:bg-white/10 hover:text-white'
-        : isActive
-          ? 'bg-primary/10 text-primary'
-          : 'text-muted hover:bg-primary/5 hover:text-foreground',
+      isActive
+        ? overHeroDark
+          ? 'text-white'
+          : 'text-primary'
+        : overHeroDark
+          ? 'text-white/65 hover:text-white'
+          : 'text-muted hover:text-foreground',
     )
 
   return (
     <>
       <header
         className={cn(
-          'sticky top-0 z-50 border-b transition-[background-color,border-color,backdrop-filter] duration-300',
+          'sticky top-0 z-50 transition-[background,border-color,backdrop-filter] duration-300',
           overHero
-            ? 'border-transparent bg-transparent'
-            : 'border-border/80 bg-background/80 backdrop-blur-md',
+            ? 'border-b border-transparent bg-transparent'
+            : 'glass-nav border-b border-border',
         )}
       >
-        <div className="mx-auto flex h-14 max-w-[75rem] items-center gap-3 px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="shrink-0" aria-label="Sketches101 home">
-            <BrandLogo
-              className={cn(overHeroDark && '[&_*]:text-white [&_span]:text-white')}
-            />
-          </Link>
+        <div className="mx-auto flex h-16 max-w-[75rem] items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
+          <BrandLogo onDark={overHeroDark} />
 
           <nav
-            className="ml-2 hidden items-center gap-0.5 md:flex"
-            aria-label="Primary"
+            className="ml-1 hidden items-center gap-0.5 lg:flex"
+            aria-label="Main"
           >
             {DESKTOP_NAV.map((item) => (
               <NavLink
@@ -185,7 +176,7 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search sketches…"
+                placeholder="Search…"
                 className={cn(
                   'h-9 w-full rounded-btn border bg-transparent py-2 pl-9 pr-3 text-sm outline-none transition-[border-color,background-color] duration-200 placeholder:text-muted focus:border-primary',
                   overHeroDark
@@ -200,56 +191,79 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
             <ThemeToggle overHero={overHeroDark} />
 
             {!isLoading && user ? (
-              <div className="relative" ref={accountRef}>
-                <button
-                  type="button"
-                  className={cn(
-                    'inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-btn border text-xs font-semibold uppercase transition-colors duration-200',
-                    overHeroDark
-                      ? 'border-white/30 bg-white/10 text-white hover:bg-white/15'
-                      : 'border-border bg-surface text-foreground hover:border-primary/40',
-                  )}
-                  aria-expanded={accountOpen}
-                  aria-haspopup="menu"
-                  onClick={() => setAccountOpen((v) => !v)}
-                >
-                  {initials}
-                </button>
-                {accountOpen ? (
-                  <div
-                    role="menu"
-                    className="absolute right-0 mt-2 w-56 overflow-hidden rounded-btn border border-border bg-surface shadow-lg"
+              <>
+                {continueSketch ? (
+                  <Link
+                    to={`/sketches/${continueSketch.slug}/edit`}
+                    className={cn(
+                      'hidden xl:inline-flex',
+                      loginBtn,
+                      'font-medium',
+                    )}
+                    title={`Continue editing ${continueSketch.title}`}
                   >
-                    <div className="border-b border-border px-3.5 py-2.5">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {user.username}
-                      </p>
-                      {user.email ? (
-                        <p className="truncate text-xs text-muted">{user.email}</p>
-                      ) : null}
-                    </div>
-                    <Link
-                      to="/account"
-                      role="menuitem"
-                      className="block px-3.5 py-2.5 text-sm text-foreground transition-colors hover:bg-primary/10"
-                      onClick={() => setAccountOpen(false)}
-                    >
-                      Account
-                    </Link>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="block w-full cursor-pointer px-3.5 py-2.5 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
-                      onClick={() => {
-                        setAccountOpen(false)
-                        void logout()
-                      }}
-                    >
-                      Log out
-                    </button>
-                  </div>
+                    Continue
+                  </Link>
                 ) : null}
-              </div>
+                <div className="relative" ref={accountRef}>
+                  <button
+                    type="button"
+                    className={cn(
+                      'inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-btn border text-xs font-semibold uppercase transition-colors duration-200',
+                      overHeroDark
+                        ? 'border-white/30 bg-white/10 text-white hover:bg-white/15'
+                        : 'border-border bg-surface text-foreground hover:border-primary/40',
+                    )}
+                    aria-expanded={accountOpen}
+                    aria-haspopup="menu"
+                    onClick={() => setAccountOpen((v) => !v)}
+                  >
+                    {initials}
+                  </button>
+                  {accountOpen ? (
+                    <div
+                      role="menu"
+                      className="absolute right-0 mt-2 w-56 overflow-hidden rounded-btn border border-border bg-surface shadow-lg"
+                    >
+                      <div className="border-b border-border px-3.5 py-2.5">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {user.username}
+                        </p>
+                        {user.email ? (
+                          <p className="truncate text-xs text-muted">{user.email}</p>
+                        ) : null}
+                      </div>
+                      <Link
+                        to="/account"
+                        role="menuitem"
+                        className="block px-3.5 py-2.5 text-sm text-foreground transition-colors hover:bg-primary/10"
+                        onClick={() => setAccountOpen(false)}
+                      >
+                        My Sketches
+                      </Link>
+                      <Link
+                        to="/sketches/new"
+                        role="menuitem"
+                        className="block px-3.5 py-2.5 text-sm text-foreground transition-colors hover:bg-primary/10"
+                        onClick={() => setAccountOpen(false)}
+                      >
+                        New Sketch
+                      </Link>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="block w-full cursor-pointer px-3.5 py-2.5 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
+                        onClick={() => {
+                          setAccountOpen(false)
+                          void logout()
+                        }}
+                      >
+                        Log out
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </>
             ) : (
               <>
                 <Link to="/login" className={loginBtn}>
@@ -269,22 +283,24 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
               className={cn(
                 'inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-btn border transition-colors duration-200',
                 overHeroDark
-                  ? 'border-white/30 text-white hover:bg-white/10'
-                  : 'border-border text-foreground hover:bg-primary/5',
+                  ? 'border-white/25 text-white hover:bg-white/10'
+                  : 'border-border text-muted hover:text-foreground',
               )}
-              aria-label="Open menu"
               aria-expanded={menuOpen}
-              onClick={() => setMenuOpen(true)}
+              aria-controls="mobile-nav-drawer"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              onClick={() => setMenuOpen((v) => !v)}
             >
-              <Menu size={18} />
+              {menuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
         </div>
       </header>
 
+      {/* Mobile drawer */}
       <div
         className={cn(
-          'fixed inset-0 z-[60] lg:hidden',
+          'fixed inset-0 z-40 lg:hidden',
           menuOpen ? 'pointer-events-auto' : 'pointer-events-none',
         )}
         aria-hidden={!menuOpen}
@@ -292,22 +308,23 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
         <button
           type="button"
           className={cn(
-            'absolute inset-0 cursor-pointer bg-black/50 transition-opacity',
+            'absolute inset-0 bg-black/50 transition-opacity',
             menuOpen ? 'opacity-100' : 'opacity-0',
           )}
           aria-label="Close menu"
           onClick={() => setMenuOpen(false)}
         />
         <div
+          id="mobile-nav-drawer"
           role="dialog"
           aria-modal="true"
           aria-labelledby={menuTitleId}
           className={cn(
-            'absolute inset-y-0 right-0 flex w-[min(100%,20rem)] flex-col bg-background shadow-xl transition-transform duration-300',
+            'absolute right-0 top-0 flex h-full w-[min(100%,20rem)] flex-col border-l border-border bg-surface shadow-xl transition-transform duration-300',
             menuOpen ? 'translate-x-0' : 'translate-x-full',
           )}
         >
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div className="flex items-center justify-between border-b border-border px-4 py-4">
             <div id={menuTitleId}>
               <BrandLogo />
             </div>
@@ -335,7 +352,7 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search sketches…"
+                placeholder="Search…"
                 className="h-10 w-full rounded-btn border border-border bg-background py-2.5 pl-9 pr-3 text-sm text-foreground outline-none focus:border-primary"
               />
             </div>
@@ -345,11 +362,23 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
             <MobileLink to="/" end>
               Home
             </MobileLink>
-            <MobileLink to="/gallery">Sketches</MobileLink>
-            <MobileLink to="/games">Games</MobileLink>
+            <MobileLink to="/gallery">Explore</MobileLink>
+            <MobileLink to="/explore/today">Today</MobileLink>
+            <MobileLink to="/saved">Saved</MobileLink>
             {!isLoading && user ? (
               <>
-                <MobileLink to="/account">Account</MobileLink>
+                {continueSketch ? (
+                  <Link
+                    to={`/sketches/${continueSketch.slug}/edit`}
+                    className="rounded-btn px-3 py-3 text-sm font-medium text-primary hover:bg-primary/10"
+                    onClick={() => setMenuOpen(false)}
+                    title={`Continue editing ${continueSketch.title}`}
+                  >
+                    Continue
+                  </Link>
+                ) : null}
+                <MobileLink to="/account">My Sketches</MobileLink>
+                <MobileLink to="/sketches/new">New Sketch</MobileLink>
                 <button
                   type="button"
                   className="cursor-pointer rounded-btn px-3 py-3 text-left text-sm font-medium text-destructive hover:bg-destructive/10"
@@ -363,24 +392,24 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
               </>
             ) : (
               <div className="mt-auto space-y-2 border-t border-border p-3">
-                <Link
-                  to="/login"
-                  className="inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-btn border border-border text-sm font-semibold text-foreground hover:bg-primary/5"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Log in
-                </Link>
-                <button
-                  type="button"
-                  className="inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-btn bg-primary text-sm font-semibold text-[var(--color-on-primary)] hover:bg-primary-hover"
-                  onClick={() => {
-                    setMenuOpen(false)
-                    onGetStarted()
-                  }}
-                >
-                  Get started
-                </button>
-              </div>
+                  <Link
+                    to="/login"
+                    className="inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-btn border border-border text-sm font-semibold text-foreground hover:bg-primary/5"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Log in
+                  </Link>
+                  <button
+                    type="button"
+                    className="inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-btn bg-primary text-sm font-semibold text-[var(--color-on-primary)] hover:bg-primary-hover"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      onGetStarted()
+                    }}
+                  >
+                    Get started
+                  </button>
+                </div>
             )}
           </nav>
         </div>
@@ -396,7 +425,7 @@ function MobileLink({
 }: {
   to: string
   end?: boolean
-  children: ReactNode
+  children: React.ReactNode
 }) {
   return (
     <NavLink
@@ -405,9 +434,7 @@ function MobileLink({
       className={({ isActive }) =>
         cn(
           'rounded-btn px-3 py-3 text-sm font-medium',
-          isActive
-            ? 'bg-primary/10 text-primary'
-            : 'text-foreground hover:bg-primary/5',
+          isActive ? 'bg-primary/15 text-primary' : 'text-foreground hover:bg-background',
         )
       }
     >

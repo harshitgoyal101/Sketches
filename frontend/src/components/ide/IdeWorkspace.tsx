@@ -28,6 +28,7 @@ type IdeWorkspaceProps = {
   previewHtml: string | null
   previewNonce: number
   running: boolean
+  previewPaused?: boolean
   runtimeError: PreviewRuntimeError | null
   onRestart: () => void
   onDismissError: () => void
@@ -44,6 +45,7 @@ export function IdeWorkspace({
   previewHtml,
   previewNonce,
   running,
+  previewPaused = false,
   runtimeError,
   onRestart,
   onDismissError,
@@ -353,6 +355,7 @@ export function IdeWorkspace({
           previewHtml={previewHtml}
           previewNonce={previewNonce}
           running={running}
+          previewPaused={previewPaused}
           runtimeError={runtimeError}
           splitting={splitting}
           emptyLabel={emptyPreviewLabel}

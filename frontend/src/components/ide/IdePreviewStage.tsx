@@ -8,6 +8,7 @@ type IdePreviewStageProps = {
   previewHtml: string | null
   previewNonce: number
   running: boolean
+  previewPaused?: boolean
   runtimeError: PreviewRuntimeError | null
   splitting?: boolean
   emptyLabel?: string
@@ -21,6 +22,7 @@ export function IdePreviewStage({
   previewHtml,
   previewNonce,
   running,
+  previewPaused = false,
   runtimeError,
   splitting = false,
   emptyLabel = 'Preparing preview…',
@@ -85,10 +87,18 @@ export function IdePreviewStage({
             <span
               className={cn(
                 'h-1.5 w-1.5 rounded-full',
-                runtimeError ? 'bg-rose-400' : 'bg-primary',
+                runtimeError
+                  ? 'bg-rose-400'
+                  : previewPaused
+                    ? 'bg-amber-500'
+                    : 'bg-primary',
               )}
             />
-            {runtimeError ? 'Preview error' : 'Preview'}
+            {runtimeError
+              ? 'Preview error'
+              : previewPaused
+                ? 'Preview paused'
+                : 'Preview'}
           </span>
           <button
             type="button"
