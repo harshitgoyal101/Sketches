@@ -147,6 +147,14 @@ def _capture_sketch_png(sketch):
         return None
     except Exception as exc:
         # Common on shared hosts (e.g. PythonAnywhere): no Chromium binary / sandbox.
+        message = str(exc)
+        if "Executable doesn't exist" in message or "playwright install" in message:
+            logger.warning(
+                "Playwright browser missing; skipped capture for %s "
+                "(run: playwright install chromium)",
+                sketch.slug,
+            )
+            return None
         logger.exception("Canvas capture failed for %s: %s", sketch.slug, exc)
         return None
 

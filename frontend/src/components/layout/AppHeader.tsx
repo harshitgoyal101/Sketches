@@ -11,7 +11,8 @@ import { cn } from '@/lib/utils'
 
 const DESKTOP_NAV = [
   { to: '/', label: 'Home', end: true },
-  { to: '/gallery', label: 'Explore' },
+  { to: '/gallery', label: 'Sketches' },
+  { to: '/games', label: 'Games' },
   { to: '/explore/today', label: 'Today' },
   { to: '/saved', label: 'Saved' },
 ] as const
@@ -362,7 +363,8 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
             <MobileLink to="/" end>
               Home
             </MobileLink>
-            <MobileLink to="/gallery">Explore</MobileLink>
+            <MobileLink to="/gallery">Sketches</MobileLink>
+            <MobileLink to="/games">Games</MobileLink>
             <MobileLink to="/explore/today">Today</MobileLink>
             <MobileLink to="/saved">Saved</MobileLink>
             {!isLoading && user ? (

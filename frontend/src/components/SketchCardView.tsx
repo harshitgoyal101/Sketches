@@ -17,10 +17,11 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
   const author = sketch.author?.username ?? 'anonymous'
   const tags = sketch.tags?.slice(0, 2) ?? []
   const initial = (sketch.title.trim().charAt(0) || '?').toUpperCase()
+  const href = sketch.is_game ? `/games/${sketch.slug}` : `/sketches/${sketch.slug}`
 
   return (
     <Link
-      to={`/sketches/${sketch.slug}`}
+      to={href}
       className={cn(
         'group cursor-pointer outline-none transition-[border-color,transform,box-shadow,background-color] duration-200',
         // Mobile: app-icon list row
