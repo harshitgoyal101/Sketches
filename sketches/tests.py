@@ -1426,6 +1426,14 @@ class GameSketchApiTests(TestCase):
         self.assertEqual(slugs, ["finger-game"])
         self.assertTrue(payload["filters"]["games"])
         self.assertTrue(payload["results"][0]["is_game"])
+        self.assertEqual(payload["results"][0]["scoreboard_slug"], "finger-game")
+
+    def test_scoreboard_slug_defaults_and_override(self):
+        self.game.scoreboard_slug = "orbit-run"
+        self.game.save(update_fields=["scoreboard_slug"])
+        response = self.client.get("/api/sketches/finger-game/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["scoreboard_slug"], "orbit-run")
 
     def test_public_game_detail_omits_source(self):
         response = self.client.get("/api/sketches/finger-game/")

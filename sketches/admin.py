@@ -122,6 +122,7 @@ class SketchAdmin(admin.ModelAdmin):
                     "landing_ide_theme",
                     "is_landing_ide",
                     "is_game",
+                    "scoreboard_slug",
                     "author",
                     "forked_from",
                     "fork_by",

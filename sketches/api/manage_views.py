@@ -305,7 +305,15 @@ def api_account_sketch_settings(request, slug):
 
     if "is_game" in data:
         sketch.is_game = bool(data.get("is_game"))
-        sketch.save(update_fields=["is_game"])
+        update_fields = ["is_game"]
+        if "scoreboard_slug" in data:
+            raw = str(data.get("scoreboard_slug") or "").strip()[:80]
+            sketch.scoreboard_slug = raw
+            update_fields.append("scoreboard_slug")
+        sketch.save(update_fields=update_fields)
+    elif "scoreboard_slug" in data:
+        sketch.scoreboard_slug = str(data.get("scoreboard_slug") or "").strip()[:80]
+        sketch.save(update_fields=["scoreboard_slug"])
 
     publishing = (
         is_admin

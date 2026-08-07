@@ -8,6 +8,7 @@ import { getSketches } from '@/api/sketches'
 import { useHome } from '@/hooks/useSketches'
 import type { SketchCard } from '@/types/sketch'
 import { prefersReducedMotion } from '@/lib/utils'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 function CardGrid({
   sketches,
@@ -45,8 +46,15 @@ export function HomePage() {
     queryFn: () => getSketches({ games: true, sort: 'featured', page: 1 }),
   })
 
+  useDocumentTitle(
+    'Sketches101 — Sketches & Games',
+    'Generative art to explore and games to play — creative coding in the browser.',
+  )
+
   const featured = (data?.featured ?? []).slice(0, 3)
   const games = (gamesQuery.data?.results ?? []).slice(0, 3)
+  const gamesTotal = gamesQuery.data?.total ?? 0
+  const showGamesSection = gamesQuery.isPending || gamesTotal >= 1
 
   return (
     <div className="relative bg-background">
@@ -121,6 +129,7 @@ export function HomePage() {
         </div>
       </section>
 
+      {showGamesSection ? (
       <section className="relative z-10 border-t border-border bg-surface">
         <div className="mx-auto max-w-[75rem] px-5 py-16 sm:px-8 sm:py-20">
           <div className="mx-auto max-w-2xl text-center">
@@ -154,6 +163,7 @@ export function HomePage() {
           </div>
         </div>
       </section>
+      ) : null}
 
       <section className="relative z-10 border-t border-border bg-background">
         <div className="mx-auto flex max-w-[75rem] flex-col items-center gap-6 px-5 py-16 text-center sm:px-8 sm:py-20">

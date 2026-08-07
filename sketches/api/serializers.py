@@ -106,6 +106,10 @@ def serialize_sketch_card(sketch, request=None):
         "tags": [serialize_tag(tag) for tag in sketch.tags.all()],
         "description_html": render_markdown(sketch.description or ""),
         "is_game": bool(getattr(sketch, "is_game", False)),
+        "scoreboard_slug": (
+            (getattr(sketch, "scoreboard_slug", None) or "").strip()
+            or sketch.slug
+        ),
     }
 
 

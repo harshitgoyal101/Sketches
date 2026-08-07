@@ -12,7 +12,7 @@ class SketchSitemap(Sitemap):
     priority = 0.8
 
     def items(self):
-        return Sketch.objects.filter(status=PUBLISHED)
+        return Sketch.objects.filter(status=PUBLISHED, is_game=False)
 
     def lastmod(self, obj):
         return obj.updated_at
@@ -21,6 +21,20 @@ class SketchSitemap(Sitemap):
         if getattr(settings, "SPA_AT_ROOT", False):
             return f"/sketches/{obj.slug}"
         return reverse("sketch_detail", kwargs={"slug": obj.slug})
+
+
+class GameSitemap(Sitemap):
+    changefreq = "weekly"
+    priority = 0.85
+
+    def items(self):
+        return Sketch.objects.filter(status=PUBLISHED, is_game=True)
+
+    def lastmod(self, obj):
+        return obj.updated_at
+
+    def location(self, obj):
+        return f"/games/{obj.slug}"
 
 
 class TagSitemap(Sitemap):
@@ -42,7 +56,13 @@ class StaticViewSitemap(Sitemap):
 
     def items(self):
         if getattr(settings, "SPA_AT_ROOT", False):
-            return ["/", "/gallery"]
+            return [
+                "/",
+                "/gallery",
+                "/games",
+                "/explore/today",
+                "/sandbox",
+            ]
         return ["home", "sketch_list"]
 
     def location(self, item):

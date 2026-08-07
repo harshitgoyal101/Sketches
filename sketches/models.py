@@ -161,6 +161,15 @@ class Sketch(models.Model):
         default=False,
         help_text="List on the Games page as play-only (no public source, fork, or edit).",
     )
+    scoreboard_slug = models.SlugField(
+        max_length=80,
+        blank=True,
+        default="",
+        help_text=(
+            "Game scoreboard slug for postMessage scores. "
+            "Blank defaults to this sketch's slug."
+        ),
+    )
     tags = models.ManyToManyField(Tag, blank=True, related_name="sketches")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -11,6 +11,7 @@ import { useAuth } from '@/auth/AuthProvider'
 import { useGuest } from '@/guest/GuestProvider'
 import { useFormats, useTags } from '@/hooks/useSketches'
 import { cn, prefersReducedMotion } from '@/lib/utils'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 type SortKey = 'featured' | 'recent' | 'all'
 
@@ -32,6 +33,11 @@ export function GalleryPage() {
   const { guest, requireAuth } = useGuest()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+
+  useDocumentTitle(
+    'Sketches · Sketches101',
+    'Browse generative p5.js and Processing sketches from the community.',
+  )
 
   const welcomeName = user?.username || guest?.displayName || null
 

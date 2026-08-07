@@ -12,6 +12,7 @@ import { getAccountSketches } from '@/api/sketches'
 import { SketchCardView } from '@/components/SketchCardView'
 import { useAuth } from '@/auth/AuthProvider'
 import { useContinueSketch } from '@/hooks/useContinueSketch'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { primaryBtnClass, secondaryBtnClass } from '@/lib/form'
 import { cn } from '@/lib/utils'
 import type { SketchCard } from '@/types/sketch'
@@ -64,6 +65,12 @@ export function AccountPage() {
     })),
   })
 
+  const displayName = user?.display_name || user?.username || 'Account'
+  useDocumentTitle(
+    `${displayName} · Account · Sketches101`,
+    'Your sketches, games, workspace, and high scores.',
+  )
+
   if (!isLoading && !isAuthenticated) {
     return <Navigate to="/login" replace />
   }
@@ -79,7 +86,6 @@ export function AccountPage() {
   const all = sketchesQuery.data?.results ?? []
   const mySketches = all.filter((s) => !s.is_game)
   const myGames = all.filter((s) => s.is_game)
-  const displayName = user.display_name || user.username
   const myScores = (gamesQuery.data ?? [])
     .map((game, index) => {
       const me = scoreQueries[index]?.data?.me
@@ -176,7 +182,14 @@ export function AccountPage() {
         <section className="mb-12">
           <h2 className="font-display text-lg font-semibold">High scores</h2>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {myScores.map((row) => (
+            {myScores.map((row) => {
+              const playSlug =
+                myGames.find(
+                  (s) =>
+                    (s.scoreboard_slug || s.slug) === row.game.slug ||
+                    s.slug === row.game.slug,
+                )?.slug ?? row.game.slug
+              return (
               <li
                 key={row.game.slug}
                 className="rounded-xl border border-border bg-surface px-4 py-3"
@@ -188,17 +201,28 @@ export function AccountPage() {
                   {row.score.toLocaleString()}
                 </p>
                 <Link
-                  to={`/games/${row.game.slug}`}
+                  to={`/games/${playSlug}`}
                   className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
                 >
                   <Play size={12} aria-hidden />
                   Play again
                 </Link>
               </li>
-            ))}
+              )
+            })}
           </ul>
         </section>
-      ) : null}
+      ) : (
+        <section className="mb-12 rounded-xl border border-dashed border-border px-6 py-8 text-center">
+          <h2 className="font-display text-lg font-semibold">High scores</h2>
+          <p className="mt-2 text-sm text-muted">
+            No scores yet — play a game and your bests show up here.
+          </p>
+          <Link to="/games" className={`${primaryBtnClass} mt-4`}>
+            Browse games
+          </Link>
+        </section>
+      )}
 
       <OwnedSection
         title="Your sketches"

@@ -270,6 +270,7 @@ export type UpdateSettingsPayload = {
   tags?: string[]
   status?: string
   is_game?: boolean
+  scoreboard_slug?: string
 }
 
 export async function updateSketchSettings(

@@ -8,11 +8,12 @@ from django.contrib.sitemaps.views import sitemap
 from django.shortcuts import redirect
 from django.urls import include, path, re_path
 
-from sketches.sitemaps import SketchSitemap, StaticViewSitemap, TagSitemap
+from sketches.sitemaps import GameSitemap, SketchSitemap, StaticViewSitemap, TagSitemap
 from sketches.views_spa import spa_app
 
 sitemaps = {
     "sketches": SketchSitemap,
+    "games": GameSitemap,
     "tags": TagSitemap,
     "static": StaticViewSitemap,
 }

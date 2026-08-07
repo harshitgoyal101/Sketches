@@ -31,6 +31,8 @@ export type SketchCard = {
   tags: SketchTag[]
   /** When true, sketch is listed under /games as play-only. */
   is_game?: boolean
+  /** Scoreboard Game slug; defaults to sketch.slug when omitted. */
+  scoreboard_slug?: string
 }
 
 export type SketchDetail = SketchCard & {

@@ -49,16 +49,19 @@ Also: rate limits on migrate / scores / Google; authed sandbox **Save to account
 
 ### Games / scores
 
-- Models: `Game`, `GameScore`  
-- Seeded games: `orbit-run`, `sandbox-score`  
-- Playable sketch: **Orbit Run** at `/sketches/orbit-run/` — `python manage.py load_orbit_run_sketch` (or `seed_production_data --with-games`)  
+- Models: `Game`, `GameScore`; sketches use `is_game` + optional `scoreboard_slug`
+- Scoreboards seeded by migration: `orbit-run`, `sandbox-score`
+- Playable games live under **`/games`** (fullscreen play, no public source)
+- Load / refresh Orbit Run: `python manage.py load_orbit_run_sketch` (add `--force` to overwrite code)
+- Mark an existing Orbit Run sketch as a game (e.g. production): `python manage.py fix_orbit_run_game`
+- Local dry catalog: `python manage.py shell -c "exec(open('scripts/seed_dry_games.py').read()); run()"`
 - Embeds post scores:
 
 ```js
 parent.postMessage({ type: 'sketches101-score', game: 'orbit-run', score: 1200 }, '*')
 ```
 
-Guests keep a local best; on a personal best they can sign in to persist. Account page lists high scores.
+The `game` value must match a `Game.slug` (and usually the sketch `scoreboard_slug`). Guests keep a local best; on a personal best they can sign in to persist. Account and the in-play Scores panel show high scores.
 ### Design system
 
 Page-level rules under [`design-system/sketches101/`](design-system/sketches101/) (Master + per-page overrides). Figma reference linked from Master.

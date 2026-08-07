@@ -8,6 +8,7 @@ import { SketchDetailAtmosphere } from '@/components/sketch/SketchDetailAtmosphe
 import { AnimatedGroup } from '@/components/motion-primitives/animated-group'
 import { useAuth } from '@/auth/AuthProvider'
 import { useGuest } from '@/guest/GuestProvider'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { cn, prefersReducedMotion } from '@/lib/utils'
 
 type SortKey = 'featured' | 'recent'
@@ -23,6 +24,11 @@ export function GamesPage() {
   const { guest } = useGuest()
   const navigate = useNavigate()
   const [sort, setSort] = useState<SortKey>('featured')
+
+  useDocumentTitle(
+    'Games · Sketches101',
+    'Play-only creative coding games — fullscreen in the browser.',
+  )
 
   const welcomeName = user?.username || guest?.displayName || null
 

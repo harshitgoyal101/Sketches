@@ -1,4 +1,4 @@
-import{a as e,c as t,i as n,l as r,n as i,o as ee,r as te,s as a,t as ne,u as re}from"./SketchIdeShell-Diwg1e7x.js";import{C as ie,E as o,T as s,a as ae,b as c,c as l,d as u,f as oe,i as se,l as d,n as ce,o as le,p as f,r as p,x as ue,y as de}from"./index-SCxXXHBP.js";var m=o(s(),1),h=c(),g=`sandbox-default`,_=`sketches101-sandbox-slug`,fe=`function setup() {
+import{a as e,c as t,i as n,l as r,n as i,o as ee,r as te,s as a,t as ne,u as re}from"./SketchIdeShell-Dg0XXkJm.js";import{C as ie,E as o,T as s,a as ae,b as c,c as l,d as u,f as oe,i as se,l as d,n as ce,o as le,p as f,r as p,x as ue,y as de}from"./index-DpCaL5yA.js";var m=o(s(),1),h=c(),g=`sandbox-default`,_=`sketches101-sandbox-slug`,fe=`function setup() {
   createCanvas(windowWidth, windowHeight);
 }
 

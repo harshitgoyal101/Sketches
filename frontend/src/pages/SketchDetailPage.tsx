@@ -7,6 +7,7 @@ import { forkSketch } from '@/api/sketches'
 import { SketchCardView } from '@/components/SketchCardView'
 import { SketchDetailAtmosphere } from '@/components/sketch/SketchDetailAtmosphere'
 import { useGuest } from '@/guest/GuestProvider'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { isBookmarked, toggleBookmark } from '@/lib/bookmarks'
 import { recordRecentView } from '@/lib/recentViews'
 import { primaryBtnClass, secondaryBtnClass } from '@/lib/form'
@@ -35,6 +36,12 @@ export function SketchDetailPage() {
   const stageRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const notFound = error instanceof ApiError && error.status === 404
+
+  useDocumentTitle(
+    sketch ? `${sketch.title} · Sketches101` : 'Sketch · Sketches101',
+    sketch?.description?.slice(0, 160) ||
+      'Interactive creative coding sketch on Sketches101.',
+  )
 
   const embedSrc = useMemo(
     () => (sketch?.embed_url ? fullscreenEmbedSrc(sketch.embed_url) : null),

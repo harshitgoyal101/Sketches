@@ -173,6 +173,15 @@ export function GuestProvider({ children }: GuestProviderProps) {
             meta: entry.meta,
             played_at: entry.played_at,
           })
+          const payload = {
+            isPersonalBest: result.is_personal_best,
+            score,
+            game,
+            needsSignIn: false,
+          }
+          window.dispatchEvent(
+            new CustomEvent('sketches101-score-recorded', { detail: payload }),
+          )
           return {
             isPersonalBest: result.is_personal_best,
             score,
@@ -193,6 +202,16 @@ export function GuestProvider({ children }: GuestProviderProps) {
       })
       await saveGuestProfile(profile)
       setGuest(profile)
+      window.dispatchEvent(
+        new CustomEvent('sketches101-score-recorded', {
+          detail: {
+            isPersonalBest,
+            score,
+            game,
+            needsSignIn: isPersonalBest,
+          },
+        }),
+      )
       if (isPersonalBest) {
         setKeepScore({ game, score })
       }

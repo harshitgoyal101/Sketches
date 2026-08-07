@@ -288,9 +288,14 @@ def run():
                 "status": Sketch.Status.PUBLISHED,
                 "published_at": now,
                 "is_game": True,
+                "scoreboard_slug": spec["game_slug"],
             },
         )
         print(("created" if created else "updated"), "game", sketch.slug)
+
+    from django.core.management import call_command
+
+    call_command("load_orbit_run_sketch", force=True)
 
     dummies = [
         ("Orbit Bloom", "maya-orbit-bloom", maya, "orbit-bloom", "Soft orbiting dots."),

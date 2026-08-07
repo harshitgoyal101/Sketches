@@ -50,6 +50,7 @@ export function SketchSettingsPage() {
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState('draft')
   const [isGame, setIsGame] = useState(false)
+  const [scoreboardSlug, setScoreboardSlug] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
   const [appIconPreview, setAppIconPreview] = useState<string | null>(null)
@@ -70,6 +71,7 @@ export function SketchSettingsPage() {
     setDescription(sketch.description)
     setStatus(sketch.status)
     setIsGame(Boolean(sketch.is_game))
+    setScoreboardSlug(sketch.scoreboard_slug || sketch.slug || '')
     setSelectedTags(sketch.tags.map((t) => t.slug))
     setThumbnailPreview(sketch.thumbnail_card_url || sketch.thumbnail)
     setAppIconPreview(sketch.app_icon)
@@ -117,11 +119,15 @@ export function SketchSettingsPage() {
         tags: string[]
         status?: string
         is_game: boolean
+        scoreboard_slug?: string
       } = {
         title,
         description,
         tags: selectedTags,
         is_game: isGame,
+      }
+      if (isGame) {
+        payload.scoreboard_slug = scoreboardSlug.trim()
       }
       if (settingsQuery.data?.is_admin) {
         payload.status = status
@@ -541,6 +547,23 @@ export function SketchSettingsPage() {
               </span>
             </span>
           </label>
+
+          {isGame ? (
+            <label className={labelClass}>
+              <span className="text-muted">Scoreboard slug</span>
+              <input
+                className={inputClass}
+                value={scoreboardSlug}
+                onChange={(e) => setScoreboardSlug(e.target.value)}
+                placeholder={slug || 'game-slug'}
+              />
+              <span className="mt-1 block text-xs text-muted">
+                Must match the <code className="text-foreground">game</code> field in{' '}
+                <code className="text-foreground">sketches101-score</code> postMessage.
+                Defaults to this sketch&apos;s slug.
+              </span>
+            </label>
+          ) : null}
 
           {formError ? (
             <p className="text-sm text-destructive" role="alert">
