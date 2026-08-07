@@ -1,5 +1,11 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from '@/components/layout/AppShell'
 import { AuthProvider } from '@/auth/AuthProvider'
@@ -33,6 +39,21 @@ function IdeFallback() {
   )
 }
 
+/** Django APPEND_SLASH sends /games → /games/; RR path="games" needs no trailing slash. */
+function StripTrailingSlash() {
+  const location = useLocation()
+  if (location.pathname.length > 1 && location.pathname.endsWith('/')) {
+    const next = location.pathname.replace(/\/+$/, '') || '/'
+    return (
+      <Navigate
+        to={`${next}${location.search}${location.hash}`}
+        replace
+      />
+    )
+  }
+  return null
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -51,6 +72,7 @@ export default function App() {
         <BrowserRouter basename={basename}>
           <AuthProvider>
             <GuestProvider>
+              <StripTrailingSlash />
               <Routes>
                 <Route element={<AppShell />}>
                   <Route index element={<HomePage />} />
