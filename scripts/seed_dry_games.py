@@ -25,8 +25,8 @@ def ensure_user(username, email):
     user, created = User.objects.get_or_create(
         username=username, defaults={"email": email}
     )
-    # Always reset demo passwords so seed is idempotent and login works.
-    user.set_password("Secret@42")
+    if created:
+        user.set_unusable_password()
     user.email = email or user.email
     user.is_active = True
     user.save()
@@ -204,44 +204,17 @@ function draw() {
 
 
 def run():
-    harshit = ensure_user("harshitgoyal101", "harshitgoyal101@example.com")
+    demo = ensure_user("demo", "demo@example.com")
     maya = ensure_user("maya", "maya@example.com")
     kai = ensure_user("kai", "kai@example.com")
-
-    for slug, title, desc in [
-        (
-            "harshitgoyal101-finger-on-the-app",
-            "Finger on the App",
-            "Hold/drag to score. Dry test game.",
-        ),
-        (
-            "harshitgoyal101-pulse-hold",
-            "Pulse Hold",
-            "Hold longer for a higher score.",
-        ),
-        (
-            "harshitgoyal101-grid-drag",
-            "Grid Drag",
-            "Drag across the grid to rack up points.",
-        ),
-    ]:
-        Game.objects.update_or_create(
-            slug=slug,
-            defaults={
-                "title": title,
-                "description": desc,
-                "max_score": 1_000_000,
-                "is_active": True,
-            },
-        )
 
     now = timezone.now()
     game_sketches = [
         {
             "title": "Finger on the App",
-            "slug": "harshitgoyal101-finger-on-the-app",
-            "author": harshit,
-            "game_slug": "harshitgoyal101-finger-on-the-app",
+            "slug": "demo-finger-on-the-app",
+            "author": demo,
+            "game_slug": "demo-finger-on-the-app",
             "accent": (180, 170, 255),
             "bg": (13, 13, 18),
             "step": 15,
@@ -249,9 +222,9 @@ def run():
         },
         {
             "title": "Pulse Hold",
-            "slug": "harshitgoyal101-pulse-hold",
-            "author": harshit,
-            "game_slug": "harshitgoyal101-pulse-hold",
+            "slug": "demo-pulse-hold",
+            "author": demo,
+            "game_slug": "demo-pulse-hold",
             "accent": (255, 120, 160),
             "bg": (18, 10, 16),
             "step": 18,
@@ -259,9 +232,9 @@ def run():
         },
         {
             "title": "Grid Drag",
-            "slug": "harshitgoyal101-grid-drag",
-            "author": harshit,
-            "game_slug": "harshitgoyal101-grid-drag",
+            "slug": "demo-grid-drag",
+            "author": demo,
+            "game_slug": "demo-grid-drag",
             "accent": (80, 220, 190),
             "bg": (8, 16, 14),
             "step": 12,
@@ -270,6 +243,15 @@ def run():
     ]
 
     for spec in game_sketches:
+        Game.objects.update_or_create(
+            slug=spec["game_slug"],
+            defaults={
+                "title": spec["title"],
+                "description": spec["description"],
+                "max_score": 1_000_000,
+                "is_active": True,
+            },
+        )
         code = finger_game_code(
             spec["game_slug"],
             accent=spec["accent"],
@@ -304,8 +286,8 @@ def run():
         ("Pulse Field", "kai-pulse-field", kai, "pulse-field", "Horizontal pulse field."),
         (
             "Crystal Walk",
-            "harshitgoyal101-crystal-walk",
-            harshit,
+            "demo-crystal-walk",
+            demo,
             "crystal-walk",
             "Rotating crystal.",
         ),
@@ -333,7 +315,6 @@ def run():
         "gallery",
         Sketch.objects.filter(is_game=False, status=Sketch.Status.PUBLISHED).count(),
     )
-    print("login harshitgoyal101 / Secret@42")
 
 
 if __name__ == "__main__":

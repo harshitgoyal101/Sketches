@@ -153,8 +153,8 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             "--username",
-            default="harshitgoyal101",
-            help="Author username (created if missing).",
+            default="sketches101",
+            help="Author username (created with an unusable password if missing).",
         )
         parser.add_argument(
             "--skip-orbit",
@@ -171,11 +171,18 @@ class Command(BaseCommand):
             username=username,
             defaults={"email": f"{username}@example.com"},
         )
-        if created or not user.has_usable_password():
-            user.set_password("Secret@42")
+        if created:
+            user.set_unusable_password()
             user.is_active = True
             user.save()
-            self.stdout.write(f"User {username} ready (password set).")
+            self.stdout.write(
+                f"Created author {username} with an unusable password "
+                "(set a password via createsuperuser / changepassword if needed)."
+            )
+        elif not user.is_active:
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+            self.stdout.write(f"Activated author {username}.")
 
         now = timezone.now()
         prefix = username

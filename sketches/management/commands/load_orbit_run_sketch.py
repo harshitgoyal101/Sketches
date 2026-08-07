@@ -274,8 +274,8 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             "--username",
-            default="harshitgoyal101",
-            help="Author username (created if missing).",
+            default="sketches101",
+            help="Author username (created with an unusable password if missing).",
         )
 
     def handle(self, *args, **options):
@@ -283,13 +283,18 @@ class Command(BaseCommand):
         username = options["username"]
         force = options["force"]
 
-        user, _ = User.objects.get_or_create(
+        user, created = User.objects.get_or_create(
             username=username,
             defaults={"email": f"{username}@example.com"},
         )
-        if not user.has_usable_password():
-            user.set_password("Secret@42")
-            user.save(update_fields=["password"])
+        if created:
+            user.set_unusable_password()
+            user.is_active = True
+            user.save()
+            self.stdout.write(
+                f"Created author {username} with an unusable password "
+                "(set a password via createsuperuser / changepassword if needed)."
+            )
 
         Game.objects.update_or_create(
             slug="orbit-run",

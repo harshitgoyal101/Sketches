@@ -1548,7 +1548,7 @@ class AuthApiTests(TestCase):
         self.user = user_model.objects.create_user(
             username="authuser",
             email="auth@example.com",
-            password="Secret@42",
+            password="test-password",
         )
         self.user.is_active = True
         self.user.save(update_fields=["is_active"])
@@ -1567,7 +1567,7 @@ class AuthApiTests(TestCase):
             data=json.dumps(
                 {
                     "username": "auth@example.com",
-                    "password": "Secret@42",
+                    "password": "test-password",
                     "remember": True,
                 }
             ),
@@ -1726,7 +1726,7 @@ class AuthApiTests(TestCase):
         other = get_user_model().objects.create_user(
             username="migrator",
             email="migrator@example.com",
-            password="Secret@42",
+            password="test-password",
         )
         other.is_active = True
         other.save(update_fields=["is_active"])
@@ -1884,7 +1884,7 @@ class ManageApiTests(TestCase):
         self.user = user_model.objects.create_user(
             username="maker",
             email="maker@example.com",
-            password="Secret@42",
+            password="test-password",
         )
         self.user.is_active = True
         self.user.save(update_fields=["is_active"])
@@ -1953,7 +1953,7 @@ class ManageApiTests(TestCase):
         )
         slug = create.json()["sketch"]["slug"]
         other = get_user_model().objects.create_user(
-            username="other", password="Secret@42"
+            username="other", password="test-password"
         )
         other_client = Client()
         other_client.force_login(other)
@@ -1969,7 +1969,7 @@ class ManageApiTests(TestCase):
         )
         slug = create.json()["sketch"]["slug"]
         staff = get_user_model().objects.create_user(
-            username="staffer", password="Secret@42", is_staff=True
+            username="staffer", password="test-password", is_staff=True
         )
         staff_client = Client()
         staff_client.force_login(staff)
@@ -2110,14 +2110,14 @@ class IdeApiTests(TestCase):
         self.author = user_model.objects.create_user(
             username="ide-author",
             email="ide@example.com",
-            password="Secret@42",
+            password="test-password",
         )
         self.author.is_active = True
         self.author.save(update_fields=["is_active"])
         self.other = user_model.objects.create_user(
             username="ide-fan",
             email="fan@example.com",
-            password="Secret@42",
+            password="test-password",
         )
         self.other.is_active = True
         self.other.save(update_fields=["is_active"])
