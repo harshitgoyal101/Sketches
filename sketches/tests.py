@@ -1472,6 +1472,14 @@ class GameSketchApiTests(TestCase):
         self.sketch.refresh_from_db()
         self.assertTrue(self.sketch.is_game)
         self.assertTrue(response.json()["sketch"]["is_game"])
+        self.assertEqual(self.sketch.scoreboard_slug, self.sketch.slug)
+        from sketches.models import Game
+
+        self.assertTrue(
+            Game.objects.filter(slug=self.sketch.slug, is_active=True).exists()
+        )
+        scores = self.client.get(f"/api/games/{self.sketch.slug}/scores/")
+        self.assertEqual(scores.status_code, 200)
 
     def test_visitor_cannot_manage_game(self):
         self.client.force_login(self.visitor)

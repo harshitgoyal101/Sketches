@@ -12,6 +12,7 @@ from sketches.forms import SketchDetailsForm, SketchEditForm, _clean_sketch_path
 from sketches.models import Sketch, SketchAsset, Tag
 from sketches.permissions import can_edit_sketch, can_fork_sketch
 from sketches.services.embed_builder import build_p5_embed_html, build_processing_embed_html
+from sketches.services.game_scores import ensure_scoreboard_for_sketch
 from sketches.services.sketch_fork import fork_sketch_from_source
 from sketches.services.sketch_publish import publish_sketch
 from sketches.services.sketch_starters import (
@@ -310,10 +311,16 @@ def api_account_sketch_settings(request, slug):
             raw = str(data.get("scoreboard_slug") or "").strip()[:80]
             sketch.scoreboard_slug = raw
             update_fields.append("scoreboard_slug")
+        elif sketch.is_game and not (sketch.scoreboard_slug or "").strip():
+            sketch.scoreboard_slug = sketch.slug
+            update_fields.append("scoreboard_slug")
         sketch.save(update_fields=update_fields)
     elif "scoreboard_slug" in data:
         sketch.scoreboard_slug = str(data.get("scoreboard_slug") or "").strip()[:80]
         sketch.save(update_fields=["scoreboard_slug"])
+
+    if sketch.is_game:
+        ensure_scoreboard_for_sketch(sketch)
 
     publishing = (
         is_admin

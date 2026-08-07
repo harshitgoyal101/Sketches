@@ -54,6 +54,7 @@ Also: rate limits on migrate / scores / Google; authed sandbox **Save to account
 - Playable games live under **`/games`** (fullscreen play, no public source)
 - Load / refresh Orbit Run: `python manage.py load_orbit_run_sketch` (add `--force` to overwrite code)
 - Mark an existing Orbit Run sketch as a game (e.g. production): `python manage.py fix_orbit_run_game`
+- Seed the Games catalog on production (Orbit Run + hold/drag games): `python manage.py seed_production_games`
 - Local dry catalog: `python manage.py shell -c "exec(open('scripts/seed_dry_games.py').read()); run()"`
 - Embeds post scores:
 
