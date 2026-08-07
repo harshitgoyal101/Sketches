@@ -86,7 +86,7 @@ export function CreateSketchPage() {
         title: title.trim() || 'Untitled sketch',
         sketch_type: sketchType,
       })
-      navigate(`/sketches/${sketch.slug}/settings?setup=1`, { replace: true })
+      navigate(`/sketches/${sketch.slug}/edit`, { replace: true })
     } catch (err) {
       if (err instanceof ApiError) {
         setFieldErrors(err.errors)
@@ -108,8 +108,9 @@ export function CreateSketchPage() {
         Create a sketch
       </h1>
       <p className="mt-2 text-sm text-muted">
-        Pick a format and title. You can refine description, tags, and thumbnail
-        next. The full IDE comes later — starter code is applied automatically.
+        Pick a format and title — you&apos;ll land in the editor with starter
+        code. Description, tags, and thumbnail live in Settings when you&apos;re
+        ready.
       </p>
 
       <form className="mt-8 space-y-6" onSubmit={onSubmit}>

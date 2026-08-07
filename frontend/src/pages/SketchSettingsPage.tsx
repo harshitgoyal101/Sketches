@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ImagePlus, Sparkles } from 'lucide-react'
 import { ApiError } from '@/api/client'
 import {
+  deleteSketch,
   getManageTags,
   getSketchSettings,
   createPreview,
@@ -14,6 +15,7 @@ import {
 } from '@/api/sketches'
 import { useAuth } from '@/auth/AuthProvider'
 import {
+  dangerBtnClass,
   fieldError,
   inputClass,
   labelClass,
@@ -31,6 +33,8 @@ import { cn } from '@/lib/utils'
 
 export function SketchSettingsPage() {
   const { slug } = useParams()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
   const isSetup = searchParams.get('setup') === '1'
   const { isAuthenticated, isLoading: authLoading } = useAuth()
@@ -56,6 +60,8 @@ export function SketchSettingsPage() {
   const [appIconPreview, setAppIconPreview] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadingIcon, setUploadingIcon] = useState(false)
   const [generatingThumb, setGeneratingThumb] = useState(false)
@@ -162,6 +168,30 @@ export function SketchSettingsPage() {
       else setFormError('Could not publish.')
     } finally {
       setPublishing(false)
+    }
+  }
+
+  async function onDelete() {
+    if (!slug) return
+    const current = settingsQuery.data?.sketch
+    if (!current) return
+    const kind = current.is_game ? 'game' : 'sketch'
+    const confirmed = window.confirm(
+      `Delete “${current.title}” permanently? This ${kind} cannot be recovered.`,
+    )
+    if (!confirmed) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteSketch(slug)
+      await queryClient.invalidateQueries({ queryKey: ['account-sketches'] })
+      await queryClient.invalidateQueries({ queryKey: ['sketches'] })
+      await queryClient.invalidateQueries({ queryKey: ['games'] })
+      navigate('/account', { replace: true })
+    } catch (err) {
+      if (err instanceof ApiError) setDeleteError(err.message)
+      else setDeleteError('Could not delete.')
+      setDeleting(false)
     }
   }
 
@@ -309,7 +339,7 @@ export function SketchSettingsPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
-            {isSetup ? 'Setup · step 2' : 'Settings'}
+            {isSetup ? 'Setup' : 'Settings'}
           </p>
           <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">
             {sketch?.title ?? 'Loading…'}
@@ -593,6 +623,33 @@ export function SketchSettingsPage() {
           </div>
         </form>
       )}
+
+      {sketch ? (
+        <section className="mt-12 border-t border-border pt-8">
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            Delete {sketch.is_game ? 'game' : 'sketch'}
+          </h2>
+          <p className="mt-2 max-w-xl text-sm text-muted">
+            Permanently remove this {sketch.is_game ? 'game' : 'sketch'} and its
+            files. Owners and admins can delete. This cannot be undone.
+          </p>
+          {deleteError ? (
+            <p className="mt-3 text-sm text-destructive" role="alert">
+              {deleteError}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            disabled={deleting || busyMedia}
+            onClick={() => void onDelete()}
+            className={`${dangerBtnClass} mt-4`}
+          >
+            {deleting
+              ? 'Deleting…'
+              : `Delete ${sketch.is_game ? 'game' : 'sketch'}`}
+          </button>
+        </section>
+      ) : null}
     </div>
   )
 }

@@ -1908,6 +1908,75 @@ class ManageApiTests(TestCase):
         self.assertIn("function setup", sketch["code"])
         self.assertTrue(sketch["slug"].startswith("maker-"))
 
+    def test_owner_can_delete_sketch(self):
+        create = self.client.post(
+            "/api/account/sketches/",
+            data=json.dumps({"title": "Temp", "sketch_type": "p5js"}),
+            content_type="application/json",
+        )
+        slug = create.json()["sketch"]["slug"]
+        deleted = self.client.delete(f"/api/account/sketches/{slug}/")
+        self.assertEqual(deleted.status_code, 200)
+        self.assertTrue(deleted.json()["ok"])
+        self.assertEqual(deleted.json()["deleted"], slug)
+        self.assertFalse(Sketch.objects.filter(slug=slug).exists())
+
+    def test_owner_can_delete_game(self):
+        create = self.client.post(
+            "/api/account/sketches/",
+            data=json.dumps({"title": "Temp Game", "sketch_type": "p5js"}),
+            content_type="application/json",
+        )
+        slug = create.json()["sketch"]["slug"]
+        self.client.patch(
+            f"/api/account/sketches/{slug}/settings/",
+            data=json.dumps(
+                {
+                    "title": "Temp Game",
+                    "description": "",
+                    "tags": [],
+                    "is_game": True,
+                }
+            ),
+            content_type="application/json",
+        )
+        deleted = self.client.delete(f"/api/account/sketches/{slug}/")
+        self.assertEqual(deleted.status_code, 200)
+        self.assertTrue(deleted.json()["was_game"])
+        self.assertFalse(Sketch.objects.filter(slug=slug).exists())
+
+    def test_non_owner_cannot_delete_sketch(self):
+        create = self.client.post(
+            "/api/account/sketches/",
+            data=json.dumps({"title": "Keep", "sketch_type": "p5js"}),
+            content_type="application/json",
+        )
+        slug = create.json()["sketch"]["slug"]
+        other = get_user_model().objects.create_user(
+            username="other", password="Secret@42"
+        )
+        other_client = Client()
+        other_client.force_login(other)
+        denied = other_client.delete(f"/api/account/sketches/{slug}/")
+        self.assertEqual(denied.status_code, 403)
+        self.assertTrue(Sketch.objects.filter(slug=slug).exists())
+
+    def test_staff_can_delete_others_sketch(self):
+        create = self.client.post(
+            "/api/account/sketches/",
+            data=json.dumps({"title": "Staff delete", "sketch_type": "p5js"}),
+            content_type="application/json",
+        )
+        slug = create.json()["sketch"]["slug"]
+        staff = get_user_model().objects.create_user(
+            username="staffer", password="Secret@42", is_staff=True
+        )
+        staff_client = Client()
+        staff_client.force_login(staff)
+        deleted = staff_client.delete(f"/api/account/sketches/{slug}/")
+        self.assertEqual(deleted.status_code, 200)
+        self.assertFalse(Sketch.objects.filter(slug=slug).exists())
+
     def test_patch_source_and_settings_then_publish(self):
         create = self.client.post(
             "/api/account/sketches/",

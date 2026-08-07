@@ -182,7 +182,27 @@ def api_account_sketches_collection(request):
     )
 
 
-@require_http_methods(["GET", "PATCH"])
+def _delete_sketch_media(sketch):
+    """Best-effort cleanup of thumbnail / app-icon files before sketch delete."""
+    from sketches.services.thumbnail_generator import _delete_card_thumbnail
+
+    if sketch.thumbnail:
+        try:
+            _delete_card_thumbnail(sketch)
+        except Exception:
+            pass
+        try:
+            sketch.thumbnail.delete(save=False)
+        except Exception:
+            pass
+    if sketch.app_icon:
+        try:
+            sketch.app_icon.delete(save=False)
+        except Exception:
+            pass
+
+
+@require_http_methods(["GET", "PATCH", "DELETE"])
 def api_account_sketch_detail(request, slug):
     denied = require_login(request)
     if denied:
@@ -200,6 +220,19 @@ def api_account_sketch_detail(request, slug):
                 can_edit=True,
                 can_fork=can_fork_sketch(request.user, sketch),
             )
+        )
+
+    if request.method == "DELETE":
+        deleted_slug = sketch.slug
+        was_game = bool(sketch.is_game)
+        _delete_sketch_media(sketch)
+        sketch.delete()
+        return json_response(
+            {
+                "ok": True,
+                "deleted": deleted_slug,
+                "was_game": was_game,
+            }
         )
 
     data = parse_json_body(request)

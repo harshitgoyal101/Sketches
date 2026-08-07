@@ -233,6 +233,15 @@ export async function getManagedSketch(slug: string): Promise<SketchDetail> {
   return fetchJson<SketchDetail>(`/api/account/sketches/${slug}/`)
 }
 
+export async function deleteSketch(
+  slug: string,
+): Promise<{ ok: boolean; deleted: string; was_game: boolean }> {
+  return fetchJson(`/api/account/sketches/${encodeURIComponent(slug)}/`, {
+    method: 'DELETE',
+    fallbackMessage: 'Could not delete sketch',
+  })
+}
+
 export type UpdateSketchPayload = {
   title?: string
   entry_filename?: string

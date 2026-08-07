@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Bookmark,
   CalendarDays,
@@ -7,8 +8,9 @@ import {
   PencilLine,
   Play,
 } from 'lucide-react'
+import { ApiError } from '@/api/client'
 import { getGameScores, listGames } from '@/api/games'
-import { getAccountSketches } from '@/api/sketches'
+import { deleteSketch, getAccountSketches } from '@/api/sketches'
 import { SketchCardView } from '@/components/SketchCardView'
 import { useAuth } from '@/auth/AuthProvider'
 import { useContinueSketch } from '@/hooks/useContinueSketch'
@@ -47,6 +49,8 @@ const HUB_LINKS = [
 export function AccountPage() {
   const { user, isAuthenticated, isLoading, logout } = useAuth()
   const { continueSketch } = useContinueSketch()
+  const queryClient = useQueryClient()
+  const [deletingSlug, setDeletingSlug] = useState<string | null>(null)
   const sketchesQuery = useQuery({
     queryKey: ['account-sketches'],
     queryFn: getAccountSketches,
@@ -70,6 +74,27 @@ export function AccountPage() {
     `${displayName} · Account · Sketches101`,
     'Your sketches, games, workspace, and high scores.',
   )
+
+  async function handleDelete(sketch: SketchCard) {
+    const kind = sketch.is_game ? 'game' : 'sketch'
+    const confirmed = window.confirm(
+      `Delete “${sketch.title}” permanently? This ${kind} cannot be recovered.`,
+    )
+    if (!confirmed) return
+    setDeletingSlug(sketch.slug)
+    try {
+      await deleteSketch(sketch.slug)
+      await queryClient.invalidateQueries({ queryKey: ['account-sketches'] })
+      await queryClient.invalidateQueries({ queryKey: ['sketches'] })
+      await queryClient.invalidateQueries({ queryKey: ['games'] })
+    } catch (err) {
+      window.alert(
+        err instanceof ApiError ? err.message : 'Could not delete.',
+      )
+    } finally {
+      setDeletingSlug(null)
+    }
+  }
 
   if (!isLoading && !isAuthenticated) {
     return <Navigate to="/login" replace />
@@ -232,6 +257,8 @@ export function AccountPage() {
         pending={sketchesQuery.isPending}
         browseTo="/gallery"
         browseLabel="Browse gallery"
+        deletingSlug={deletingSlug}
+        onDelete={handleDelete}
       />
 
       <OwnedSection
@@ -243,6 +270,8 @@ export function AccountPage() {
         browseTo="/games"
         browseLabel="Browse games"
         className="mt-12"
+        deletingSlug={deletingSlug}
+        onDelete={handleDelete}
       />
     </div>
   )
@@ -257,6 +286,8 @@ function OwnedSection({
   browseTo,
   browseLabel,
   className,
+  deletingSlug,
+  onDelete,
 }: {
   title: string
   emptyLabel: string
@@ -266,6 +297,8 @@ function OwnedSection({
   browseTo: string
   browseLabel: string
   className?: string
+  deletingSlug: string | null
+  onDelete: (sketch: SketchCard) => void
 }) {
   return (
     <section className={className}>
@@ -321,6 +354,14 @@ function OwnedSection({
                     Publish
                   </Link>
                 ) : null}
+                <button
+                  type="button"
+                  disabled={deletingSlug === sketch.slug}
+                  onClick={() => onDelete(sketch)}
+                  className="text-destructive hover:underline disabled:opacity-60"
+                >
+                  {deletingSlug === sketch.slug ? 'Deleting…' : 'Delete'}
+                </button>
               </div>
             </div>
           ))}
