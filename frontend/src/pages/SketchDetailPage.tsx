@@ -373,7 +373,7 @@ export function SketchDetailPage() {
                 <Link
                   key={item.slug}
                   to={`/gallery?tag=${encodeURIComponent(item.slug)}`}
-                  className="rounded-btn border border-border/80 bg-background/50 px-2.5 py-1 text-xs text-muted backdrop-blur-sm transition-colors hover:border-primary/40 hover:text-primary"
+                  className="rounded-btn border border-border bg-background/50 px-2.5 py-1 text-xs text-muted backdrop-blur-sm transition-colors hover:border-primary/40 hover:text-primary"
                 >
                   {item.name}
                 </Link>

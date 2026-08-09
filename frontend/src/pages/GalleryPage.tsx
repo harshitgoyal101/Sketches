@@ -1,11 +1,18 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
-import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom'
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Search, Shuffle, X } from 'lucide-react'
 import { GalleryPlayMode } from '@/components/gallery/GalleryPlayMode'
 import { AnimatedGroup } from '@/components/motion-primitives/animated-group'
 import { SketchCardView } from '@/components/SketchCardView'
 import { SketchDetailAtmosphere } from '@/components/sketch/SketchDetailAtmosphere'
+import { SlidingFilterTabs } from '@/components/SlidingFilterTabs'
 import { getSketches } from '@/api/sketches'
 import { useAuth } from '@/auth/AuthProvider'
 import { useGuest } from '@/guest/GuestProvider'
@@ -23,8 +30,8 @@ function parseSort(value: string | null): SortKey {
 
 const SORT_TABS: { key: SortKey; label: string }[] = [
   { key: 'all', label: 'All creations' },
-  { key: 'featured', label: 'Staff picks' },
-  { key: 'recent', label: 'Recently published' },
+  { key: 'featured', label: 'Featured' },
+  { key: 'recent', label: 'Recent' },
 ]
 
 export function GalleryPage() {
@@ -113,7 +120,7 @@ export function GalleryPage() {
     ? activeTagName
     : query
       ? `Results for “${query}”`
-        : welcomeName
+      : welcomeName
         ? 'Discover sketches'
         : 'Sketches'
 
@@ -123,7 +130,7 @@ export function GalleryPage() {
       ? `${activeFormatName} sketches from the community.`
       : query
         ? 'Refine with formats and tags, or clear search to browse everything.'
-        : 'Browse staff picks, recent publishes, and community remixes — then fork what sparks an idea.'
+        : 'Explore the gallery, share your creations, and personalize your experience. See what sparks an idea.'
 
   const hasFilters = Boolean(query || tag || format !== 'all' || sort !== 'featured')
 
@@ -154,8 +161,8 @@ export function GalleryPage() {
       <SketchDetailAtmosphere />
       <div className="relative z-10 mx-auto max-w-[75rem] px-5 py-10 sm:px-8 sm:py-12">
         {/* Welcome header */}
-        <header className="mb-10 space-y-6 lg:mb-12">
-          <div className="relative overflow-hidden border-b border-border/70 pb-8">
+        <header className="mb-5 space-y-6">
+          <div className="relative overflow-hidden border-b border-border pb-8">
             <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0 max-w-2xl space-y-3">
                 <p
@@ -183,28 +190,19 @@ export function GalleryPage() {
                 <p className="max-w-xl text-sm leading-relaxed text-muted sm:text-base">
                   {pageLead}
                 </p>
-                {typeof total === 'number' ? (
-                  <p className="pt-1 text-xs text-muted">
-                    <span className="font-medium text-foreground/80">
-                      {total.toLocaleString()}
-                    </span>{' '}
-                    sketch{total === 1 ? '' : 'es'}
-                    {hasFilters ? ' match your filters' : ' in the gallery'}
-                  </p>
-                ) : null}
               </div>
 
               <div className="relative flex flex-wrap items-center gap-2">
                 <Link
                   to="/games"
-                  className="cursor-pointer rounded-btn border border-border/80 bg-background/55 px-3 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40"
+                  className="cursor-pointer rounded-btn border border-border bg-background/55 px-3 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40"
                 >
                   Games
                 </Link>
                 <button
                   type="button"
                   onClick={() => setPlayOpen(true)}
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-btn border border-border/80 bg-background/55 px-3 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-btn border border-border bg-background/55 px-3 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40"
                 >
                   <Shuffle size={16} aria-hidden />
                   Surprise me
@@ -227,147 +225,63 @@ export function GalleryPage() {
                 )}
               </div>
             </div>
+            {/* Search */}
+            <form
+              className="mt-5"
+              onSubmit={onSearchSubmit}
+              role="search"
+            >
+              <label className="sr-only" htmlFor="gallery-search">
+                Search sketches
+              </label>
+              <div className="relative max-w-xl">
+                <Search
+                  size={16}
+                  className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-foreground/80 font-bold"
+                  aria-hidden
+                />
+                <input
+                  id="gallery-search"
+                  type="search"
+                  value={queryInput}
+                  onChange={(e) => setQueryInput(e.target.value)}
+                  placeholder="Search..."
+                  className="w-full rounded-xl border border-border bg-background/55 py-3 pl-10 pr-10 text-sm text-foreground outline-none backdrop-blur-sm placeholder:text-muted focus:border-primary [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
+                  autoComplete="off"
+                />
+                {queryInput ? (
+                  <button
+                    type="button"
+                    className="absolute right-2.5 top-1/2 z-10 -translate-y-1/2 rounded-btn p-1.5 text-foreground/80 hover:text-foreground font-bold"
+                    aria-label="Clear search"
+                    onClick={() => {
+                      setQueryInput('')
+                      patchParams({ q: null })
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                ) : null}
+              </div>
+            </form>
           </div>
-
-          <nav
-            className="flex w-fit rounded-btn border border-border/80 bg-background/40 p-0.5 backdrop-blur-sm"
-            aria-label="Workspace"
-          >
-            <NavLink
-              to="/gallery"
-              className={({ isActive }) =>
-                cn(
-                  'rounded-[0.5rem] px-3 py-1.5 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-primary/15 text-primary'
-                    : 'text-muted hover:text-foreground',
-                )
-              }
-            >
-              Sketches
-            </NavLink>
-            <NavLink
-              to="/games"
-              className={({ isActive }) =>
-                cn(
-                  'rounded-[0.5rem] px-3 py-1.5 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-primary/15 text-primary'
-                    : 'text-muted hover:text-foreground',
-                )
-              }
-            >
-              Games
-            </NavLink>
-            {isAuthenticated ? (
-              <NavLink
-                to="/account"
-                className={({ isActive }) =>
-                  cn(
-                    'rounded-[0.5rem] px-3 py-1.5 text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-primary/15 text-primary'
-                      : 'text-muted hover:text-foreground',
-                  )
-                }
-              >
-                Account
-              </NavLink>
-            ) : null}
-          </nav>
         </header>
-
-        {/* Search */}
-        <form
-          className="mb-5"
-          onSubmit={onSearchSubmit}
-          role="search"
-        >
-          <label className="sr-only" htmlFor="gallery-search">
-            Search sketches
-          </label>
-          <div className="relative max-w-xl">
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
-            />
-            <input
-              id="gallery-search"
-              type="search"
-              value={queryInput}
-              onChange={(e) => setQueryInput(e.target.value)}
-              placeholder="Search sketches, tags, or creators…"
-              className="w-full rounded-xl border border-border/80 bg-background/55 py-3 pl-10 pr-10 text-sm text-foreground outline-none backdrop-blur-sm placeholder:text-muted focus:border-primary"
-              autoComplete="off"
-            />
-            {queryInput ? (
-              <button
-                type="button"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-btn p-1.5 text-muted hover:text-foreground"
-                aria-label="Clear search"
-                onClick={() => {
-                  setQueryInput('')
-                  patchParams({ q: null })
-                }}
-              >
-                <X size={14} />
-              </button>
-            ) : null}
-          </div>
-        </form>
 
         {/* Sort tabs — hidden when drilling into a tag (Django parity) */}
         {!tag ? (
-          <nav
-            className="gallery-sort-tabs mb-5"
-            aria-label="Gallery sort"
-          >
-            {SORT_TABS.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() =>
-                  patchParams({
-                    sort: tab.key === 'featured' ? null : tab.key,
-                  })
-                }
-                className={cn(
-                  'gallery-sort-tab',
-                  sort === tab.key && 'is-active',
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+          <SlidingFilterTabs
+            className="mb-5"
+            tabs={SORT_TABS}
+            value={sort}
+            onChange={(key) =>
+              patchParams({
+                sort: key === 'featured' ? null : key,
+              })
+            }
+            reduceMotion={reduceMotion}
+            ariaLabel="Gallery sort"
+          />
         ) : null}
-
-        {/* Format chips */}
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="sr-only">Filter by format</span>
-          <Chip
-            active={format === 'all'}
-            onClick={() => patchParams({ type: null })}
-          >
-            All formats
-          </Chip>
-          {(formats ?? []).map((fmt) => (
-            <Chip
-              key={fmt.slug}
-              active={format === fmt.slug}
-              onClick={() =>
-                patchParams({
-                  type: format === fmt.slug ? null : fmt.slug,
-                })
-              }
-            >
-              {fmt.name}
-            </Chip>
-          ))}
-          {isFetching && !isPending ? (
-            <span className="ml-1 text-xs text-muted">Updating…</span>
-          ) : null}
-        </div>
 
         {/* Tags */}
         {visibleTags.length > 0 ? (
@@ -409,7 +323,7 @@ export function GalleryPage() {
                 patchParams({ q: null })
               }}
               >
-                q: {query}
+                {query}
               </ActivePill>
             ) : null}
             {activeTagName ? (
@@ -447,12 +361,12 @@ export function GalleryPage() {
             Could not load sketches.
           </p>
         ) : sketches.length === 0 ? (
-          <div className="rounded-xl border border-border/80 bg-background/55 px-6 py-16 text-center backdrop-blur-sm">
+          <div className="rounded-xl border border-border bg-background/55 px-6 py-16 text-center backdrop-blur-sm">
             <p className="font-display text-lg font-semibold text-foreground">
               No sketches match
             </p>
             <p className="mt-2 text-sm text-muted">
-              Try another search, tag, or format.
+              Try Something Else.
             </p>
             <button
               type="button"
@@ -491,9 +405,8 @@ export function GalleryPage() {
             </button>
           </div>
         ) : sketches.length > 0 ? (
-          <p className="mt-12 text-center text-xs text-muted">
-            You’re caught up — {sketches.length} shown
-            {typeof total === 'number' ? ` of ${total}` : ''}.
+          <p className="mt-12 text-center text-xs text-muted font-bold">
+            You’re caught up.
           </p>
         ) : null}
       </div>

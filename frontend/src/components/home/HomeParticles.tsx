@@ -87,7 +87,7 @@ export function HomeParticles() {
           // Deeper than brand #7B61FF so dots/lines read clearly on light bg
           col: [72, 42, 210] as const,
           dotA: 0.62,
-          lineA: 0.16,
+          lineA: 0.30,
         }
       }
       return {

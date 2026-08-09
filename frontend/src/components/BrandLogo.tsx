@@ -35,7 +35,7 @@ export function BrandLogo({
       </span>
       {markOnly ? null : (
         <span>
-          sketches<span className="text-primary">101</span>
+          Sketches<span className="text-primary">101</span>
         </span>
       )}
     </Link>

@@ -33,18 +33,16 @@
 
   <nav class="gallery-mobile-menu-nav" aria-label="Mobile navigation">
     <a
-      href="{% url 'home' %}"
-      class="gallery-mobile-menu-link{% if request.resolver_match.url_name == 'home' %} is-active{% endif %}"
-    >
-      <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'home' %} is-filled{% endif %}">home</span>
-      <span>Home</span>
-    </a>
-    <a
       href="{% url 'sketch_list' %}"
       class="gallery-mobile-menu-link{% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'tag_detail' or request.resolver_match.url_name == 'sketch_detail' %} is-active{% endif %}"
     >
       <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'tag_detail' or request.resolver_match.url_name == 'sketch_detail' %} is-filled{% endif %}">explore</span>
       <span>Explore</span>
+    </a>
+    <a href="{% url 'games' %}" class="gallery-mobile-menu-link{% if request.resolver_match.url_name == 'games' %} is-active{% endif %}"
+    >
+      <span class="material-symbols-outlined{% if request.resolver_match.url_name == 'games' %} is-filled{% endif %}">gamepad</span>
+      <span>Games</span>
     </a>
     {% if user.is_authenticated %}
     <a

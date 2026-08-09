@@ -4,6 +4,10 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      screens: {
+        // Desktop navbar (vs mobile drawer) — slightly above default lg (1024px)
+        nav: '1068px',
+      },
       colors: {
         primary: {
           DEFAULT: 'var(--color-primary)',

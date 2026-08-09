@@ -93,7 +93,7 @@ export function SketchIdeShell({
     <div className="relative flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-background">
       <SketchDetailAtmosphere />
 
-      <header className="relative z-10 flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border/70 bg-background/55 px-3 py-2 backdrop-blur-md sm:px-4">
+      <header className="relative z-10 flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border bg-background/55 px-3 py-2 backdrop-blur-md sm:px-4">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           {eyebrow ? (
             <p className="hidden shrink-0 font-mono text-[10px] uppercase tracking-[0.16em] text-primary sm:block">
@@ -114,7 +114,7 @@ export function SketchIdeShell({
                 ? 'border-primary/35 text-primary'
                 : previewPaused
                   ? 'border-amber-500/40 text-amber-600 dark:text-amber-400'
-                  : 'border-border/80 text-muted',
+                  : 'border-border text-muted',
             )}
           >
             <span

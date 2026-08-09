@@ -560,7 +560,7 @@ export function SketchSettingsPage() {
             </p>
           )}
 
-          <label className="flex cursor-pointer items-start gap-3 rounded-btn border border-border/80 bg-background/40 px-3 py-3">
+          <label className="flex cursor-pointer items-start gap-3 rounded-btn border border-border bg-background/40 px-3 py-3">
             <input
               type="checkbox"
               className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary/40"

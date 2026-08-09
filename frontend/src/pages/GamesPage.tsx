@@ -1,11 +1,12 @@
-import { useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { Play, Shuffle } from 'lucide-react'
+import { Play, Search, Shuffle, X } from 'lucide-react'
 import { getSketches } from '@/api/sketches'
 import { SketchCardView } from '@/components/SketchCardView'
 import { SketchDetailAtmosphere } from '@/components/sketch/SketchDetailAtmosphere'
 import { AnimatedGroup } from '@/components/motion-primitives/animated-group'
+import { SlidingFilterTabs } from '@/components/SlidingFilterTabs'
 import { useAuth } from '@/auth/AuthProvider'
 import { useGuest } from '@/guest/GuestProvider'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
@@ -23,7 +24,12 @@ export function GamesPage() {
   const { user, isAuthenticated } = useAuth()
   const { guest } = useGuest()
   const navigate = useNavigate()
-  const [sort, setSort] = useState<SortKey>('featured')
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const sortParam = searchParams.get('sort')
+  const sort: SortKey = sortParam === 'recent' ? 'recent' : 'featured'
+  const query = searchParams.get('q') || ''
+  const [queryInput, setQueryInput] = useState(query)
 
   useDocumentTitle(
     'Games · Sketches101',
@@ -32,13 +38,30 @@ export function GamesPage() {
 
   const welcomeName = user?.username || guest?.displayName || null
 
+  useEffect(() => {
+    setQueryInput(query)
+  }, [query])
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      const next = queryInput.trim()
+      if (next === query) return
+      const params = new URLSearchParams(searchParams)
+      if (next) params.set('q', next)
+      else params.delete('q')
+      setSearchParams(params, { replace: true })
+    }, 300)
+    return () => window.clearTimeout(handle)
+  }, [queryInput, query, searchParams, setSearchParams])
+
   const listQuery = useInfiniteQuery({
-    queryKey: ['games', 'list', sort],
+    queryKey: ['games', 'list', sort, query],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       getSketches({
         games: true,
         sort,
+        q: query || undefined,
         page: pageParam,
       }),
     getNextPageParam: (last) => (last.has_next ? last.page + 1 : undefined),
@@ -47,6 +70,21 @@ export function GamesPage() {
   const sketches = listQuery.data?.pages.flatMap((p) => p.results) ?? []
   const total = listQuery.data?.pages[0]?.total ?? 0
   const firstSlug = sketches[0]?.slug ?? null
+
+  function patchParams(patch: Record<string, string | null>) {
+    const next = new URLSearchParams(searchParams)
+    for (const [key, value] of Object.entries(patch)) {
+      if (!value) next.delete(key)
+      else next.set(key, value)
+    }
+    setSearchParams(next, { replace: true })
+  }
+
+  function onSearchSubmit(event: FormEvent) {
+    event.preventDefault()
+    const next = queryInput.trim()
+    patchParams({ q: next || null })
+  }
 
   function playRandom() {
     if (sketches.length === 0) return
@@ -58,8 +96,8 @@ export function GamesPage() {
     <div className="relative min-h-[calc(100dvh-4rem)] overflow-hidden bg-background">
       <SketchDetailAtmosphere />
       <div className="relative z-10 mx-auto max-w-[75rem] px-5 py-10 sm:px-8 sm:py-12">
-        <header className="mb-10 space-y-6 lg:mb-12">
-          <div className="relative overflow-hidden border-b border-border/70 pb-8">
+        <header className="mb-5 space-y-6">
+          <div className="relative overflow-hidden border-b border-border pb-8">
             <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0 max-w-2xl space-y-3">
                 <p
@@ -82,26 +120,19 @@ export function GamesPage() {
                   )}
                 </p>
                 <h1 className="font-display text-[clamp(1.85rem,4vw,2.75rem)] font-semibold tracking-tight text-foreground">
-                  Games
+                  {query ? `Results for “${query}”` : 'Games'}
                 </h1>
                 <p className="max-w-xl text-sm leading-relaxed text-muted sm:text-base">
-                  Play-only sketches — hit Play and jump straight into fullscreen.
-                  No source, no forks.
+                  {query
+                    ? 'Clear search to browse all playable games.'
+                    : 'Play-only sketches — hit Play and jump straight into fullscreen. No source, no forks.'}
                 </p>
-                {typeof total === 'number' && !listQuery.isPending ? (
-                  <p className="pt-1 text-xs text-muted">
-                    <span className="font-medium text-foreground/80">
-                      {total.toLocaleString()}
-                    </span>{' '}
-                    game{total === 1 ? '' : 's'} ready to play
-                  </p>
-                ) : null}
               </div>
 
               <div className="relative flex flex-wrap items-center gap-2">
                 <Link
                   to="/gallery"
-                  className="cursor-pointer rounded-btn border border-border/80 bg-background/55 px-3 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40"
+                  className="cursor-pointer rounded-btn border border-border bg-background/55 px-3 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40"
                 >
                   Sketches
                 </Link>
@@ -109,7 +140,7 @@ export function GamesPage() {
                   type="button"
                   disabled={!firstSlug}
                   onClick={playRandom}
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-btn border border-border/80 bg-background/55 px-3 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-btn border border-border bg-background/55 px-3 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Shuffle size={16} aria-hidden />
                   Surprise me
@@ -133,79 +164,54 @@ export function GamesPage() {
                 ) : null}
               </div>
             </div>
-          </div>
 
-          <nav
-            className="flex w-fit rounded-btn border border-border/80 bg-background/40 p-0.5 backdrop-blur-sm"
-            aria-label="Browse"
-          >
-            <NavLink
-              to="/gallery"
-              className={({ isActive }) =>
-                cn(
-                  'rounded-[0.5rem] px-3 py-1.5 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-primary/15 text-primary'
-                    : 'text-muted hover:text-foreground',
-                )
-              }
-            >
-              Sketches
-            </NavLink>
-            <NavLink
-              to="/games"
-              className={({ isActive }) =>
-                cn(
-                  'rounded-[0.5rem] px-3 py-1.5 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-primary/15 text-primary'
-                    : 'text-muted hover:text-foreground',
-                )
-              }
-            >
-              Games
-            </NavLink>
-            {isAuthenticated ? (
-              <NavLink
-                to="/account"
-                className={({ isActive }) =>
-                  cn(
-                    'rounded-[0.5rem] px-3 py-1.5 text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-primary/15 text-primary'
-                      : 'text-muted hover:text-foreground',
-                  )
-                }
-              >
-                Account
-              </NavLink>
-            ) : null}
-          </nav>
+            <form className="mt-5" onSubmit={onSearchSubmit} role="search">
+              <label className="sr-only" htmlFor="games-search">
+                Search games
+              </label>
+              <div className="relative max-w-xl">
+                <Search
+                  size={16}
+                  className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-foreground/80"
+                  aria-hidden
+                />
+                <input
+                  id="games-search"
+                  type="search"
+                  value={queryInput}
+                  onChange={(e) => setQueryInput(e.target.value)}
+                  placeholder="Search games..."
+                  className="w-full rounded-xl border border-border bg-background/55 py-3 pl-10 pr-10 text-sm text-foreground outline-none backdrop-blur-sm placeholder:text-muted focus:border-primary [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
+                  autoComplete="off"
+                />
+                {queryInput ? (
+                  <button
+                    type="button"
+                    className="absolute right-2.5 top-1/2 z-10 -translate-y-1/2 rounded-btn p-1.5 text-foreground/80 hover:text-foreground"
+                    aria-label="Clear search"
+                    onClick={() => {
+                      setQueryInput('')
+                      patchParams({ q: null })
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                ) : null}
+              </div>
+            </form>
+          </div>
         </header>
 
-        <div
-          className="mb-6 flex w-fit rounded-btn border border-border/80 bg-background/40 p-0.5 backdrop-blur-sm"
-          role="tablist"
-          aria-label="Sort games"
-        >
-          {SORT_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              role="tab"
-              aria-selected={sort === tab.key}
-              onClick={() => setSort(tab.key)}
-              className={cn(
-                'cursor-pointer rounded-[0.5rem] px-3 py-1.5 text-sm font-medium transition-colors',
-                sort === tab.key
-                  ? 'bg-primary/15 text-primary'
-                  : 'text-muted hover:text-foreground',
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <SlidingFilterTabs
+          className="mb-6"
+          tabs={SORT_TABS}
+          value={sort}
+          onChange={(key) =>
+            patchParams({ sort: key === 'featured' ? null : key })
+          }
+          reduceMotion={reduceMotion}
+          ariaLabel="Sort games"
+        />
 
         {listQuery.isPending ? (
           <p className="text-sm text-muted">Loading games…</p>
@@ -214,18 +220,40 @@ export function GamesPage() {
             Could not load games.
           </p>
         ) : sketches.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/80 bg-background/50 px-5 py-14 text-center backdrop-blur-sm">
-            <p className="font-display text-lg font-semibold">No games yet</p>
+          <div className="rounded-xl border border-dashed border-border bg-background/50 px-5 py-14 text-center backdrop-blur-sm">
+            <p className="font-display text-lg font-semibold">
+              {query ? 'No matching games' : 'No games yet'}
+            </p>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-              Authors can mark a published sketch as a game in Settings — it
-              then shows up here for anyone to play.
+              {query
+                ? `Nothing matched “${query}”. Try a different search.`
+                : 'Authors can mark a published sketch as a game in Settings — it then shows up here for anyone to play.'}
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              <Link to="/gallery" className="home-btn home-btn-ghost !min-h-10 !px-4 !py-2 !text-sm">
-                Browse sketches
-              </Link>
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQueryInput('')
+                    patchParams({ q: null })
+                  }}
+                  className="home-btn home-btn-ghost !min-h-10 !px-4 !py-2 !text-sm"
+                >
+                  Clear search
+                </button>
+              ) : (
+                <Link
+                  to="/gallery"
+                  className="home-btn home-btn-ghost !min-h-10 !px-4 !py-2 !text-sm"
+                >
+                  Browse sketches
+                </Link>
+              )}
               {isAuthenticated ? (
-                <Link to="/account" className="home-btn home-btn-primary !min-h-10 !px-4 !py-2 !text-sm">
+                <Link
+                  to="/account"
+                  className="home-btn home-btn-primary !min-h-10 !px-4 !py-2 !text-sm"
+                >
                   Your account
                 </Link>
               ) : null}
@@ -247,7 +275,7 @@ export function GamesPage() {
                   type="button"
                   disabled={listQuery.isFetchingNextPage}
                   onClick={() => void listQuery.fetchNextPage()}
-                  className="rounded-btn border border-border/80 bg-background/55 px-4 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40 disabled:opacity-60"
+                  className="rounded-btn border border-border bg-background/55 px-4 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-primary/40 disabled:opacity-60"
                 >
                   {listQuery.isFetchingNextPage ? 'Loading…' : 'Load more'}
                 </button>

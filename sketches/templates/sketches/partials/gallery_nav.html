@@ -23,13 +23,11 @@
 
   <nav class="gallery-home-nav-center gallery-home-nav-links--desktop" aria-label="Main">
     <a
-      href="{% url 'home' %}"
-      class="gallery-home-nav-link{% if request.resolver_match.url_name == 'home' %} is-active{% endif %}"
-    >Home</a>
-    <a
       href="{% url 'sketch_list' %}"
       class="gallery-home-nav-link{% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'tag_detail' or request.resolver_match.url_name == 'sketch_detail' %} is-active{% endif %}"
     >Explore</a>
+    <a href="{% url 'games' %}" class="gallery-home-nav-link{% if request.resolver_match.url_name == 'games' %} is-active{% endif %}"
+    >Games</a>
   </nav>
 
   <div class="gallery-home-nav-links gallery-home-nav-links--desktop">

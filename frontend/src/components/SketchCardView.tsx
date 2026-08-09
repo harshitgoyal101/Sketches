@@ -25,10 +25,10 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
       className={cn(
         'group cursor-pointer outline-none transition-[border-color,transform,box-shadow,background-color] duration-200',
         // Mobile: app-icon list row
-        'flex flex-row items-center gap-3 rounded-xl border border-black/10 bg-white/60 p-2.5 backdrop-blur-md',
+        'flex flex-row items-center gap-3 rounded-xl border border-black/20 bg-white/60 p-2.5 backdrop-blur-md',
         'shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),0_1px_2px_rgba(19,27,46,0.06)]',
         'hover:border-primary/40 hover:bg-white/80',
-        'dark:border-white/15 dark:bg-white/[0.06] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)]',
+        'dark:border-white/25 dark:bg-white/[0.06] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)]',
         'dark:hover:border-primary/50 dark:hover:bg-white/[0.1]',
         'focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30',
         // Desktop: tall glass card
@@ -49,7 +49,7 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
       </div>
 
       {/* Desktop thumbnail media */}
-      <div className="relative hidden aspect-[16/10] w-full shrink-0 overflow-hidden border-b border-black/8 bg-background/30 dark:border-white/10 dark:bg-background/40 md:block">
+      <div className="relative hidden aspect-[16/10] w-full shrink-0 overflow-hidden border-b border-black/15 bg-background/30 dark:border-white/20 dark:bg-background/40 md:block">
         {thumb ? (
           <img
             src={thumb}
@@ -67,7 +67,7 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
             </span>
           </div>
         )}
-        <span className="pointer-events-none absolute left-2.5 top-2.5 rounded-md border border-black/10 bg-white/80 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-foreground backdrop-blur-md dark:border-white/20 dark:bg-black/40 dark:text-white">
+        <span className="pointer-events-none absolute left-2.5 top-2.5 rounded-md border border-black/20 bg-white/80 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-foreground backdrop-blur-md dark:border-white/30 dark:bg-black/40 dark:text-white">
           {sketch.sketch_type_label}
         </span>
         {showStatus ? (
@@ -76,7 +76,7 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
               'pointer-events-none absolute right-2.5 top-2.5 rounded-md border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide backdrop-blur-md',
               sketch.status === 'published'
                 ? 'border-primary/40 bg-primary/85 text-[var(--color-on-primary)]'
-                : 'border-black/10 bg-white/80 text-muted dark:border-white/15 dark:bg-black/40 dark:text-white/80',
+                : 'border-black/20 bg-white/80 text-muted dark:border-white/25 dark:bg-black/40 dark:text-white/80',
             )}
           >
             {sketch.status}
@@ -84,7 +84,7 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
         ) : null}
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:min-h-[6.75rem] md:gap-1.5 md:bg-gradient-to-b md:from-transparent md:to-white/50 md:p-3.5 dark:md:to-black/20">
+      <div className="flex w-full flex-1 flex-col gap-0.5 md:min-h-[6.75rem] md:gap-1.5 md:bg-gradient-to-b md:from-transparent md:to-white/50 md:p-3.5 dark:md:to-black/20">
         <div className="flex items-start justify-between gap-2 md:block">
           <h3 className="line-clamp-2 min-w-0 font-display text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
             {sketch.title}
@@ -95,13 +95,13 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
                 'shrink-0 rounded-md border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide md:hidden',
                 sketch.status === 'published'
                   ? 'border-primary/40 bg-primary/15 text-primary'
-                  : 'border-black/10 text-muted dark:border-white/15',
+                  : 'border-black/20 text-muted dark:border-white/25',
               )}
             >
               {sketch.status}
             </span>
           ) : (
-            <span className="shrink-0 rounded-md border border-black/10 bg-white/70 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted dark:border-white/12 dark:bg-white/[0.06] md:hidden">
+            <span className="shrink-0 rounded-md border border-black/20 bg-white/70 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted dark:border-white/25 dark:bg-white/[0.06] md:hidden">
               {sketch.sketch_type_label}
             </span>
           )}
@@ -115,7 +115,7 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
             {tags.map((item) => (
               <span
                 key={item.slug}
-                className="rounded-md border border-black/10 bg-white/70 px-1.5 py-0.5 text-[10px] text-muted dark:border-white/12 dark:bg-white/[0.06]"
+                className="rounded-md border border-black/20 bg-white/70 px-1.5 py-0.5 text-[10px] text-muted dark:border-white/25 dark:bg-white/[0.06]"
               >
                 {item.name}
               </span>

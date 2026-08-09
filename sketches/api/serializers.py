@@ -4,14 +4,15 @@ from sketches.services.embed_cache import embed_cache_version
 from sketches.services.markdown import render_markdown
 
 
-def _absolute_url(request, path):
+def _same_origin_url(path):
+    """Keep media/embeds as same-origin paths (works through Vite/LAN/tunnels)."""
     if not path:
         return ""
     if path.startswith("http://") or path.startswith("https://"):
         return path
-    if request is None:
-        return path
-    return request.build_absolute_uri(path)
+    if not path.startswith("/"):
+        return f"/{path}"
+    return path
 
 
 def _cache_busted_url(url, sketch):
@@ -52,39 +53,30 @@ def serialize_sketch_card(sketch, request=None):
     thumbnail = ""
     if sketch.thumbnail:
         thumbnail = _cache_busted_url(
-            _absolute_url(request, sketch.thumbnail.url), sketch
+            _same_origin_url(sketch.thumbnail.url), sketch
         )
 
     card_url = sketch.thumbnail_card_url or (sketch.thumbnail.url if sketch.thumbnail else "")
     if card_url:
-        card_url = _cache_busted_url(_absolute_url(request, card_url), sketch)
+        card_url = _cache_busted_url(_same_origin_url(card_url), sketch)
 
     app_icon = ""
     if sketch.app_icon:
         app_icon = _cache_busted_url(
-            _absolute_url(request, sketch.app_icon.url), sketch
+            _same_origin_url(sketch.app_icon.url), sketch
         )
 
     srcset = sketch.thumbnail_srcset
-    if srcset and request is not None:
-        # Rebuild srcset with absolute URLs when possible
+    if srcset:
+        # Rebuild srcset with same-origin paths so tunnels/LAN proxies work.
         parts = []
         for part in srcset.split(","):
             part = part.strip()
             if not part:
                 continue
             url, _, descriptor = part.partition(" ")
-            abs_url = _cache_busted_url(_absolute_url(request, url), sketch)
+            abs_url = _cache_busted_url(_same_origin_url(url), sketch)
             parts.append(f"{abs_url} {descriptor}".strip())
-        srcset = ", ".join(parts)
-    elif srcset:
-        parts = []
-        for part in srcset.split(","):
-            part = part.strip()
-            if not part:
-                continue
-            url, _, descriptor = part.partition(" ")
-            parts.append(f"{_cache_busted_url(url, sketch)} {descriptor}".strip())
         srcset = ", ".join(parts)
 
     return {
@@ -133,7 +125,7 @@ def serialize_background_sketch(sketch, request=None):
     return {
         "slug": sketch.slug,
         "title": sketch.title,
-        "embed_url": _absolute_url(request, embed),
+        "embed_url": _same_origin_url(embed),
     }
 
 
@@ -149,8 +141,8 @@ def serialize_sketch_detail(
     data.update(
         {
             "entry_filename": sketch.entry_filename,
-            "embed_url": _absolute_url(
-                request, reverse("sketch_embed", kwargs={"slug": sketch.slug})
+            "embed_url": _same_origin_url(
+                reverse("sketch_embed", kwargs={"slug": sketch.slug})
             ),
             "can_edit": can_edit,
             "can_fork": can_fork,

@@ -40,6 +40,11 @@ _allowed_hosts = os.environ.get("ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [host.strip() for host in _allowed_hosts.split(",") if host.strip()]
 if DEBUG and not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+if DEBUG:
+    # Match rotating Dev Tunnel / Cloudflare quick-tunnel subdomains.
+    for host in (".inc1.devtunnels.ms", ".devtunnels.ms", ".trycloudflare.com"):
+        if host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(host)
 
 _csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
 CSRF_TRUSTED_ORIGINS = [
@@ -49,6 +54,9 @@ if DEBUG:
     for origin in ("http://localhost:5173", "http://127.0.0.1:5173"):
         if origin not in CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(origin)
+    # Vite / Dev Tunnels proxy: honor public host for any absolute URL generation.
+    USE_X_FORWARDED_HOST = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 # Application definition

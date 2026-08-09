@@ -20,13 +20,11 @@
     <div class="navbar-menu" id="site-nav">
       <nav class="navbar-links" aria-label="Main navigation">
         <a
-          href="{% url 'home' %}"
-          class="navbar-link{% if request.resolver_match.url_name == 'home' %} is-active{% endif %}"
-        >Home</a>
-        <a
           href="{% url 'sketch_list' %}"
           class="navbar-link{% if request.resolver_match.url_name == 'sketch_list' or request.resolver_match.url_name == 'sketch_detail' or request.resolver_match.url_name == 'tag_detail' %} is-active{% endif %}"
         >Sketches</a>
+        <a href="{% url 'games' %}" class="navbar-link{% if request.resolver_match.url_name == 'games' %} is-active{% endif %}"
+        >Games</a>
         {% if user.is_authenticated %}
         <form method="post" action="{% url 'logout' %}" class="navbar-logout-form navbar-logout-form--inline">
           {% csrf_token %}

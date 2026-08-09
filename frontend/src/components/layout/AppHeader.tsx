@@ -1,6 +1,20 @@
 import { type FormEvent, useEffect, useId, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, Search, X } from 'lucide-react'
+import {
+  Bookmark,
+  FolderOpen,
+  Gamepad2,
+  LayoutGrid,
+  LogIn,
+  LogOut,
+  Menu,
+  Pencil,
+  Plus,
+  Search,
+  Sparkles,
+  UserRound,
+  X,
+} from 'lucide-react'
 import { useAuth } from '@/auth/AuthProvider'
 import { BrandLogo } from '@/components/BrandLogo'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -10,11 +24,17 @@ import { useGuest } from '@/guest/GuestProvider'
 import { cn } from '@/lib/utils'
 
 const DESKTOP_NAV = [
-  { to: '/', label: 'Home', end: true },
   { to: '/gallery', label: 'Sketches' },
   { to: '/games', label: 'Games' },
   { to: '/explore/today', label: 'Today' },
   { to: '/saved', label: 'Saved' },
+] as const
+
+const MOBILE_EXPLORE = [
+  { to: '/gallery', label: 'Sketches', icon: LayoutGrid },
+  { to: '/games', label: 'Games', icon: Gamepad2 },
+  { to: '/explore/today', label: 'Today', icon: Sparkles },
+  { to: '/saved', label: 'Saved', icon: Bookmark },
 ] as const
 
 type AppHeaderProps = {
@@ -24,7 +44,7 @@ type AppHeaderProps = {
 export function AppHeader({ transparent = false }: AppHeaderProps) {
   const { theme } = useTheme()
   const { user, isLoading, logout } = useAuth()
-  const { requireAuth } = useGuest()
+  const { guest, requireAuth } = useGuest()
   const { continueSketch } = useContinueSketch()
   const location = useLocation()
   const navigate = useNavigate()
@@ -137,18 +157,17 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
             : 'glass-nav border-b border-border',
         )}
       >
-        <div className="mx-auto flex h-16 max-w-[75rem] items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-[75rem] items-center gap-3 px-4 sm:gap-4 sm:px-6 nav:px-8">
           <BrandLogo onDark={overHeroDark} />
 
           <nav
-            className="ml-1 hidden items-center gap-0.5 lg:flex"
+            className="ml-1 hidden items-center gap-0.5 nav:flex"
             aria-label="Main"
           >
             {DESKTOP_NAV.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={'end' in item ? item.end : undefined}
                 className={navLinkClass}
               >
                 {item.label}
@@ -156,7 +175,7 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
             ))}
           </nav>
 
-          <div className="ml-auto hidden items-center gap-2 lg:flex">
+          <div className="ml-auto hidden items-center gap-2 nav:flex">
             <form
               onSubmit={onSearch}
               className="relative w-[min(100%,13.5rem)]"
@@ -183,7 +202,7 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
                   overHeroDark
                     ? 'border-white/20 text-white placeholder:text-white/40 focus:bg-white/10'
                     : overHeroLight
-                      ? 'border-border/70 bg-white/60 text-foreground'
+                      ? 'border-border bg-white/60 text-foreground'
                       : 'border-border bg-surface/80 text-foreground',
                 )}
               />
@@ -277,7 +296,7 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
             )}
           </div>
 
-          <div className="ml-auto flex items-center gap-2 lg:hidden">
+          <div className="ml-auto flex items-center gap-2 nav:hidden">
             <ThemeToggle overHero={overHeroDark} />
             <button
               type="button"
@@ -301,7 +320,7 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
       {/* Mobile drawer */}
       <div
         className={cn(
-          'fixed inset-0 z-40 lg:hidden',
+          'fixed inset-0 z-40 nav:hidden',
           menuOpen ? 'pointer-events-auto' : 'pointer-events-none',
         )}
         aria-hidden={!menuOpen}
@@ -339,94 +358,233 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
             </button>
           </div>
 
-          <form onSubmit={onSearch} className="border-b border-border p-4" role="search">
-            <label className="sr-only" htmlFor="mobile-nav-search">
-              Search sketches
-            </label>
-            <div className="relative">
-              <Search
-                size={16}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
-              />
-              <input
-                id="mobile-nav-search"
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search…"
-                className="h-10 w-full rounded-btn border border-border bg-background py-2.5 pl-9 pr-3 text-sm text-foreground outline-none focus:border-primary"
-              />
-            </div>
-          </form>
-
-          <nav className="flex flex-1 flex-col gap-1 p-3" aria-label="Mobile">
-            <MobileLink to="/" end>
-              Home
-            </MobileLink>
-            <MobileLink to="/gallery">Sketches</MobileLink>
-            <MobileLink to="/games">Games</MobileLink>
-            <MobileLink to="/explore/today">Today</MobileLink>
-            <MobileLink to="/saved">Saved</MobileLink>
-            {!isLoading && user ? (
-              <>
-                {continueSketch ? (
-                  <Link
-                    to={`/sketches/${continueSketch.slug}/edit`}
-                    className="rounded-btn px-3 py-3 text-sm font-medium text-primary hover:bg-primary/10"
-                    onClick={() => setMenuOpen(false)}
-                    title={`Continue editing ${continueSketch.title}`}
+          {!isLoading && user ? (
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="border-b border-border px-4 py-4">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-sm font-semibold uppercase text-primary"
+                    aria-hidden
                   >
-                    Continue
+                    {initials}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate font-display text-base font-semibold tracking-tight text-foreground">
+                      {user.username}
+                    </p>
+                    {user.email ? (
+                      <p className="truncate text-xs text-muted">{user.email}</p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <form
+                onSubmit={onSearch}
+                className="border-b border-border px-4 py-3"
+                role="search"
+              >
+                <label className="sr-only" htmlFor="mobile-nav-search">
+                  Search sketches
+                </label>
+                <div className="relative">
+                  <Search
+                    size={16}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+                  />
+                  <input
+                    id="mobile-nav-search"
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search sketches…"
+                    className="h-10 w-full rounded-btn border border-border bg-background py-2.5 pl-9 pr-3 text-sm text-foreground outline-none focus:border-primary"
+                  />
+                </div>
+              </form>
+
+              <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+                <div className="space-y-2">
+                  {continueSketch ? (
+                    <Link
+                      to={`/sketches/${continueSketch.slug}/edit`}
+                      className="flex items-center gap-3 rounded-xl border border-primary/25 bg-primary/10 px-3.5 py-3 text-left transition-colors hover:bg-primary/15"
+                      onClick={() => setMenuOpen(false)}
+                      title={`Continue editing ${continueSketch.title}`}
+                    >
+                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-[var(--color-on-primary)]">
+                        <Pencil size={16} aria-hidden />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-primary">
+                          Continue editing
+                        </span>
+                        <span className="block truncate text-xs text-muted">
+                          {continueSketch.title}
+                        </span>
+                      </span>
+                    </Link>
+                  ) : null}
+                  <Link
+                    to="/sketches/new"
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-[var(--color-on-primary)] transition-colors hover:bg-primary-hover"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <Plus size={16} aria-hidden />
+                    New sketch
                   </Link>
-                ) : null}
-                <MobileLink to="/account">My Sketches</MobileLink>
-                <MobileLink to="/sketches/new">New Sketch</MobileLink>
+                </div>
+
+                <p className="mb-2 mt-5 px-1 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-muted">
+                  Explore
+                </p>
+                <nav className="flex flex-col gap-0.5" aria-label="Mobile explore">
+                  {MOBILE_EXPLORE.map(({ to, label, icon: Icon }) => (
+                    <MobileIconLink key={to} to={to} icon={Icon}>
+                      {label}
+                    </MobileIconLink>
+                  ))}
+                </nav>
+
+                <p className="mb-2 mt-5 px-1 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-muted">
+                  Account
+                </p>
+                <nav className="flex flex-col gap-0.5" aria-label="Mobile account">
+                  <MobileIconLink to="/account" icon={FolderOpen}>
+                    My sketches
+                  </MobileIconLink>
+                </nav>
+              </div>
+
+              <div className="mt-auto border-t border-border p-3">
                 <button
                   type="button"
-                  className="cursor-pointer rounded-btn px-3 py-3 text-left text-sm font-medium text-destructive hover:bg-destructive/10"
+                  className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-border text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
                   onClick={() => {
                     setMenuOpen(false)
                     void logout()
                   }}
                 >
+                  <LogOut size={16} aria-hidden />
                   Log out
                 </button>
-              </>
-            ) : (
-              <div className="mt-auto space-y-2 border-t border-border p-3">
+              </div>
+            </div>
+          ) : (
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="border-b border-border px-4 py-4">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary"
+                    aria-hidden
+                  >
+                    <UserRound size={20} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate font-display text-base font-semibold tracking-tight text-foreground">
+                      {guest?.displayName?.trim() || 'Guest'}
+                    </p>
+                    <p className="truncate text-xs text-muted">
+                      Sign in to save and sync your work
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <form
+                onSubmit={onSearch}
+                className="border-b border-border px-4 py-3"
+                role="search"
+              >
+                <label className="sr-only" htmlFor="mobile-nav-search-guest">
+                  Search sketches
+                </label>
+                <div className="relative">
+                  <Search
+                    size={16}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+                  />
+                  <input
+                    id="mobile-nav-search-guest"
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search sketches…"
+                    className="h-10 w-full rounded-btn border border-border bg-background py-2.5 pl-9 pr-3 text-sm text-foreground outline-none focus:border-primary"
+                  />
+                </div>
+              </form>
+
+              <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+                <div className="space-y-2">
                   <Link
                     to="/login"
-                    className="inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-btn border border-border text-sm font-semibold text-foreground hover:bg-primary/5"
+                    className="flex items-center gap-3 rounded-xl border border-primary/25 bg-primary/10 px-3.5 py-3 text-left transition-colors hover:bg-primary/15"
                     onClick={() => setMenuOpen(false)}
                   >
-                    Log in
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-[var(--color-on-primary)]">
+                      <LogIn size={16} aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-primary">
+                        Log in
+                      </span>
+                      <span className="block truncate text-xs text-muted">
+                        Access your sketches and scores
+                      </span>
+                    </span>
                   </Link>
                   <button
                     type="button"
-                    className="inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-btn bg-primary text-sm font-semibold text-[var(--color-on-primary)] hover:bg-primary-hover"
+                    className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-[var(--color-on-primary)] transition-colors hover:bg-primary-hover"
                     onClick={() => {
                       setMenuOpen(false)
                       onGetStarted()
                     }}
                   >
+                    <Plus size={16} aria-hidden />
                     Get started
                   </button>
                 </div>
-            )}
-          </nav>
+
+                <p className="mb-2 mt-5 px-1 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-muted">
+                  Explore
+                </p>
+                <nav className="flex flex-col gap-0.5" aria-label="Mobile explore">
+                  {MOBILE_EXPLORE.map(({ to, label, icon: Icon }) => (
+                    <MobileIconLink key={to} to={to} icon={Icon}>
+                      {label}
+                    </MobileIconLink>
+                  ))}
+                </nav>
+              </div>
+
+              <div className="mt-auto border-t border-border p-3">
+                <Link
+                  to="/signup"
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border text-sm font-medium text-foreground transition-colors hover:bg-background"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Create account
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>
   )
 }
 
-function MobileLink({
+function MobileIconLink({
   to,
   end,
+  icon: Icon,
   children,
 }: {
   to: string
   end?: boolean
+  icon: typeof LayoutGrid
   children: React.ReactNode
 }) {
   return (
@@ -435,11 +593,14 @@ function MobileLink({
       end={end}
       className={({ isActive }) =>
         cn(
-          'rounded-btn px-3 py-3 text-sm font-medium',
-          isActive ? 'bg-primary/15 text-primary' : 'text-foreground hover:bg-background',
+          'inline-flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors',
+          isActive
+            ? 'bg-primary/15 text-primary'
+            : 'text-foreground hover:bg-background',
         )
       }
     >
+      <Icon size={18} className="shrink-0 opacity-80" aria-hidden />
       {children}
     </NavLink>
   )

@@ -205,7 +205,7 @@ export function IdeWorkspace({
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {/* Mobile Code / Preview tabs */}
       <div
-        className="flex shrink-0 border-b border-border/70 bg-background/55 p-1 backdrop-blur-sm lg:hidden"
+        className="flex shrink-0 border-b border-border bg-background/55 p-1 backdrop-blur-sm lg:hidden"
         role="tablist"
         aria-label="Editor views"
       >
@@ -262,14 +262,14 @@ export function IdeWorkspace({
       >
         <section
           className={cn(
-            'min-h-0 min-w-0 flex-col border-border/70 bg-background/35 backdrop-blur-sm',
+            'min-h-0 min-w-0 flex-col border-border bg-background/35 backdrop-blur-sm',
             'lg:flex lg:flex-[var(--editor-grow)_1_0%] lg:border-b-0',
             mobileTab === 'code' ? 'flex flex-1' : 'hidden lg:flex',
           )}
           role="tabpanel"
           aria-label="Code"
         >
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/70 px-3 py-1.5 font-mono text-xs text-muted">
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-1.5 font-mono text-xs text-muted">
             <div className="flex min-w-0 items-center gap-1.5">
               <button
                 type="button"
