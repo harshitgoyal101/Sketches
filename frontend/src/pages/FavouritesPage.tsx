@@ -90,10 +90,11 @@ export function FavouritesPage() {
                   </Link>
                   <button
                     type="button"
-                    className="absolute right-2.5 top-2.5 cursor-pointer rounded-md border border-border bg-background/80 px-2 py-1 text-[11px] font-medium text-muted backdrop-blur-sm transition-colors hover:border-destructive/40 hover:text-destructive"
+                    className="absolute right-2.5 top-2.5 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-primary transition-colors hover:text-[#A894FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
                     onClick={() => onRemove(row.slug)}
+                    aria-label={`Remove ${row.title} from favourites`}
                   >
-                    Remove
+                    <Heart size={16} strokeWidth={2.25} className="fill-primary text-primary" aria-hidden />
                   </button>
                 </article>
               </li>

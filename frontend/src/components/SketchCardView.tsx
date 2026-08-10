@@ -11,8 +11,8 @@ type Props = {
   showStatus?: boolean
 }
 
-const overlayBtnClass =
-  'inline-flex cursor-pointer items-center justify-center rounded-md border border-border bg-surface/90 text-muted backdrop-blur-md transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30'
+const overlayIconClass =
+  'inline-flex cursor-pointer items-center justify-center rounded-md text-primary transition-colors hover:text-[#A894FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45'
 
 /**
  * Sketch list card: app-icon list rows on mobile, glass thumbnail cards from md up.
@@ -48,16 +48,13 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
     <button
       type="button"
       onClick={onToggleFavourite}
-      className={cn(
-        overlayBtnClass,
-        favourited && 'border-primary/40 text-primary',
-        opts.className,
-      )}
+      className={cn(overlayIconClass, opts.className)}
       aria-label={favourited ? 'Remove from favourites' : 'Add to favourites'}
       aria-pressed={favourited}
     >
       <Heart
-        size={opts.size ?? 15}
+        size={opts.size ?? 16}
+        strokeWidth={2.25}
         className={favourited ? 'fill-primary text-primary' : undefined}
         aria-hidden
       />
@@ -69,10 +66,10 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
       <Link
         to={detailHref}
         onClick={(event) => event.stopPropagation()}
-        className={cn(overlayBtnClass, opts.className)}
+        className={cn(overlayIconClass, opts.className)}
         aria-label={`Open details for ${sketch.title}`}
       >
-        <Info size={opts.size ?? 15} aria-hidden />
+        <Info size={opts.size ?? 16} strokeWidth={2.25} aria-hidden />
       </Link>
     ) : null
 
@@ -123,7 +120,7 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
           />
         ) : (
           <div className="pointer-events-none flex h-full items-center justify-center bg-[radial-gradient(circle_at_30%_20%,rgba(123,97,255,0.25),transparent_55%)] px-3 text-center">
-            <span className="line-clamp-2 font-display text-sm text-muted">
+            <span className="line-clamp-2 font-display text-sm font-semibold text-primary">
               {sketch.title}
             </span>
           </div>
@@ -131,18 +128,16 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
         {showStatus ? (
           <span
             className={cn(
-              'pointer-events-none absolute left-2.5 top-2.5 rounded-md border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide backdrop-blur-md',
-              sketch.status === 'published'
-                ? 'border-primary/40 bg-primary/85 text-[var(--color-on-primary)]'
-                : 'border-border bg-surface/90 text-muted',
+              'pointer-events-none absolute left-2.5 top-2.5 rounded-md px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-primary',
+              sketch.status === 'published' ? 'opacity-100' : 'opacity-80',
             )}
           >
             {sketch.status}
           </span>
         ) : null}
-        <div className="absolute right-2.5 top-2.5 z-[2] flex items-center gap-1.5">
-          {detailButton({ className: 'h-8 w-8' })}
-          {favouriteButton({ className: 'h-8 w-8' })}
+        <div className="absolute right-2.5 top-2.5 z-[2] flex items-center gap-0">
+          {detailButton({ className: 'h-7 w-7' })}
+          {favouriteButton({ className: 'h-7 w-7' })}
         </div>
       </div>
 
@@ -184,9 +179,9 @@ export function SketchCardView({ sketch, className, showStatus = false }: Props)
         )}
       </div>
 
-      <div className="relative z-[2] flex shrink-0 items-center gap-1.5 md:hidden">
-        {detailButton({ className: 'h-9 w-9' })}
-        {favouriteButton({ className: 'h-9 w-9' })}
+      <div className="relative z-[2] flex shrink-0 items-center gap-0 md:hidden">
+        {detailButton({ className: 'h-8 w-8' })}
+        {favouriteButton({ className: 'h-8 w-8' })}
       </div>
     </article>
   )

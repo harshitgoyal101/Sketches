@@ -10,7 +10,7 @@ import {
 } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { migrateGuest } from '@/api/auth'
-import { submitGameScore } from '@/api/games'
+import { listGames, submitGameScore } from '@/api/games'
 import { forkSketch } from '@/api/sketches'
 import { useAuth } from '@/auth/AuthProvider'
 import { AuthGate } from './AuthGate'
@@ -34,6 +34,22 @@ import type {
   GuestScore,
   PendingAction,
 } from './types'
+
+async function resolveGameTitle(slug: string, hint = ''): Promise<string> {
+  if (hint.trim()) return hint.trim()
+  try {
+    const games = await listGames()
+    const match = games.find((row) => row.slug === slug)
+    if (match?.title) return match.title
+  } catch {
+    /* offline / API unavailable */
+  }
+  return slug
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
 
 type RecordScoreResult = {
   isPersonalBest: boolean
@@ -83,6 +99,7 @@ export function GuestProvider({ children }: GuestProviderProps) {
   const [migrateAttempt, setMigrateAttempt] = useState(0)
   const [keepScore, setKeepScore] = useState<{
     game: string
+    gameTitle: string
     score: number
   } | null>(null)
   const migrateRanFor = useRef<string | null>(null)
@@ -166,6 +183,13 @@ export function GuestProvider({ children }: GuestProviderProps) {
       const score = Math.max(0, Math.floor(Number(entry.score) || 0))
       if (!game) return null
 
+      const titleHint =
+        typeof entry.meta?.title === 'string'
+          ? entry.meta.title.trim()
+          : typeof entry.meta?.gameTitle === 'string'
+            ? entry.meta.gameTitle.trim()
+            : ''
+
       if (isAuthenticated) {
         try {
           const result = await submitGameScore(game, {
@@ -213,7 +237,8 @@ export function GuestProvider({ children }: GuestProviderProps) {
         }),
       )
       if (isPersonalBest) {
-        setKeepScore({ game, score })
+        const gameTitle = await resolveGameTitle(game, titleHint)
+        setKeepScore({ game, gameTitle, score })
       }
       return { isPersonalBest, score, game }
     },
@@ -281,14 +306,17 @@ export function GuestProvider({ children }: GuestProviderProps) {
       const game = String(data.game || data.gameId || 'sandbox-score')
       const score = Number(data.score)
       if (!Number.isFinite(score)) return
+      const titleHint = String(data.title || data.gameTitle || '').trim()
       void recordScore({
         game,
         score,
         played_at: new Date().toISOString(),
-        meta:
-          data.meta && typeof data.meta === 'object'
+        meta: {
+          ...(data.meta && typeof data.meta === 'object'
             ? (data.meta as Record<string, unknown>)
-            : {},
+            : {}),
+          ...(titleHint ? { title: titleHint } : {}),
+        },
       })
     }
     window.addEventListener('message', onMessage)
@@ -432,7 +460,7 @@ export function GuestProvider({ children }: GuestProviderProps) {
       <GuestNameGate open={showNameGate} onSubmit={(name) => void createGuest(name)} />
       <KeepScoreGate
         open={Boolean(keepScore) && !isAuthenticated && !authGateOpen}
-        game={keepScore?.game || ''}
+        game={keepScore?.gameTitle || keepScore?.game || ''}
         score={keepScore?.score || 0}
         onKeep={() => {
           if (!keepScore) return

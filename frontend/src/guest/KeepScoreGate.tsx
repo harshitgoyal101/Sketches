@@ -34,8 +34,8 @@ export function KeepScoreGate({
           aria-hidden
         />
         <div className="p-6">
-          <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary">
-            New personal best
+          <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary font-bold">
+            New Personal Best
           </p>
           <h2
             id="keep-score-title"
@@ -44,11 +44,11 @@ export function KeepScoreGate({
             Keep this score?
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            <span className="font-mono text-foreground">
+            <span className="font-mono text-foreground font-bold">
               {score.toLocaleString()}
             </span>{' '}
-            on <span className="text-foreground">{game}</span> is saved on this
-            device only. Sign in to keep it on your account.
+            on <span className="text-foreground font-bold">{game}</span> is saved locally.
+            <br /> Sign in to keep it on your account.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <button
@@ -60,10 +60,10 @@ export function KeepScoreGate({
             </button>
             <button
               type="button"
-              className="rounded-btn border border-border px-4 py-2.5 text-sm text-muted hover:text-foreground"
+              className="rounded-btn border border-border px-4 py-2.5 text-sm text-muted hover:text-foreground font-bold text-red-500 border-red-500 hover:bg-red-500 hover:text-white" 
               onClick={onDismiss}
             >
-              Not now
+              I'll risk it.
             </button>
           </div>
         </div>
