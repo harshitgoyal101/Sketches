@@ -39,7 +39,7 @@ export function FavouritesPage() {
               <Heart size={20} aria-hidden />
             </div>
             <p className="mt-5 font-display text-lg font-bold text-foreground">
-              Nothing favourited yet
+              No favourites yet
             </p>
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted">
               Open any sketch and tap Favourite. Your picks will show up here.

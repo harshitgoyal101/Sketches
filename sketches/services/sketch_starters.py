@@ -50,14 +50,14 @@ STARTERS = {
         "filename": "sketch.js",
         "extension": ".js",
         "code": P5JS_STARTER_CODE,
-        "hint": "JavaScript with setup() and draw()",
+        "hint": "JavaScript",
     },
     Sketch.SketchType.PROCESSING: {
         "label": "Processing",
         "filename": "sketch.pde",
         "extension": ".pde",
         "code": PROCESSING_STARTER_CODE,
-        "hint": "Java-mode .pde with setup() and draw()",
+        "hint": "Java",
     },
 }
 
