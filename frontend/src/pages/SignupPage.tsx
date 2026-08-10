@@ -74,7 +74,7 @@ export function SignupPage() {
   return (
     <AuthSplitLayout
       title="Create account"
-      lead="Publish sketches and keep scores. Password needs 8+ characters with a letter, number, and symbol."
+      lead="Join us and start exploring, playing, creating and sharing."
     >
       <form className="space-y-4" onSubmit={onSubmit}>
         <label className="block space-y-1.5 text-sm">

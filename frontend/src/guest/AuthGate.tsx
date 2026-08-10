@@ -64,7 +64,7 @@ export function AuthGate({
           aria-hidden
         />
         <div className="p-6 sm:p-7">
-          <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary">
+          <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary font-bold">
             {isMigrateFailure ? 'Sync needed' : 'Sign in required'}
           </p>
           <h2

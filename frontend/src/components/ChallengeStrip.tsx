@@ -37,7 +37,7 @@ export function ChallengeStrip({ className, compact = false }: ChallengeStripPro
       />
       <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <div className="min-w-0">
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-primary">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-primary font-bold">
             This week
             {challenge.entry_count > 0
               ? ` · ${challenge.entry_count} entr${challenge.entry_count === 1 ? 'y' : 'ies'}`

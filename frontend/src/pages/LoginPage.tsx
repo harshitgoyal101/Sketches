@@ -77,7 +77,7 @@ export function LoginPage() {
   return (
     <AuthSplitLayout
       title="Log in"
-      lead="Use Google or your Sketches101 email. Guest drafts and scores sync after you sign in."
+      lead="Great to have you back! Sign in to your account to continue."
     >
       <div className="space-y-5">
         <GoogleSignInButton
