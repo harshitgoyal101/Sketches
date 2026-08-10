@@ -69,7 +69,7 @@ export function AuthGate({
           </p>
           <h2
             id="auth-gate-title"
-            className="mt-2 font-display text-2xl font-semibold tracking-tight text-foreground"
+            className="mt-2 font-display text-2xl font-bold tracking-tight text-foreground"
           >
             {isMigrateFailure ? 'Could not sync guest data' : 'Keep your work'}
           </h2>

@@ -64,7 +64,7 @@ export function GuestNameGate({ open, onSubmit }: GuestNameGateProps) {
           </p>
           <h2
             id="guest-name-title"
-            className="mt-2 pr-8 font-display text-2xl font-semibold tracking-tight text-foreground"
+            className="mt-2 pr-8 font-display text-2xl font-bold tracking-tight text-foreground"
           >
             What should we call you?
           </h2>

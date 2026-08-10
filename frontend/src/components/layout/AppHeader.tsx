@@ -1,9 +1,9 @@
 import { type FormEvent, useEffect, useId, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
-  Bookmark,
   FolderOpen,
   Gamepad2,
+  Heart,
   LayoutGrid,
   LogIn,
   LogOut,
@@ -27,14 +27,14 @@ const DESKTOP_NAV = [
   { to: '/gallery', label: 'Sketches' },
   { to: '/games', label: 'Games' },
   { to: '/explore/today', label: 'Today' },
-  { to: '/saved', label: 'Saved' },
+  { to: '/favourites', label: 'Favourites' },
 ] as const
 
 const MOBILE_EXPLORE = [
   { to: '/gallery', label: 'Sketches', icon: LayoutGrid },
   { to: '/games', label: 'Games', icon: Gamepad2 },
   { to: '/explore/today', label: 'Today', icon: Sparkles },
-  { to: '/saved', label: 'Saved', icon: Bookmark },
+  { to: '/favourites', label: 'Favourites', icon: Heart },
 ] as const
 
 type AppHeaderProps = {
@@ -363,13 +363,13 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
               <div className="border-b border-border px-4 py-4">
                 <div className="flex items-center gap-3">
                   <span
-                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-sm font-semibold uppercase text-primary"
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-sm font-bold uppercase text-primary"
                     aria-hidden
                   >
                     {initials}
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate font-display text-base font-semibold tracking-tight text-foreground">
+                    <p className="truncate font-display text-base font-bold tracking-tight text-foreground">
                       {user.username}
                     </p>
                     {user.email ? (
@@ -416,7 +416,7 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
                         <Pencil size={16} aria-hidden />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-semibold text-primary">
+                        <span className="block text-sm font-bold text-primary">
                           Continue editing
                         </span>
                         <span className="block truncate text-xs text-muted">
@@ -427,7 +427,7 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
                   ) : null}
                   <Link
                     to="/sketches/new"
-                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-[var(--color-on-primary)] transition-colors hover:bg-primary-hover"
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-[var(--color-on-primary)] transition-colors hover:bg-primary-hover"
                     onClick={() => setMenuOpen(false)}
                   >
                     <Plus size={16} aria-hidden />
@@ -481,7 +481,7 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
                     <UserRound size={20} />
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate font-display text-base font-semibold tracking-tight text-foreground">
+                    <p className="truncate font-display text-base font-bold tracking-tight text-foreground">
                       {guest?.displayName?.trim() || 'Guest'}
                     </p>
                     <p className="truncate text-xs text-muted">
@@ -526,7 +526,7 @@ export function AppHeader({ transparent = false }: AppHeaderProps) {
                       <LogIn size={16} aria-hidden />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-primary">
+                      <span className="block text-sm font-bold text-primary">
                         Log in
                       </span>
                       <span className="block truncate text-xs text-muted">

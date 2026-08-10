@@ -338,7 +338,7 @@ export function EditSketchPage() {
       sketchQuery.error instanceof ApiError && sketchQuery.error.status === 403
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <h1 className="font-display text-2xl font-semibold">Cannot open editor</h1>
+        <h1 className="font-display text-2xl font-bold">Cannot open editor</h1>
         <p className="mt-2 text-sm text-muted">
           {denied
             ? 'Only the game owner or an admin can edit this game.'

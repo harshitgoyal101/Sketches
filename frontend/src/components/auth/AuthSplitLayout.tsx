@@ -38,7 +38,7 @@ export function AuthSplitLayout({ title, lead, children }: AuthSplitLayoutProps)
         <BrandLogo onDark className="relative z-10 text-lg" />
 
         <div className="relative z-10 max-w-md space-y-8">
-          <h2 className="font-display text-4xl font-semibold leading-[1.1] tracking-tight xl:text-5xl">
+          <h2 className="font-display text-4xl font-bold leading-[1.1] tracking-tight xl:text-5xl">
             Build once.
             <br />
             Share with anyone.
@@ -71,7 +71,7 @@ export function AuthSplitLayout({ title, lead, children }: AuthSplitLayoutProps)
         </div>
 
         <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 pb-12 sm:px-6">
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             {title}
           </h1>
           {lead ? (

@@ -45,7 +45,7 @@ export function ChallengeStrip({ className, compact = false }: ChallengeStripPro
           </p>
           <h2
             className={cn(
-              'mt-1 font-display font-semibold tracking-tight text-foreground',
+              'mt-1 font-display font-bold tracking-tight text-foreground',
               compact ? 'text-base' : 'text-lg sm:text-xl',
             )}
           >

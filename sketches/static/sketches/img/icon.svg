@@ -1,4 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
-  <rect x="10" y="10" width="80" height="80" rx="20" fill="#7B61FF"/>
-  <path d="M32 32h8v36h-8V32zm28 0h8v36h-8V32zM48 42l14 8-14 8V42z" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" fill="none">
+  <path d="M250 70L410 162L250 254L90 162Z" fill="#A894FF" stroke="#0D0D0D" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M90 162L155 200V385L90 347Z" fill="#7B61FF" stroke="#0D0D0D" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M112 185L138 200V360L112 345Z" fill="#A894FF" fill-opacity="0.35"/>
+  <path d="M410 162L345 200V385L410 347Z" fill="#6A50EE" stroke="#0D0D0D" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M388 185L362 200V360L388 345Z" fill="#A894FF" fill-opacity="0.22"/>
+  <path d="M155 200L250 254L345 200V385L250 439L155 385Z" fill="#F8FAFC" stroke="#0D0D0D" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M168 218L250 265V412L168 365Z" fill="#FFFFFF" fill-opacity="0.55"/>
+  <path d="M250 290L205 265V355L250 380L295 355V265Z" fill="#0D0D0D" stroke="#0D0D0D" stroke-width="10" stroke-linejoin="round"/>
 </svg>

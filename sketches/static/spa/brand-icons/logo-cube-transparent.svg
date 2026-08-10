@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" fill="none">
+<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sketches101">
+  <title>Sketches101</title>
+  <!-- Transparent bg, black borders -->
   <path d="M250 70L410 162L250 254L90 162Z" fill="#A894FF" stroke="#0D0D0D" stroke-width="12" stroke-linejoin="round"/>
   <path d="M90 162L155 200V385L90 347Z" fill="#7B61FF" stroke="#0D0D0D" stroke-width="12" stroke-linejoin="round"/>
   <path d="M112 185L138 200V360L112 345Z" fill="#A894FF" fill-opacity="0.35"/>

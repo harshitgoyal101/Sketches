@@ -9,9 +9,9 @@ html.theme-dark {
   --color-on-primary: #ffffff;
   --color-background: #0d0d0d;
   --color-surface: #161616;
-  --color-foreground: #f8fafc;
-  --color-muted: #a1a1aa;
-  --color-border: #52525b;
+  --color-foreground: #fafafa;
+  --color-muted: #d4d4d8;
+  --color-border: #71717a;
   --color-destructive: #ef4444;
   color-scheme: dark;
 }
@@ -22,9 +22,9 @@ html.theme-light {
   --color-on-primary: #ffffff;
   --color-background: #f8fafc;
   --color-surface: #ffffff;
-  --color-foreground: #131b2e;
-  --color-muted: #64748b;
-  --color-border: #aeb9c7;
+  --color-foreground: #0f172a;
+  --color-muted: #475569;
+  --color-border: #94a3b8;
   --color-destructive: #dc2626;
   color-scheme: light;
 }
@@ -56,6 +56,15 @@ html.theme-light {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-bold;
+  }
 }
 
 @layer utilities {
@@ -67,7 +76,33 @@ html.theme-light {
 
 /* Sanitized markdown from Django API (description_html) */
 .markdown-body {
-  color: var(--color-muted);
+  color: var(--color-foreground);
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  color: var(--color-foreground);
+  font-family: theme('fontFamily.display');
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 1.25em 0 0.5em;
+}
+
+.markdown-body h1 {
+  font-size: 1.5rem;
+}
+
+.markdown-body h2 {
+  font-size: 1.25rem;
+}
+
+.markdown-body h3 {
+  font-size: 1.1rem;
 }
 
 .markdown-body > :first-child {
@@ -86,10 +121,21 @@ html.theme-light {
   margin: 0.75em 0;
 }
 
+.markdown-body strong {
+  color: var(--color-foreground);
+  font-weight: 700;
+}
+
 .markdown-body a {
   color: var(--color-primary);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.markdown-body blockquote {
+  border-left: 3px solid var(--color-primary);
+  padding-left: 0.9rem;
+  color: var(--color-muted);
 }
 
 .markdown-body code {
@@ -99,6 +145,7 @@ html.theme-light {
   border-radius: 0.35rem;
   background: var(--color-surface);
   color: var(--color-foreground);
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
 }
 
 .markdown-body pre {
@@ -106,12 +153,13 @@ html.theme-light {
   padding: 0.85rem 1rem;
   border-radius: 0.75rem;
   border: 1px solid var(--color-border);
-  background: var(--color-background);
+  background: var(--color-surface);
 }
 
 .markdown-body pre code {
   padding: 0;
   background: transparent;
+  border: none;
 }
 
 .markdown-body img {
@@ -122,6 +170,16 @@ html.theme-light {
 .markdown-body ul,
 .markdown-body ol {
   padding-left: 1.25rem;
+}
+
+.markdown-body li + li {
+  margin-top: 0.25em;
+}
+
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 1.5em 0;
 }
 
 /* Home sketch background (mirrors gallery.css landing-hero-bg) */

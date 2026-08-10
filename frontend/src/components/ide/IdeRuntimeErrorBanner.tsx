@@ -70,7 +70,7 @@ export function IdeRuntimeErrorBanner({
             aria-hidden
           />
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-foreground">{title}</p>
+            <p className="text-xs font-bold text-foreground">{title}</p>
             <p className="text-[10px] text-muted">
               Preview stopped · fix the code or restart
             </p>
@@ -108,7 +108,7 @@ function Header({
           <AlertTriangle size={15} aria-hidden />
         </span>
         <div className="min-w-0">
-          <p className="font-display text-sm font-semibold text-foreground">
+          <p className="font-display text-sm font-bold text-foreground">
             {title}
           </p>
           <p className="text-[11px] text-muted">

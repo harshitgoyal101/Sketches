@@ -2778,13 +2778,21 @@ body.gallery-home-page .gallery-home-nav {
   width: 2rem;
   height: 2rem;
   border-radius: 8px;
-  background: var(--gallery-primary);
+  background: transparent;
   color: #ffffff;
   font-family: "Inter", sans-serif;
   font-size: 0.9375rem;
   font-weight: 700;
   line-height: 1;
   user-select: none;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.site-logo-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .site-logo-wordmark {

@@ -68,7 +68,6 @@ export function GamesPage() {
   })
 
   const sketches = listQuery.data?.pages.flatMap((p) => p.results) ?? []
-  const total = listQuery.data?.pages[0]?.total ?? 0
   const firstSlug = sketches[0]?.slug ?? null
 
   function patchParams(patch: Record<string, string | null>) {
@@ -102,7 +101,7 @@ export function GamesPage() {
               <div className="min-w-0 max-w-2xl space-y-3">
                 <p
                   className={cn(
-                    'font-display font-semibold tracking-tight',
+                    'font-display font-bold tracking-tight',
                     'text-[clamp(1.35rem,3.2vw,2rem)] leading-tight',
                     'text-foreground',
                   )}
@@ -119,13 +118,11 @@ export function GamesPage() {
                     </>
                   )}
                 </p>
-                <h1 className="font-display text-[clamp(1.85rem,4vw,2.75rem)] font-semibold tracking-tight text-foreground">
+                <h1 className="font-display text-[clamp(1.85rem,4vw,2.75rem)] font-bold tracking-tight text-foreground">
                   {query ? `Results for “${query}”` : 'Games'}
                 </h1>
                 <p className="max-w-xl text-sm leading-relaxed text-muted sm:text-base">
-                  {query
-                    ? 'Clear search to browse all playable games.'
-                    : 'Play-only sketches — hit Play and jump straight into fullscreen. No source, no forks.'}
+                  {'Play games, compete with friends, and challenge yourself. See who is the best.'}
                 </p>
               </div>
 
@@ -221,7 +218,7 @@ export function GamesPage() {
           </p>
         ) : sketches.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-background/50 px-5 py-14 text-center backdrop-blur-sm">
-            <p className="font-display text-lg font-semibold">
+            <p className="font-display text-lg font-bold">
               {query ? 'No matching games' : 'No games yet'}
             </p>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted">

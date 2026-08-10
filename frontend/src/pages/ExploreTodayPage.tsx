@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Bookmark, GitFork } from 'lucide-react'
+import { GitFork, Heart } from 'lucide-react'
 import { ApiError } from '@/api/client'
 import { forkSketch, getExploreToday } from '@/api/sketches'
 import { useGuest } from '@/guest/GuestProvider'
@@ -18,16 +18,16 @@ export function ExploreTodayPage() {
   })
   const [forking, setForking] = useState(false)
   const [forkError, setForkError] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
+  const [favourited, setFavourited] = useState(false)
 
   const sketch = query.data?.sketch ?? null
 
   useEffect(() => {
     if (!sketch?.slug) {
-      setSaved(false)
+      setFavourited(false)
       return
     }
-    setSaved(isBookmarked(sketch.slug))
+    setFavourited(isBookmarked(sketch.slug))
   }, [sketch?.slug])
 
   if (query.isPending) {
@@ -73,14 +73,14 @@ export function ExploreTodayPage() {
     }
   }
 
-  function onToggleSave() {
+  function onToggleFavourite() {
     if (!sketch) return
     const next = toggleBookmark({
       slug: sketch.slug,
       title: sketch.title,
       thumb: sketch.thumbnail_card_url || sketch.thumbnail,
     })
-    setSaved(next.some((row) => row.slug === sketch.slug))
+    setFavourited(next.some((row) => row.slug === sketch.slug))
   }
 
   return (
@@ -93,19 +93,18 @@ export function ExploreTodayPage() {
       <div className="relative mx-auto max-w-5xl px-5 py-10 sm:px-8 sm:py-14">
         <header className="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary">
+            <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary font-bold">
               Daily pick
             </p>
-            <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               Sketch of the day
             </h1>
             <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted">
-              One shared sketch for everyone — explore it, save it, or fork it into
-              your account.
+              Try something new everyday, see what others are creating, and get inspired.
             </p>
           </div>
           {dateLabel ? (
-            <p className="inline-flex w-fit items-center rounded-btn border border-border bg-surface/80 px-3 py-1.5 font-mono text-xs text-muted backdrop-blur-sm">
+            <p className="inline-flex w-fit items-center rounded-btn border border-border bg-surface/80 px-3 py-1.5 font-mono text-xs backdrop-blur-sm border-primary/40">
               {dateLabel}
             </p>
           ) : null}
@@ -113,7 +112,7 @@ export function ExploreTodayPage() {
 
         {!sketch ? (
           <div className="rounded-xl border border-border bg-surface px-6 py-20 text-center">
-            <p className="font-display text-lg font-semibold">No published sketches yet</p>
+            <p className="font-display text-lg font-bold">No published sketches yet</p>
             <Link
               to="/gallery"
               className="mt-4 inline-block text-sm text-primary hover:underline"
@@ -140,7 +139,7 @@ export function ExploreTodayPage() {
 
             <div className="mt-6 flex flex-col gap-5 border-b border-border pb-8 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 space-y-2">
-                <h2 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+                <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
                   <Link
                     to={`/sketches/${sketch.slug}`}
                     className="transition-colors hover:text-primary"
@@ -169,16 +168,16 @@ export function ExploreTodayPage() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={onToggleSave}
+                  onClick={onToggleFavourite}
                   className={cn(secondaryBtnClass, 'cursor-pointer gap-2')}
-                  aria-pressed={saved}
+                  aria-pressed={favourited}
                 >
-                  <Bookmark
+                  <Heart
                     size={16}
-                    className={saved ? 'fill-primary text-primary' : undefined}
+                    className={favourited ? 'fill-primary text-primary' : undefined}
                     aria-hidden
                   />
-                  {saved ? 'Saved' : 'Save'}
+                  {favourited ? 'Favourited' : 'Favourite'}
                 </button>
                 <Link
                   to={`/sketches/${sketch.slug}`}
@@ -209,10 +208,10 @@ export function ExploreTodayPage() {
 
         {(data?.previous?.length ?? 0) > 0 ? (
           <section className="mt-12">
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted font-bold">
               Archive
             </p>
-            <h2 className="mt-2 font-display text-xl font-semibold tracking-tight">
+            <h2 className="mt-2 font-display text-xl font-bold tracking-tight">
               Previous days
             </h2>
             <ul className="mt-5 grid gap-2 sm:grid-cols-2">
@@ -222,7 +221,7 @@ export function ExploreTodayPage() {
                     to={`/sketches/${row.slug}`}
                     className="group flex items-baseline justify-between gap-3 rounded-xl border border-border bg-surface/60 px-4 py-3 transition-colors hover:border-primary/35 hover:bg-surface"
                   >
-                    <span className="truncate font-display text-sm font-semibold text-foreground group-hover:text-primary">
+                    <span className="truncate font-display text-sm font-bold text-foreground group-hover:text-primary">
                       {row.title}
                     </span>
                     <span className="shrink-0 font-mono text-[11px] text-muted">

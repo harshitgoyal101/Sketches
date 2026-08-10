@@ -193,7 +193,7 @@ export function GalleryPlayMode({
             </p>
             <h2
               id="play-mode-title"
-              className="truncate font-display text-lg font-semibold text-foreground"
+              className="truncate font-display text-lg font-bold text-foreground"
             >
               {current?.title ?? (loading ? 'Loading…' : 'Surprise me')}
             </h2>

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { Bookmark, Maximize2 } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { Heart, Maximize2, Play } from 'lucide-react'
 import { useSketch } from '@/hooks/useSketches'
 import { ApiError } from '@/api/client'
+import { getGameScores } from '@/api/games'
 import { forkSketch } from '@/api/sketches'
 import { SketchCardView } from '@/components/SketchCardView'
 import { SketchDetailAtmosphere } from '@/components/sketch/SketchDetailAtmosphere'
@@ -31,7 +33,7 @@ export function SketchDetailPage() {
   const { data: sketch, isPending, error, refetch } = useSketch(slug)
   const [forking, setForking] = useState(false)
   const [forkError, setForkError] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
+  const [favourited, setFavourited] = useState(false)
   const [stageFullscreen, setStageFullscreen] = useState(false)
   const stageRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -48,6 +50,19 @@ export function SketchDetailPage() {
     [sketch?.embed_url],
   )
 
+  const scoreboardSlug = (
+    sketch?.scoreboard_slug ||
+    sketch?.slug ||
+    ''
+  ).trim()
+
+  const scoresQuery = useQuery({
+    queryKey: ['game-scores', scoreboardSlug, 'detail'],
+    queryFn: () => getGameScores(scoreboardSlug),
+    enabled: Boolean(sketch?.is_game && scoreboardSlug),
+    retry: false,
+  })
+
   useEffect(() => {
     if (!sketch?.slug) return
     recordRecentView({
@@ -55,7 +70,7 @@ export function SketchDetailPage() {
       title: sketch.title,
       thumb: sketch.thumbnail_card_url || sketch.thumbnail,
     })
-    setSaved(isBookmarked(sketch.slug))
+    setFavourited(isBookmarked(sketch.slug))
   }, [sketch])
 
   useEffect(() => {
@@ -156,7 +171,7 @@ export function SketchDetailPage() {
   if (notFound || !sketch) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <h1 className="font-display text-2xl font-semibold">Sketch not found</h1>
+        <h1 className="font-display text-2xl font-bold">Sketch not found</h1>
         <Link to="/gallery" className="mt-4 inline-block text-primary hover:underline">
           Back to gallery
         </Link>
@@ -164,11 +179,8 @@ export function SketchDetailPage() {
     )
   }
 
-  if (sketch.is_game && slug) {
-    return <Navigate to={`/games/${slug}`} replace />
-  }
-
   const detail = sketch
+  const isGame = Boolean(detail.is_game)
   const thumb = detail.thumbnail_card_url || detail.thumbnail
   const author = detail.author?.username ?? 'anonymous'
   const related = detail.related ?? []
@@ -192,17 +204,17 @@ export function SketchDetailPage() {
     }
   }
 
-  function onToggleSave() {
+  function onToggleFavourite() {
     const next = toggleBookmark({
       slug: detail.slug,
       title: detail.title,
       thumb: detail.thumbnail_card_url || detail.thumbnail,
     })
-    setSaved(next.some((row) => row.slug === detail.slug))
+    setFavourited(next.some((row) => row.slug === detail.slug))
   }
 
   return (
-    <div className="relative">
+    <div className="relative bg-background">
       {/* Immersive interactive stage */}
       <section
         ref={stageRef}
@@ -210,7 +222,7 @@ export function SketchDetailPage() {
           'relative isolate overflow-hidden bg-[#0a0a0c]',
           stageFullscreen
             ? 'fixed inset-0 z-[80] h-dvh min-h-0 w-screen'
-            : 'h-[min(52dvh,26rem)] min-h-[16rem]',
+            : 'h-[min(62dvh,34rem)] min-h-[18rem]',
         )}
       >
         {embedSrc ? (
@@ -238,142 +250,147 @@ export function SketchDetailPage() {
           </div>
         )}
 
-        {!stageFullscreen ? (
-          <>
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-transparent" />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-background via-background/75 to-transparent" />
-
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
-              <div className="mx-auto flex max-w-[75rem] flex-col gap-4 px-4 pb-8 pt-16 sm:px-6 lg:px-8">
-                <div className="pointer-events-auto flex flex-wrap items-end justify-between gap-4">
-                  <div className="min-w-0 space-y-1.5">
-                    <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
-                      {sketch.sketch_type_label}
-                      {sketch.fork_count > 0
-                        ? ` · ${sketch.fork_count} forks`
-                        : ''}
-                    </p>
-                    <h1 className="font-display text-[clamp(1.65rem,3.8vw,2.5rem)] font-semibold leading-[1.05] tracking-tight text-foreground">
-                      {sketch.title}
-                    </h1>
-                    <p className="text-sm text-muted">
-                      by{' '}
-                      {sketch.author?.username ? (
-                        <Link
-                          to={`/makers/${encodeURIComponent(sketch.author.username)}`}
-                          className="text-foreground/90 transition-colors hover:text-primary"
-                        >
-                          {author}
-                        </Link>
-                      ) : (
-                        author
-                      )}
-                    </p>
-                    {sketch.forked_from ? (
-                      <p className="text-sm text-muted">
-                        Based on{' '}
-                        <Link
-                          to={`/sketches/${sketch.forked_from.slug}`}
-                          className="text-primary hover:underline"
-                        >
-                          {sketch.forked_from.title}
-                        </Link>
-                        {sketch.forked_from.author?.username ? (
-                          <>
-                            {' '}
-                            by{' '}
-                            <Link
-                              to={`/makers/${encodeURIComponent(sketch.forked_from.author.username)}`}
-                              className="hover:text-primary"
-                            >
-                              {sketch.forked_from.author.username}
-                            </Link>
-                          </>
-                        ) : null}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {embedSrc ? (
-                      <button
-                        type="button"
-                        onClick={() => void toggleStageFullscreen()}
-                        className={cn(secondaryBtnClass, 'cursor-pointer gap-2')}
-                        aria-pressed={false}
-                      >
-                        <Maximize2 size={15} aria-hidden />
-                        Fullscreen
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={onToggleSave}
-                      className={cn(secondaryBtnClass, 'cursor-pointer gap-2')}
-                      aria-pressed={saved}
-                    >
-                      <Bookmark
-                        size={16}
-                        className={
-                          saved ? 'fill-primary text-primary' : undefined
-                        }
-                        aria-hidden
-                      />
-                      {saved ? 'Saved' : 'Save'}
-                    </button>
-                    {sketch.can_edit ? (
-                      <>
-                        <Link
-                          to={`/sketches/${sketch.slug}/edit`}
-                          className={cn(secondaryBtnClass, 'cursor-pointer')}
-                        >
-                          Open IDE
-                        </Link>
-                        <Link
-                          to={`/sketches/${sketch.slug}/settings`}
-                          className={cn(secondaryBtnClass, 'cursor-pointer')}
-                        >
-                          Settings
-                        </Link>
-                      </>
-                    ) : null}
-                    {sketch.can_fork ? (
-                      <button
-                        type="button"
-                        onClick={() => void onFork()}
-                        disabled={forking}
-                        className={cn(primaryBtnClass, 'cursor-pointer')}
-                      >
-                        {forking ? 'Forking…' : 'Fork'}
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-                {forkError ? (
-                  <p
-                    className="pointer-events-auto text-sm text-destructive"
-                    role="alert"
-                  >
-                    {forkError}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          </>
+        {!stageFullscreen && embedSrc ? (
+          <div className="absolute bottom-4 right-4 z-10 sm:bottom-5 sm:right-5">
+            {isGame ? (
+              <Link
+                to={`/games/${sketch.slug}`}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-btn border border-white/20 bg-black/45 px-3.5 py-2 text-sm font-semibold text-white backdrop-blur-md transition-colors hover:border-white/35 hover:bg-black/60"
+              >
+                <Play size={15} aria-hidden />
+                Play
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void toggleStageFullscreen()}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-btn border border-white/20 bg-black/45 px-3.5 py-2 text-sm font-semibold text-white backdrop-blur-md transition-colors hover:border-white/35 hover:bg-black/60"
+                aria-pressed={false}
+              >
+                <Maximize2 size={15} aria-hidden />
+                Fullscreen
+              </button>
+            )}
+          </div>
         ) : null}
       </section>
 
-      {/* Content over interactive atmosphere */}
+      {/* Meta + description */}
       <div className="relative overflow-hidden border-t border-border">
         <SketchDetailAtmosphere />
-        <div className="relative z-10 mx-auto max-w-[75rem] px-4 py-12 sm:px-6 lg:px-8">
+        <div className="relative z-10 mx-auto max-w-[75rem] px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
+          <header className="flex flex-col gap-6 border-b border-border pb-8 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0 max-w-2xl space-y-3">
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-primary">
+                {sketch.sketch_type_label}
+                {sketch.fork_count > 0 ? ` · ${sketch.fork_count} forks` : ''}
+              </p>
+              <h1 className="font-display text-[clamp(1.85rem,4vw,2.75rem)] font-bold leading-[1.05] tracking-tight text-foreground">
+                {sketch.title}
+              </h1>
+              <p className="text-sm text-muted sm:text-base">
+                by{' '}
+                {sketch.author?.username ? (
+                  <Link
+                    to={`/makers/${encodeURIComponent(sketch.author.username)}`}
+                    className="font-medium text-foreground transition-colors hover:text-primary"
+                  >
+                    {author}
+                  </Link>
+                ) : (
+                  <span className="font-medium text-foreground">{author}</span>
+                )}
+              </p>
+              {sketch.forked_from ? (
+                <p className="text-sm text-muted">
+                  Based on{' '}
+                  <Link
+                    to={`/sketches/${sketch.forked_from.slug}`}
+                    className="text-primary hover:underline"
+                  >
+                    {sketch.forked_from.title}
+                  </Link>
+                  {sketch.forked_from.author?.username ? (
+                    <>
+                      {' '}
+                      by{' '}
+                      <Link
+                        to={`/makers/${encodeURIComponent(sketch.forked_from.author.username)}`}
+                        className="hover:text-primary"
+                      >
+                        {sketch.forked_from.author.username}
+                      </Link>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {isGame ? (
+                <Link
+                  to={`/games/${sketch.slug}`}
+                  className={cn(primaryBtnClass, 'cursor-pointer gap-2')}
+                >
+                  <Play size={16} aria-hidden />
+                  Play
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={onToggleFavourite}
+                className={cn(secondaryBtnClass, 'cursor-pointer gap-2')}
+                aria-pressed={favourited}
+              >
+                <Heart
+                  size={16}
+                  className={favourited ? 'fill-primary text-primary' : undefined}
+                  aria-hidden
+                />
+                {favourited ? 'Favourited' : 'Favourite'}
+              </button>
+              {sketch.can_edit ? (
+                <>
+                  <Link
+                    to={`/sketches/${sketch.slug}/edit`}
+                    className={cn(secondaryBtnClass, 'cursor-pointer')}
+                  >
+                    Open IDE
+                  </Link>
+                  <Link
+                    to={`/sketches/${sketch.slug}/settings`}
+                    className={cn(secondaryBtnClass, 'cursor-pointer')}
+                  >
+                    Settings
+                  </Link>
+                </>
+              ) : null}
+              {sketch.can_fork ? (
+                <button
+                  type="button"
+                  onClick={() => void onFork()}
+                  disabled={forking}
+                  className={cn(primaryBtnClass, 'cursor-pointer')}
+                >
+                  {forking ? 'Forking…' : 'Fork'}
+                </button>
+              ) : null}
+            </div>
+          </header>
+
+          {forkError ? (
+            <p className="mt-4 text-sm text-destructive" role="alert">
+              {forkError}
+            </p>
+          ) : null}
+
           {sketch.tags.length > 0 ? (
-            <div className="mb-8 flex flex-wrap gap-2">
+            <div className="mt-6 flex flex-wrap gap-2">
               {sketch.tags.map((item) => (
                 <Link
                   key={item.slug}
                   to={`/gallery?tag=${encodeURIComponent(item.slug)}`}
-                  className="rounded-btn border border-border bg-background/50 px-2.5 py-1 text-xs text-muted backdrop-blur-sm transition-colors hover:border-primary/40 hover:text-primary"
+                  className="rounded-btn border border-border bg-surface/80 px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-primary/40 hover:text-primary"
                 >
                   {item.name}
                 </Link>
@@ -381,27 +398,146 @@ export function SketchDetailPage() {
             </div>
           ) : null}
 
-          {sketch.description_html ? (
-            <div
-              className="markdown-body max-w-3xl text-sm leading-relaxed text-muted"
-              dangerouslySetInnerHTML={{ __html: sketch.description_html }}
-            />
-          ) : sketch.description ? (
-            <p className="max-w-3xl text-sm leading-relaxed text-muted">
-              {sketch.description}
+          <section className="mt-10 max-w-3xl">
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-primary">
+              About
             </p>
-          ) : (
-            <p className="max-w-3xl text-sm text-muted">
-              Move your pointer over the stage to interact with this sketch.
-            </p>
-          )}
+            <div className="mt-4 rounded-2xl border border-border bg-surface/70 p-5 sm:p-6">
+              {sketch.description_html ? (
+                <div
+                  className="markdown-body text-sm leading-relaxed text-foreground sm:text-[0.95rem]"
+                  dangerouslySetInnerHTML={{ __html: sketch.description_html }}
+                />
+              ) : sketch.description ? (
+                <p className="text-sm leading-relaxed text-foreground sm:text-[0.95rem]">
+                  {sketch.description}
+                </p>
+              ) : (
+                <p className="text-sm text-muted">
+                  {isGame
+                    ? 'Play this game to set a high score on the leaderboard.'
+                    : 'Move your pointer over the stage to interact with this sketch.'}
+                </p>
+              )}
+            </div>
+          </section>
+
+          {isGame ? (
+            <section className="mt-16 border-t border-border pt-10">
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-primary">
+                Leaderboard
+              </p>
+              <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+                <h2 className="font-display text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                  Top 5 high scores
+                </h2>
+                {scoresQuery.data?.me?.score != null ? (
+                  <p className="text-sm text-muted">
+                    Your best{' '}
+                    <span className="font-display text-base font-bold tabular-nums text-foreground">
+                      {scoresQuery.data.me.score.toLocaleString()}
+                    </span>
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-surface/70">
+                {scoresQuery.isPending ? (
+                  <p className="px-5 py-10 text-center text-sm text-muted">
+                    Loading scores…
+                  </p>
+                ) : scoresQuery.isError ? (
+                  <p className="px-5 py-10 text-center text-sm text-muted">
+                    No scoreboard for this game yet.
+                  </p>
+                ) : (scoresQuery.data?.results ?? []).length === 0 ? (
+                  <div className="px-5 py-10 text-center">
+                    <p className="text-sm text-muted">Be the first on the board.</p>
+                    <Link
+                      to={`/games/${sketch.slug}`}
+                      className={cn(primaryBtnClass, 'mt-4 inline-flex gap-2')}
+                    >
+                      <Play size={16} aria-hidden />
+                      Play
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[20rem] text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-border text-[11px] font-mono uppercase tracking-[0.14em] text-muted">
+                          <th className="px-4 py-3 font-medium sm:px-5">Rank</th>
+                          <th className="px-4 py-3 font-medium sm:px-5">Player</th>
+                          <th className="px-4 py-3 text-right font-medium sm:px-5">
+                            Score
+                          </th>
+                          <th className="hidden px-4 py-3 text-right font-medium sm:table-cell sm:px-5">
+                            Played
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(scoresQuery.data?.results ?? []).slice(0, 5).map((row, index) => {
+                          const name =
+                            row.user?.display_name ||
+                            row.user?.username ||
+                            'Player'
+                          const isYours = scoresQuery.data?.me?.id === row.id
+                          const played = row.played_at
+                            ? new Date(row.played_at).toLocaleDateString()
+                            : '—'
+                          return (
+                            <tr
+                              key={row.id}
+                              className={cn(
+                                'border-b border-border/70 last:border-0',
+                                index === 0 && 'bg-primary/5',
+                                isYours && 'bg-primary/10',
+                              )}
+                            >
+                              <td className="px-4 py-3 font-mono text-xs tabular-nums text-muted sm:px-5">
+                                {index + 1}
+                              </td>
+                              <td className="px-4 py-3 font-medium text-foreground sm:px-5">
+                                {row.user?.username ? (
+                                  <Link
+                                    to={`/makers/${encodeURIComponent(row.user.username)}`}
+                                    className="hover:text-primary"
+                                  >
+                                    {name}
+                                    {isYours ? (
+                                      <span className="ml-2 text-xs font-normal text-primary">
+                                        you
+                                      </span>
+                                    ) : null}
+                                  </Link>
+                                ) : (
+                                  name
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-right font-display text-base font-bold tabular-nums text-foreground sm:px-5">
+                                {row.score.toLocaleString()}
+                              </td>
+                              <td className="hidden px-4 py-3 text-right text-muted sm:table-cell sm:px-5">
+                                {played}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </section>
+          ) : null}
 
           {related.length > 0 ? (
-            <section className="mt-16">
-              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
+            <section className="mt-16 border-t border-border pt-10">
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-primary">
                 Discover
               </p>
-              <h2 className="mt-2 font-display text-xl font-semibold tracking-tight">
+              <h2 className="mt-2 font-display text-xl font-bold tracking-tight text-foreground sm:text-2xl">
                 More like this
               </h2>
               <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -413,11 +549,11 @@ export function SketchDetailPage() {
           ) : null}
 
           {forks.length > 0 ? (
-            <section className="mt-16">
-              <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
+            <section className="mt-16 border-t border-border pt-10">
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-primary">
                 Community
               </p>
-              <h2 className="mt-2 font-display text-xl font-semibold tracking-tight">
+              <h2 className="mt-2 font-display text-xl font-bold tracking-tight text-foreground sm:text-2xl">
                 Remixes
               </h2>
               <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

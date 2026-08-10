@@ -90,7 +90,7 @@ export function SketchSettingsPage() {
   if (settingsQuery.isError) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <h1 className="font-display text-2xl font-semibold">Cannot open settings</h1>
+        <h1 className="font-display text-2xl font-bold">Cannot open settings</h1>
         <p className="mt-2 text-sm text-muted">
           {settingsQuery.error instanceof ApiError
             ? settingsQuery.error.message
@@ -341,7 +341,7 @@ export function SketchSettingsPage() {
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
             {isSetup ? 'Setup' : 'Settings'}
           </p>
-          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">
+          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
             {sketch?.title ?? 'Loading…'}
           </h1>
           <p className="mt-2 text-sm text-muted">
@@ -626,7 +626,7 @@ export function SketchSettingsPage() {
 
       {sketch ? (
         <section className="mt-12 border-t border-border pt-8">
-          <h2 className="font-display text-lg font-semibold text-foreground">
+          <h2 className="font-display text-lg font-bold text-foreground">
             Delete {sketch.is_game ? 'game' : 'sketch'}
           </h2>
           <p className="mt-2 max-w-xl text-sm text-muted">

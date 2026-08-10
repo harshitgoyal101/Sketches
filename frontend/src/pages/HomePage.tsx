@@ -140,7 +140,7 @@ export function HomePage() {
             <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary font-bold">
               Gallery
             </p>
-            <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               Featured sketches
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted sm:text-base">
@@ -175,7 +175,7 @@ export function HomePage() {
             <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary font-bold">
               Games
             </p>
-            <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               Featured games
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted sm:text-base">
@@ -206,7 +206,7 @@ export function HomePage() {
 
       <section className="relative z-10 border-t border-border bg-background">
         <div className="mx-auto flex max-w-[75rem] flex-col items-center gap-6 px-5 py-16 text-center sm:px-8 sm:py-20">
-          <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             Stay in touch
           </h2>
           <p className="max-w-md text-sm leading-relaxed text-muted sm:text-base">

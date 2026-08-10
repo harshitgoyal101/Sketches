@@ -19,7 +19,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import { SignupPage } from '@/pages/SignupPage'
 import { SketchDetailPage } from '@/pages/SketchDetailPage'
 import { MakerProfilePage } from '@/pages/MakerProfilePage'
-import { SavedPage } from '@/pages/SavedPage'
+import { FavouritesPage } from '@/pages/FavouritesPage'
 import { ExploreTodayPage } from '@/pages/ExploreTodayPage'
 import { AccountPage } from '@/pages/AccountPage'
 import { CreateSketchPage } from '@/pages/CreateSketchPage'
@@ -104,7 +104,8 @@ export default function App() {
                   />
                   <Route path="sketches/:slug" element={<SketchDetailPage />} />
                   <Route path="makers/:username" element={<MakerProfilePage />} />
-                  <Route path="saved" element={<SavedPage />} />
+                  <Route path="favourites" element={<FavouritesPage />} />
+                  <Route path="saved" element={<Navigate to="/favourites" replace />} />
                   <Route path="explore/today" element={<ExploreTodayPage />} />
                   <Route path="account" element={<AccountPage />} />
                   <Route path="login" element={<LoginPage />} />

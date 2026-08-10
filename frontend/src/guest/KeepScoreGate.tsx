@@ -39,7 +39,7 @@ export function KeepScoreGate({
           </p>
           <h2
             id="keep-score-title"
-            className="mt-2 font-display text-2xl font-semibold tracking-tight text-foreground"
+            className="mt-2 font-display text-2xl font-bold tracking-tight text-foreground"
           >
             Keep this score?
           </h2>

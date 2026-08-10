@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  Bookmark,
   CalendarDays,
   FlaskConical,
+  Heart,
   PencilLine,
   Play,
 } from 'lucide-react'
@@ -33,10 +33,10 @@ const HUB_LINKS = [
     icon: FlaskConical,
   },
   {
-    to: '/saved',
-    label: 'Saved',
-    hint: 'Bookmarks you keep',
-    icon: Bookmark,
+    to: '/favourites',
+    label: 'Favourites',
+    hint: 'Sketches you heart',
+    icon: Heart,
   },
   {
     to: '/explore/today',
@@ -135,7 +135,7 @@ export function AccountPage() {
           <p className="font-mono text-xs uppercase tracking-[0.18em] text-primary">
             Account
           </p>
-          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">
+          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
             {displayName}
           </h1>
           <p className="mt-1 text-sm text-muted">
@@ -167,7 +167,7 @@ export function AccountPage() {
       </div>
 
       <section className="mb-12" aria-label="Workspace">
-        <h2 className="font-display text-lg font-semibold">Workspace</h2>
+        <h2 className="font-display text-lg font-bold">Workspace</h2>
         <p className="mt-1 text-sm text-muted">
           Create, save, and daily picks live here — not in the main nav.
         </p>
@@ -181,7 +181,7 @@ export function AccountPage() {
                   'transition-colors hover:border-primary/40 hover:bg-primary/5',
                 )}
               >
-                <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+                <span className="inline-flex items-center gap-2 text-sm font-bold text-foreground">
                   <Icon size={16} className="text-primary" aria-hidden />
                   {label}
                 </span>
@@ -205,7 +205,7 @@ export function AccountPage() {
 
       {myScores.length > 0 ? (
         <section className="mb-12">
-          <h2 className="font-display text-lg font-semibold">High scores</h2>
+          <h2 className="font-display text-lg font-bold">High scores</h2>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {myScores.map((row) => {
               const playSlug =
@@ -222,7 +222,7 @@ export function AccountPage() {
                 <p className="text-xs uppercase tracking-wide text-muted">
                   {row.game.title}
                 </p>
-                <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-foreground">
+                <p className="mt-1 font-display text-2xl font-bold tabular-nums text-foreground">
                   {row.score.toLocaleString()}
                 </p>
                 <Link
@@ -239,7 +239,7 @@ export function AccountPage() {
         </section>
       ) : (
         <section className="mb-12 rounded-xl border border-dashed border-border px-6 py-8 text-center">
-          <h2 className="font-display text-lg font-semibold">High scores</h2>
+          <h2 className="font-display text-lg font-bold">High scores</h2>
           <p className="mt-2 text-sm text-muted">
             No scores yet — play a game and your bests show up here.
           </p>
@@ -303,7 +303,7 @@ function OwnedSection({
   return (
     <section className={className}>
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="font-display text-lg font-semibold">{title}</h2>
+        <h2 className="font-display text-lg font-bold">{title}</h2>
         <Link to={browseTo} className="text-sm text-primary hover:underline">
           {browseLabel}
         </Link>

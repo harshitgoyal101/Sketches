@@ -101,10 +101,8 @@ export function GalleryPage() {
 
   const sketches =
     sketchesQuery.data?.pages.flatMap((page) => page.results) ?? []
-  const total = sketchesQuery.data?.pages[0]?.total
   const isPending = sketchesQuery.isPending
   const isError = sketchesQuery.isError
-  const isFetching = sketchesQuery.isFetching
 
   const activeTagName = useMemo(
     () => tags?.find((item) => item.slug === tag)?.name,
@@ -128,9 +126,7 @@ export function GalleryPage() {
     ? `Sketches tagged “${activeTagName}”.`
     : activeFormatName
       ? `${activeFormatName} sketches from the community.`
-      : query
-        ? 'Refine with formats and tags, or clear search to browse everything.'
-        : 'Explore the gallery, share your creations, and personalize your experience. See what sparks an idea.'
+      : 'Explore the gallery, share your creations, and personalize your experience. See what sparks an idea.'
 
   const hasFilters = Boolean(query || tag || format !== 'all' || sort !== 'featured')
 
@@ -167,7 +163,7 @@ export function GalleryPage() {
               <div className="min-w-0 max-w-2xl space-y-3">
                 <p
                   className={cn(
-                    'font-display font-semibold tracking-tight',
+                    'font-display font-bold tracking-tight',
                     'text-[clamp(1.35rem,3.2vw,2rem)] leading-tight',
                     'text-foreground',
                   )}
@@ -184,7 +180,7 @@ export function GalleryPage() {
                     </>
                   )}
                 </p>
-                <h1 className="font-display text-[clamp(1.85rem,4vw,2.75rem)] font-semibold tracking-tight text-foreground">
+                <h1 className="font-display text-[clamp(1.85rem,4vw,2.75rem)] font-bold tracking-tight text-foreground">
                   {pageTitle}
                 </h1>
                 <p className="max-w-xl text-sm leading-relaxed text-muted sm:text-base">
@@ -362,7 +358,7 @@ export function GalleryPage() {
           </p>
         ) : sketches.length === 0 ? (
           <div className="rounded-xl border border-border bg-background/55 px-6 py-16 text-center backdrop-blur-sm">
-            <p className="font-display text-lg font-semibold text-foreground">
+            <p className="font-display text-lg font-bold text-foreground">
               No sketches match
             </p>
             <p className="mt-2 text-sm text-muted">

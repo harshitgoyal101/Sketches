@@ -35,7 +35,7 @@ export function AuthEmailStatus({
           {icon}
         </div>
         <div className="space-y-2">
-          <h2 className="font-display text-lg font-semibold tracking-tight text-foreground">
+          <h2 className="font-display text-lg font-bold tracking-tight text-foreground">
             {title}
           </h2>
           <div className="text-sm leading-relaxed text-muted">{children}</div>

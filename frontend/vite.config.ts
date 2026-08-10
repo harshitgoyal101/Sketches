@@ -25,6 +25,22 @@ const djangoProxy: ProxyOptions = {
   },
 }
 
+/**
+ * Only Django embed/source under /sketches must hit the backend.
+ * SPA routes (/sketches/:slug, /edit, /settings, /new) must stay on Vite
+ * so hard-refresh loads live React, not the last production SPA build.
+ */
+const sketchesProxy: ProxyOptions = {
+  ...djangoProxy,
+  bypass(req) {
+    const path = (req.url ?? '').split('?')[0]
+    if (/^\/sketches\/[^/]+\/(embed|source)\/?$/.test(path)) {
+      return // proxy to Django
+    }
+    return '/index.html'
+  },
+}
+
 export default defineConfig({
   plugins: [react()],
   base: spaBase,
@@ -45,7 +61,7 @@ export default defineConfig({
     proxy: {
       '/api': djangoProxy,
       '/accounts': djangoProxy,
-      '/sketches': djangoProxy,
+      '/sketches': sketchesProxy,
       '/static': djangoProxy,
       '/media': djangoProxy,
     },

@@ -103,7 +103,7 @@ export function SketchIdeShell({
           <input
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
-            className="min-w-0 flex-1 border-0 bg-transparent font-display text-base font-semibold text-foreground outline-none placeholder:text-muted focus:ring-0 sm:max-w-sm sm:text-lg"
+            className="min-w-0 flex-1 border-0 bg-transparent font-display text-base font-bold text-foreground outline-none placeholder:text-muted focus:ring-0 sm:max-w-sm sm:text-lg"
             aria-label="Sketch title"
             placeholder={titlePlaceholder}
           />

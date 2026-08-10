@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, ChevronUp, Maximize2, Minimize2, Trophy, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Trophy, X } from 'lucide-react'
 import { useSketch } from '@/hooks/useSketches'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { getGameScores } from '@/api/games'
@@ -26,20 +26,18 @@ type ScoreToast = {
 }
 
 /**
- * Immersive play surface for is_game sketches — no detail page.
- * Lands directly in fullscreen; exit returns to /games.
+ * Immersive play surface for is_game sketches.
+ * Exit returns to the game details page (/sketches/:slug).
  */
 export function GamePlayPage() {
   const { slug } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data: sketch, isPending, error } = useSketch(slug)
-  const [browserFs, setBrowserFs] = useState(false)
   const [boardOpen, setBoardOpen] = useState(false)
   const [toast, setToast] = useState<ScoreToast | null>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const enteredRef = useRef(false)
   const notFound = error instanceof ApiError && error.status === 404
   const notGame = Boolean(sketch && !sketch.is_game)
 
@@ -69,15 +67,6 @@ export function GamePlayPage() {
   const myBest = scoresQuery.data?.me?.score ?? null
 
   useEffect(() => {
-    function syncFullscreen() {
-      const stage = stageRef.current
-      setBrowserFs(Boolean(stage && document.fullscreenElement === stage))
-    }
-    document.addEventListener('fullscreenchange', syncFullscreen)
-    return () => document.removeEventListener('fullscreenchange', syncFullscreen)
-  }, [])
-
-  useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
@@ -87,14 +76,6 @@ export function GamePlayPage() {
       }
     }
   }, [])
-
-  useEffect(() => {
-    if (!embedSrc || enteredRef.current) return
-    enteredRef.current = true
-    const stage = stageRef.current
-    if (!stage) return
-    void stage.requestFullscreen?.().catch(() => {})
-  }, [embedSrc])
 
   useEffect(() => {
     function onScore(event: Event) {
@@ -120,23 +101,6 @@ export function GamePlayPage() {
     return () => window.clearTimeout(t)
   }, [toast])
 
-  async function toggleBrowserFullscreen() {
-    const stage = stageRef.current
-    if (!stage) return
-    try {
-      if (document.fullscreenElement === stage) {
-        await document.exitFullscreen()
-        return
-      }
-      if (document.fullscreenElement) {
-        await document.exitFullscreen()
-      }
-      await stage.requestFullscreen()
-    } catch {
-      /* CSS fullscreen already covers the viewport (esp. iOS) */
-    }
-  }
-
   async function exitPlay() {
     if (document.fullscreenElement) {
       try {
@@ -145,19 +109,19 @@ export function GamePlayPage() {
         /* ignore */
       }
     }
-    navigate('/games')
+    navigate(slug ? `/sketches/${slug}` : '/games')
   }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !document.fullscreenElement) {
+      if (e.key === 'Escape') {
         void exitPlay()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate])
+  }, [navigate, slug])
 
   if (isPending) {
     return (
@@ -170,7 +134,7 @@ export function GamePlayPage() {
   if (notFound || notGame || !sketch) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <h1 className="font-display text-2xl font-semibold">Game not found</h1>
+        <h1 className="font-display text-2xl font-bold">Game not found</h1>
         <Link to="/games" className="mt-4 inline-block text-primary hover:underline">
           Back to Games
         </Link>
@@ -190,7 +154,7 @@ export function GamePlayPage() {
         className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 bg-gradient-to-b from-black/75 to-transparent px-3 pb-10 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-4"
       >
         <div className="pointer-events-auto min-w-0">
-          <p className="truncate font-display text-sm font-semibold text-white sm:text-base">
+          <p className="truncate font-display text-sm font-bold text-white sm:text-base">
             {sketch.title}
           </p>
           <p className="truncate text-xs text-white/55">
@@ -219,19 +183,6 @@ export function GamePlayPage() {
               Edit
             </Link>
           ) : null}
-          <button
-            type="button"
-            onClick={() => void toggleBrowserFullscreen()}
-            className={chromeBtn}
-            aria-label={browserFs ? 'Exit browser fullscreen' : 'Browser fullscreen'}
-          >
-            {browserFs ? (
-              <Minimize2 size={16} aria-hidden />
-            ) : (
-              <Maximize2 size={16} aria-hidden />
-            )}
-            <span className="hidden sm:inline">{browserFs ? 'Window' : 'Fullscreen'}</span>
-          </button>
           <button
             type="button"
             onClick={() => void exitPlay()}

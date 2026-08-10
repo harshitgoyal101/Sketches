@@ -65,7 +65,7 @@ export function CreateSketchPage() {
   if (!isLoading && !isAuthenticated) {
     return (
       <div className="mx-auto max-w-xl px-4 py-16 text-center">
-        <h1 className="font-display text-2xl font-semibold">Sign in to create</h1>
+        <h1 className="font-display text-2xl font-bold">Sign in to create</h1>
         <p className="mt-2 text-sm text-muted">
           Choose Google or email in the dialog to keep a new sketch on your account.
         </p>
@@ -104,7 +104,7 @@ export function CreateSketchPage() {
       <p className="text-xs font-medium uppercase tracking-[0.18em] text-primary">
         New sketch
       </p>
-      <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">
+      <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
         Create a sketch
       </h1>
       <p className="mt-2 text-sm text-muted">
@@ -145,7 +145,7 @@ export function CreateSketchPage() {
                     : 'border-border bg-surface hover:border-primary/30',
                 )}
               >
-                <span className="block font-display text-sm font-semibold">
+                <span className="block font-display text-sm font-bold">
                   {option.label}
                 </span>
                 <span className="mt-1 block text-xs text-muted">{option.hint}</span>
