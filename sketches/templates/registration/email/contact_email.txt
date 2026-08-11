@@ -1,0 +1,6 @@
+New contact message on {{ site_name }}
+
+From: {{ name }} <{{ email }}>
+Subject: {{ subject }}
+
+{{ message }}

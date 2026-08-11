@@ -62,6 +62,7 @@ class StaticViewSitemap(Sitemap):
                 "/games",
                 "/explore/today",
                 "/sandbox",
+                "/contact",
             ]
         return ["home", "sketch_list"]
 

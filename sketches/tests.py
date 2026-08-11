@@ -2377,3 +2377,72 @@ class GalleryTagApiTests(TestCase):
         self.assertEqual(filtered.status_code, 200)
         titles = [item["title"] for item in filtered.json()["results"]]
         self.assertEqual(titles, ["Neon Drift"])
+
+
+@override_settings(
+    ALLOWED_HOSTS=["testserver"],
+    CONTACT_EMAIL="owner@example.com",
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+)
+class ContactApiTests(TestCase):
+    def setUp(self):
+        from django.core import mail
+
+        mail.outbox.clear()
+        self.client = Client()
+
+    def test_contact_sends_email(self):
+        from django.core import mail
+
+        response = self.client.post(
+            "/api/contact/",
+            data=json.dumps(
+                {
+                    "name": "Alex Maker",
+                    "email": "alex@example.com",
+                    "subject": "Hello",
+                    "message": "Loving the gallery so far!",
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertEqual(len(mail.outbox), 1)
+        sent = mail.outbox[0]
+        self.assertEqual(sent.to, ["owner@example.com"])
+        self.assertEqual(sent.reply_to, ["alex@example.com"])
+        self.assertIn("Hello", sent.subject)
+        self.assertIn("Loving the gallery so far!", sent.body)
+
+    def test_contact_validates_message(self):
+        response = self.client.post(
+            "/api/contact/",
+            data=json.dumps(
+                {
+                    "name": "Alex",
+                    "email": "alex@example.com",
+                    "message": "short",
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json()["ok"])
+        self.assertIn("message", response.json()["errors"])
+
+    @patch("sketches.api.contact_views.send_contact_email", side_effect=OSError("smtp down"))
+    def test_contact_send_failure(self, _send_mock):
+        response = self.client.post(
+            "/api/contact/",
+            data=json.dumps(
+                {
+                    "name": "Alex Maker",
+                    "email": "alex@example.com",
+                    "message": "This should fail to deliver.",
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 502)
+        self.assertFalse(response.json()["ok"])

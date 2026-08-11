@@ -263,3 +263,6 @@ else:
         "DEFAULT_FROM_EMAIL",
         "noreply@sketchgallery.local",
     )
+
+# Inbox for Contact Us form submissions (defaults to the site From address)
+CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "") or DEFAULT_FROM_EMAIL

@@ -1,0 +1,23 @@
+{% extends "registration/email/email_base.html" %}
+
+{% block email_title %}Contact — {{ site_name }}{% endblock %}
+
+{% block email_content %}
+  <p style="margin:0 0 8px;font-family:Outfit,Inter,ui-sans-serif,system-ui,sans-serif;font-size:22px;font-weight:600;letter-spacing:-0.02em;color:#131B2E;">
+    New contact message
+  </p>
+  <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#64748B;">
+    Someone sent a message through the {{ site_name }} contact form.
+  </p>
+  <p style="margin:0 0 6px;font-size:13px;line-height:1.55;color:#64748B;">
+    <strong style="color:#131B2E;">From:</strong> {{ name }} &lt;{{ email }}&gt;
+  </p>
+  <p style="margin:0 0 16px;font-size:13px;line-height:1.55;color:#64748B;">
+    <strong style="color:#131B2E;">Subject:</strong> {{ subject }}
+  </p>
+  <div style="margin:0;padding:16px;border:1px solid #E2E8F0;border-radius:10px;background:#F8FAFC;font-size:14px;line-height:1.65;color:#131B2E;white-space:pre-wrap;">{{ message }}</div>
+{% endblock %}
+
+{% block email_footer %}
+  Reply directly to this email to respond to {{ name }}.
+{% endblock %}

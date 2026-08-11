@@ -1,9 +1,10 @@
 from django.urls import path
 
-from . import auth_views, game_views, manage_views, views
+from . import auth_views, contact_views, game_views, manage_views, views
 
 urlpatterns = [
     path("home/", views.api_home, name="api_home"),
+    path("contact/", contact_views.api_contact, name="api_contact"),
     path("sketches/", views.api_sketch_list, name="api_sketch_list"),
     path("sketches/<slug:slug>/", views.api_sketch_detail, name="api_sketch_detail"),
     path("formats/", views.api_formats, name="api_formats"),

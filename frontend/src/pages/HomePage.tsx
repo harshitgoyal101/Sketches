@@ -12,9 +12,8 @@ import { prefersReducedMotion } from '@/lib/utils'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 const CONTACT = {
-  youtube: 'https://www.youtube.com/@sketches101',
-  instagram: 'https://www.instagram.com/sketches101/',
-  email: 'mailto:hello@sketches101.com',
+  youtube: 'https://www.youtube.com/@Sketches_101',
+  instagram: 'https://www.instagram.com/101_Sketches',
 } as const
 
 function YoutubeIcon({ className }: { className?: string }) {
@@ -231,10 +230,10 @@ export function HomePage() {
               <InstagramIcon className="size-4 shrink-0" />
               Instagram
             </a>
-            <a href={CONTACT.email} className="home-btn home-btn-ghost gap-2">
+            <Link to="/contact" className="home-btn home-btn-ghost gap-2">
               <Mail className="size-4 shrink-0" aria-hidden />
               Contact Us
-            </a>
+            </Link>
           </div>
         </div>
       </section>

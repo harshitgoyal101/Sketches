@@ -179,6 +179,61 @@ class ResendVerificationForm(ThemedForm):
     )
 
 
+class ContactForm(ThemedForm):
+    name = forms.CharField(
+        max_length=120,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Your name",
+                "autocomplete": "name",
+            }
+        ),
+    )
+    email = forms.EmailField(
+        widget=forms.EmailInput(
+            attrs={
+                "placeholder": "you@example.com",
+                "autocomplete": "email",
+            }
+        )
+    )
+    subject = forms.CharField(
+        max_length=160,
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "What’s this about? (optional)",
+                "autocomplete": "off",
+            }
+        ),
+    )
+    message = forms.CharField(
+        min_length=10,
+        max_length=5000,
+        widget=forms.Textarea(
+            attrs={
+                "placeholder": "How can we help?",
+                "rows": 6,
+            }
+        ),
+    )
+
+    def clean_name(self):
+        name = (self.cleaned_data.get("name") or "").strip()
+        if not name:
+            raise ValidationError("Name is required.")
+        return name
+
+    def clean_subject(self):
+        return (self.cleaned_data.get("subject") or "").strip()
+
+    def clean_message(self):
+        message = (self.cleaned_data.get("message") or "").strip()
+        if len(message) < 10:
+            raise ValidationError("Message must be at least 10 characters.")
+        return message
+
+
 class StyledPasswordResetForm(PasswordResetForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

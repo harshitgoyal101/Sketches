@@ -27,6 +27,7 @@ import { SketchSettingsPage } from '@/pages/SketchSettingsPage'
 import { PasswordResetRequestPage } from '@/pages/PasswordResetRequestPage'
 import { PasswordResetConfirmPage } from '@/pages/PasswordResetConfirmPage'
 import { ResendVerificationPage } from '@/pages/ResendVerificationPage'
+import { ContactPage } from '@/pages/ContactPage'
 
 const EditSketchPage = lazy(() =>
   import('@/pages/EditSketchPage').then((m) => ({ default: m.EditSketchPage })),
@@ -123,6 +124,7 @@ export default function App() {
                     path="resend-verification"
                     element={<ResendVerificationPage />}
                   />
+                  <Route path="contact" element={<ContactPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Route>
               </Routes>
