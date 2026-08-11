@@ -1,48 +1,83 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
   <title>{% block email_title %}{{ site_name }}{% endblock %}</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
 </head>
-<body style="margin:0;padding:0;background:#F8FAFC;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#131B2E;-webkit-font-smoothing:antialiased;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F8FAFC;padding:32px 16px;">
+<body style="margin:0;padding:0;background:#E8E8ED;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#131B2E;-webkit-font-smoothing:antialiased;">
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
+    {% block email_preheader %}{% endblock %}
+    &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
+  </div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#E8E8ED;padding:40px 16px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;border-collapse:separate;border-spacing:0;">
+          {# Brand header #}
           <tr>
-            <td style="height:4px;line-height:4px;font-size:0;background:#7B61FF;">&nbsp;</td>
-          </tr>
-          <tr>
-            <td style="padding:28px 28px 8px;text-align:left;">
-              <table role="presentation" cellspacing="0" cellpadding="0">
+            <td style="background:#0D0D0D;border-radius:16px 16px 0 0;padding:28px 32px 24px;text-align:left;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td style="width:32px;height:32px;border-radius:8px;background:#0D0D0D;color:#A894FF;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:10px;font-weight:800;text-align:center;vertical-align:middle;line-height:32px;">
-                    101
+                  <td valign="middle">
+                    <table role="presentation" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="width:36px;height:36px;border-radius:10px;background:#161616;border:1px solid #2A2A2A;color:#A894FF;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;font-weight:800;text-align:center;vertical-align:middle;line-height:36px;">
+                          101
+                        </td>
+                        <td style="padding-left:12px;font-family:Outfit,Inter,ui-sans-serif,system-ui,sans-serif;font-size:18px;font-weight:700;color:#FAFAFA;letter-spacing:-0.03em;vertical-align:middle;">
+                          sketches<span style="color:#7B61FF;">101</span>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
-                  <td style="padding-left:10px;font-family:Outfit,Inter,ui-sans-serif,system-ui,sans-serif;font-size:16px;font-weight:600;color:#131B2E;letter-spacing:-0.02em;">
-                    sketches<span style="color:#7B61FF;">101</span>
+                  <td align="right" valign="middle" style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#A1A1AA;">
+                    {% block email_badge %}{% endblock %}
                   </td>
                 </tr>
               </table>
+              {% block email_header_extra %}{% endblock %}
             </td>
           </tr>
+
+          {# Accent rule #}
           <tr>
-            <td style="padding:12px 28px 28px;">
+            <td style="height:3px;line-height:3px;font-size:0;background:linear-gradient(90deg,#7B61FF 0%,#A894FF 55%,#7B61FF 100%);background-color:#7B61FF;">&nbsp;</td>
+          </tr>
+
+          {# Body #}
+          <tr>
+            <td style="background:#FFFFFF;padding:32px 32px 28px;text-align:left;">
               {% block email_content %}{% endblock %}
             </td>
           </tr>
+
+          {# Footer #}
           <tr>
-            <td style="padding:16px 28px 24px;border-top:1px solid #E2E8F0;font-size:12px;line-height:1.55;color:#64748B;text-align:left;">
+            <td style="background:#F4F4F5;border-radius:0 0 16px 16px;border-top:1px solid #E4E4E7;padding:20px 32px 24px;font-size:12px;line-height:1.6;color:#71717A;text-align:left;">
               {% block email_footer %}
               You’re receiving this because of an account action on {{ site_name }}.
               {% endblock %}
             </td>
           </tr>
         </table>
-        <p style="margin:16px 0 0;font-size:11px;line-height:1.5;color:#94A3B8;text-align:center;">
-          Creative coding playground · {{ site_name }}
+
+        <p style="margin:20px 0 0;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:10px;line-height:1.5;letter-spacing:0.14em;text-transform:uppercase;color:#A1A1AA;text-align:center;">
+          Explore · Play · Create · Share
+        </p>
+        <p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#A1A1AA;text-align:center;">
+          {{ site_name }} · creative coding playground
         </p>
       </td>
     </tr>

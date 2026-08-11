@@ -2,30 +2,45 @@
 
 {% block email_title %}Verify your email — {{ site_name }}{% endblock %}
 
+{% block email_preheader %}Confirm your email to activate your {{ site_name }} account and start publishing sketches.{% endblock %}
+
+{% block email_badge %}Verify{% endblock %}
+
 {% block email_content %}
-  <p style="margin:0 0 8px;font-family:Outfit,Inter,ui-sans-serif,system-ui,sans-serif;font-size:22px;font-weight:600;letter-spacing:-0.02em;color:#131B2E;">
+  <p style="margin:0 0 6px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#7B61FF;">
+    Welcome
+  </p>
+  <h1 style="margin:0 0 12px;font-family:Outfit,Inter,ui-sans-serif,system-ui,sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.03em;line-height:1.2;color:#0F172A;">
     Verify your email
+  </h1>
+  <p style="margin:0 0 24px;font-size:15px;line-height:1.65;color:#52525B;">
+    Hi <strong style="color:#0F172A;">{{ user.username }}</strong> — thanks for joining {{ site_name }}. Confirm this address to activate your account and start publishing sketches.
   </p>
-  <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#64748B;">
-    Hi {{ user.username }} — thanks for joining {{ site_name }}. Confirm your address to activate your account and start publishing sketches.
-  </p>
-  <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 20px;">
+
+  <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 28px;">
     <tr>
       <td style="border-radius:10px;background:#7B61FF;">
-        <a href="{{ verify_url }}" style="display:inline-block;padding:12px 22px;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:10px;">
-          Verify email address
+        <a href="{{ verify_url }}" style="display:inline-block;padding:14px 24px;font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:10px;">
+          Verify email address →
         </a>
       </td>
     </tr>
   </table>
-  <p style="margin:0 0 8px;font-size:13px;line-height:1.55;color:#64748B;">
-    Or copy this link into your browser:
-  </p>
-  <p style="margin:0;font-size:12px;line-height:1.5;word-break:break-all;">
-    <a href="{{ verify_url }}" style="color:#7B61FF;text-decoration:none;">{{ verify_url }}</a>
-  </p>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0;background:#F4F4F5;border:1px solid #E4E4E7;border-radius:12px;">
+    <tr>
+      <td style="padding:14px 16px;">
+        <p style="margin:0 0 6px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#71717A;">
+          Or paste this link
+        </p>
+        <p style="margin:0;font-size:12px;line-height:1.55;word-break:break-all;">
+          <a href="{{ verify_url }}" style="color:#7B61FF;text-decoration:none;">{{ verify_url }}</a>
+        </p>
+      </td>
+    </tr>
+  </table>
 {% endblock %}
 
 {% block email_footer %}
-  If you did not create a {{ site_name }} account, you can ignore this message.
+  If you did not create a {{ site_name }} account, you can ignore this message — no account will be activated.
 {% endblock %}

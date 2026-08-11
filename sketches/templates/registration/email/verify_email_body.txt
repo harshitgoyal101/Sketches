@@ -1,10 +1,13 @@
+Verify your {{ site_name }} account
+
 Hi {{ user.username }},
 
 Thanks for signing up for {{ site_name }}.
 
-Verify your email to activate your account:
+Confirm your email to activate your account:
 {{ verify_url }}
 
 If you did not create this account, you can ignore this message.
 
-— sketches101
+—
+{{ site_name }} · Explore · Play · Create · Share

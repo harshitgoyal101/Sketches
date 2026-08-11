@@ -1,1 +1,1 @@
-Verify your {{ site_name }} account
+Verify your email on {{ site_name }}

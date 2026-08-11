@@ -4,3 +4,7 @@ From: {{ name }} <{{ email }}>
 Subject: {{ subject }}
 
 {{ message }}
+
+—
+Reply to this email to respond to {{ name }}.
+{{ site_name }}

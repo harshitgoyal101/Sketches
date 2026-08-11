@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { CheckCircle2, Mail } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Mail, Send } from 'lucide-react'
 import { ApiError } from '@/api/client'
 import { sendContactMessage } from '@/api/contact'
 import { useAuth } from '@/auth/AuthProvider'
+import { SketchDetailAtmosphere } from '@/components/sketch/SketchDetailAtmosphere'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import {
   fieldError,
@@ -12,6 +13,9 @@ import {
   primaryBtnClass,
   secondaryBtnClass,
 } from '@/lib/form'
+import { cn } from '@/lib/utils'
+
+const MESSAGE_MAX = 5000
 
 export function ContactPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
@@ -33,6 +37,13 @@ export function ContactPage() {
 
   const fromName = user?.display_name || user?.username || ''
   const fromEmail = user?.email || ''
+  const initials = (fromName || fromEmail || '?')
+    .split(/\s+/)
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
@@ -56,113 +67,163 @@ export function ContactPage() {
 
   if (isLoading || !user) {
     return (
-      <p className="px-6 py-16 text-center text-sm text-muted">Loading…</p>
+      <div className="relative min-h-[calc(100dvh-4rem)] overflow-hidden bg-background">
+        <SketchDetailAtmosphere />
+        <p className="relative z-10 px-6 py-16 text-center text-sm text-muted">
+          Loading…
+        </p>
+      </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-xl px-5 py-12 sm:px-8 sm:py-16">
-      <div className="mb-8">
-        <p className="mb-2 inline-flex items-center gap-2 text-sm font-medium text-primary">
-          <Mail size={16} strokeWidth={2} aria-hidden />
-          Contact
-        </p>
-        <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-          Contact Us
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted sm:text-base">
-          Questions, feedback, or collaboration ideas — send a note and we’ll get
-          back to you.
-        </p>
-      </div>
-
-      {sent ? (
-        <div
-          className="rounded-btn border border-border bg-surface px-5 py-8 text-center"
-          role="status"
-        >
-          <div className="mx-auto mb-4 inline-flex h-11 w-11 items-center justify-center rounded-btn bg-primary/12 text-primary ring-1 ring-primary/20">
-            <CheckCircle2 size={22} strokeWidth={2} aria-hidden />
-          </div>
-          <h2 className="font-display text-xl font-semibold text-foreground">
-            Message sent
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            Thanks{fromName ? `, ${fromName}` : ''}. We’ll reply to{' '}
-            <span className="font-medium text-foreground">{fromEmail}</span> soon.
+    <div className="relative min-h-[calc(100dvh-4rem)] overflow-hidden bg-background">
+      <SketchDetailAtmosphere />
+      <div className="relative z-10 mx-auto max-w-2xl px-5 py-10 sm:px-8 sm:py-12">
+        <header className="border-b border-border pb-8">
+          <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-primary">
+            Support
           </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Link to="/" className={primaryBtnClass}>
-              Back home
-            </Link>
-            <button
-              type="button"
-              className={secondaryBtnClass}
-              onClick={() => {
-                setSent(false)
-                setSubject('')
-                setMessage('')
-              }}
-            >
-              Send another
-            </button>
-          </div>
-        </div>
-      ) : (
-        <form className="space-y-4" onSubmit={onSubmit} noValidate>
-          <label className={labelClass}>
-            <span className="text-muted">Subject (optional)</span>
-            <input
-              type="text"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className={`${inputClass} py-2.5 outline-none focus:border-primary`}
-              autoComplete="off"
-              maxLength={160}
-            />
-            {fieldError(fieldErrors, 'subject') ? (
-              <span className="text-xs text-destructive">
-                {fieldError(fieldErrors, 'subject')}
-              </span>
-            ) : null}
-          </label>
+          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Contact Us
+          </h1>
+          <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted sm:text-base">
+            Questions, feedback, or collaboration ideas — we read every message.
+          </p>
+        </header>
 
-          <label className={labelClass}>
-            <span className="text-muted">Message</span>
-            <textarea
-              required
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className={`${inputClass} min-h-[9rem] resize-y py-2.5 outline-none focus:border-primary`}
-              maxLength={5000}
-            />
-            {fieldError(fieldErrors, 'message') ? (
-              <span className="text-xs text-destructive">
-                {fieldError(fieldErrors, 'message')}
-              </span>
-            ) : null}
-          </label>
-
-          {formError ? (
-            <p className="text-sm text-destructive" role="alert">
-              {formError}
-            </p>
-          ) : null}
-
-          <button
-            type="submit"
-            disabled={submitting || !fromEmail}
-            className={`${primaryBtnClass} w-full sm:w-auto`}
+        {sent ? (
+          <div
+            className="mt-8 rounded-2xl border border-border bg-surface/80 px-6 py-10 text-center sm:px-8"
+            role="status"
           >
-            {submitting ? 'Sending…' : 'Send message'}
-          </button>
-          {!fromEmail ? (
-            <p className="text-sm text-destructive" role="alert">
-              Your account needs an email address to send a message.
+            <div className="mx-auto mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/20">
+              <CheckCircle2 size={28} strokeWidth={2} aria-hidden />
+            </div>
+            <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">
+              Message sent
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
+              Thanks{fromName ? `, ${fromName}` : ''}. We’ll reply to{' '}
+              <span className="font-medium text-foreground">{fromEmail}</span>{' '}
+              as soon as we can.
             </p>
-          ) : null}
-        </form>
-      )}
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Link to="/" className={cn(primaryBtnClass, 'gap-2')}>
+                <ArrowLeft size={16} aria-hidden />
+                Back home
+              </Link>
+              <button
+                type="button"
+                className={secondaryBtnClass}
+                onClick={() => {
+                  setSent(false)
+                  setSubject('')
+                  setMessage('')
+                }}
+              >
+                Send another
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-8 space-y-6">
+            <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface/70 px-4 py-3.5">
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 font-mono text-xs font-bold text-primary ring-1 ring-primary/25"
+                aria-hidden
+              >
+                {initials || <Mail size={18} />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+                  Sending as
+                </p>
+                <p className="truncate text-sm font-medium text-foreground">
+                  {fromName || 'You'}
+                  {fromEmail ? (
+                    <span className="font-normal text-muted"> · {fromEmail}</span>
+                  ) : null}
+                </p>
+              </div>
+              <div className="hidden shrink-0 text-right sm:block">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+                  To
+                </p>
+                <p className="text-sm font-medium text-foreground">Sketches101</p>
+              </div>
+            </div>
+
+            <form className="space-y-5" onSubmit={onSubmit} noValidate>
+              <label className={labelClass}>
+                <span className="text-muted">Subject</span>
+                <input
+                  type="text"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  className={`${inputClass} py-2.5 outline-none focus:border-primary`}
+                  autoComplete="off"
+                  maxLength={160}
+                  placeholder="What’s this about? (optional)"
+                />
+                {fieldError(fieldErrors, 'subject') ? (
+                  <span className="text-xs text-destructive">
+                    {fieldError(fieldErrors, 'subject')}
+                  </span>
+                ) : null}
+              </label>
+
+              <label className={labelClass}>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-muted">Message</span>
+                  <span className="font-mono text-[11px] text-muted">
+                    {message.length}/{MESSAGE_MAX}
+                  </span>
+                </div>
+                <textarea
+                  required
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  className={`${inputClass} min-h-[11rem] resize-y py-3 outline-none focus:border-primary`}
+                  maxLength={MESSAGE_MAX}
+                  placeholder="Tell us what’s on your mind…"
+                />
+                {fieldError(fieldErrors, 'message') ? (
+                  <span className="text-xs text-destructive">
+                    {fieldError(fieldErrors, 'message')}
+                  </span>
+                ) : null}
+              </label>
+
+              {formError ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {formError}
+                </p>
+              ) : null}
+
+              {!fromEmail ? (
+                <p className="text-sm text-destructive" role="alert">
+                  Your account needs an email address to send a message.
+                </p>
+              ) : null}
+
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <button
+                  type="submit"
+                  disabled={submitting || !fromEmail}
+                  className={cn(primaryBtnClass, 'gap-2')}
+                >
+                  <Send size={16} aria-hidden />
+                  {submitting ? 'Sending…' : 'Send message'}
+                </button>
+                <Link to="/" className={secondaryBtnClass}>
+                  Cancel
+                </Link>
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
