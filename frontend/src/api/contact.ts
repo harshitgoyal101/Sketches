@@ -1,8 +1,6 @@
 import { fetchJson } from '@/api/client'
 
 export type ContactPayload = {
-  name: string
-  email: string
   subject?: string
   message: string
 }

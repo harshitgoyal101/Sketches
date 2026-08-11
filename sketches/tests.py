@@ -2389,17 +2389,32 @@ class ContactApiTests(TestCase):
         from django.core import mail
 
         mail.outbox.clear()
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username="contactme",
+            email="alex@example.com",
+            password="Secret@42",
+        )
+        self.user.is_active = True
+        self.user.save(update_fields=["is_active"])
         self.client = Client()
+
+    def test_contact_requires_login(self):
+        response = self.client.post(
+            "/api/contact/",
+            data=json.dumps({"message": "Loving the gallery so far!"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 401)
 
     def test_contact_sends_email(self):
         from django.core import mail
 
+        self.client.force_login(self.user)
         response = self.client.post(
             "/api/contact/",
             data=json.dumps(
                 {
-                    "name": "Alex Maker",
-                    "email": "alex@example.com",
                     "subject": "Hello",
                     "message": "Loving the gallery so far!",
                 }
@@ -2414,17 +2429,13 @@ class ContactApiTests(TestCase):
         self.assertEqual(sent.reply_to, ["alex@example.com"])
         self.assertIn("Hello", sent.subject)
         self.assertIn("Loving the gallery so far!", sent.body)
+        self.assertIn("contactme", sent.body)
 
     def test_contact_validates_message(self):
+        self.client.force_login(self.user)
         response = self.client.post(
             "/api/contact/",
-            data=json.dumps(
-                {
-                    "name": "Alex",
-                    "email": "alex@example.com",
-                    "message": "short",
-                }
-            ),
+            data=json.dumps({"message": "short"}),
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 400)
@@ -2433,12 +2444,11 @@ class ContactApiTests(TestCase):
 
     @patch("sketches.api.contact_views.send_contact_email", side_effect=OSError("smtp down"))
     def test_contact_send_failure(self, _send_mock):
+        self.client.force_login(self.user)
         response = self.client.post(
             "/api/contact/",
             data=json.dumps(
                 {
-                    "name": "Alex Maker",
-                    "email": "alex@example.com",
                     "message": "This should fail to deliver.",
                 }
             ),

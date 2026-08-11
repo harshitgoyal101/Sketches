@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, type FormEvent } from 'react'
+import { Link, Navigate } from 'react-router-dom'
 import { CheckCircle2, Mail } from 'lucide-react'
 import { ApiError } from '@/api/client'
 import { sendContactMessage } from '@/api/contact'
@@ -13,10 +13,11 @@ import {
   secondaryBtnClass,
 } from '@/lib/form'
 
+/** Fixed inbox — must match CONTACT_EMAIL / DEFAULT_FROM_EMAIL in .env */
+const CONTACT_TO = 'harshitgoyal101@gmail.com'
+
 export function ContactPage() {
-  const { user } = useAuth()
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+  const { user, isAuthenticated, isLoading } = useAuth()
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -29,11 +30,12 @@ export function ContactPage() {
     'Send a message to the Sketches101 team.',
   )
 
-  useEffect(() => {
-    if (!user) return
-    setName((current) => current || user.display_name || user.username || '')
-    setEmail((current) => current || user.email || '')
-  }, [user])
+  if (!isLoading && !isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  const fromName = user?.display_name || user?.username || ''
+  const fromEmail = user?.email || ''
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
@@ -41,7 +43,7 @@ export function ContactPage() {
     setFormError(null)
     setFieldErrors({})
     try {
-      await sendContactMessage({ name, email, subject, message })
+      await sendContactMessage({ subject, message })
       setSent(true)
     } catch (err) {
       if (err instanceof ApiError) {
@@ -53,6 +55,12 @@ export function ContactPage() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (isLoading || !user) {
+    return (
+      <p className="px-6 py-16 text-center text-sm text-muted">Loading…</p>
+    )
   }
 
   return (
@@ -83,8 +91,8 @@ export function ContactPage() {
             Message sent
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            Thanks{name ? `, ${name}` : ''}. We’ll reply to{' '}
-            <span className="font-medium text-foreground">{email}</span> soon.
+            Thanks{fromName ? `, ${fromName}` : ''}. We’ll reply to{' '}
+            <span className="font-medium text-foreground">{fromEmail}</span> soon.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link to="/" className={primaryBtnClass}>
@@ -106,38 +114,31 @@ export function ContactPage() {
       ) : (
         <form className="space-y-4" onSubmit={onSubmit} noValidate>
           <label className={labelClass}>
-            <span className="text-muted">Name</span>
+            <span className="text-muted">To</span>
             <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={`${inputClass} py-2.5 outline-none focus:border-primary`}
-              autoComplete="name"
-              maxLength={120}
+              type="email"
+              value={CONTACT_TO}
+              readOnly
+              className={`${inputClass} cursor-default py-2.5 text-muted outline-none`}
+              tabIndex={-1}
             />
-            {fieldError(fieldErrors, 'name') ? (
-              <span className="text-xs text-destructive">
-                {fieldError(fieldErrors, 'name')}
-              </span>
-            ) : null}
           </label>
 
           <label className={labelClass}>
-            <span className="text-muted">Email</span>
+            <span className="text-muted">From</span>
             <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={`${inputClass} py-2.5 outline-none focus:border-primary`}
-              autoComplete="email"
+              type="text"
+              value={
+                fromEmail
+                  ? fromName
+                    ? `${fromName} <${fromEmail}>`
+                    : fromEmail
+                  : fromName
+              }
+              readOnly
+              className={`${inputClass} cursor-default py-2.5 text-muted outline-none`}
+              tabIndex={-1}
             />
-            {fieldError(fieldErrors, 'email') ? (
-              <span className="text-xs text-destructive">
-                {fieldError(fieldErrors, 'email')}
-              </span>
-            ) : null}
           </label>
 
           <label className={labelClass}>
@@ -181,11 +182,16 @@ export function ContactPage() {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !fromEmail}
             className={`${primaryBtnClass} w-full sm:w-auto`}
           >
             {submitting ? 'Sending…' : 'Send message'}
           </button>
+          {!fromEmail ? (
+            <p className="text-sm text-destructive" role="alert">
+              Your account needs an email address to send a message.
+            </p>
+          ) : null}
         </form>
       )}
     </div>

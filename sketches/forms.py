@@ -180,23 +180,6 @@ class ResendVerificationForm(ThemedForm):
 
 
 class ContactForm(ThemedForm):
-    name = forms.CharField(
-        max_length=120,
-        widget=forms.TextInput(
-            attrs={
-                "placeholder": "Your name",
-                "autocomplete": "name",
-            }
-        ),
-    )
-    email = forms.EmailField(
-        widget=forms.EmailInput(
-            attrs={
-                "placeholder": "you@example.com",
-                "autocomplete": "email",
-            }
-        )
-    )
     subject = forms.CharField(
         max_length=160,
         required=False,
@@ -217,12 +200,6 @@ class ContactForm(ThemedForm):
             }
         ),
     )
-
-    def clean_name(self):
-        name = (self.cleaned_data.get("name") or "").strip()
-        if not name:
-            raise ValidationError("Name is required.")
-        return name
 
     def clean_subject(self):
         return (self.cleaned_data.get("subject") or "").strip()
