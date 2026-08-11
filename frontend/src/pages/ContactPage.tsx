@@ -13,9 +13,6 @@ import {
   secondaryBtnClass,
 } from '@/lib/form'
 
-/** Fixed inbox — must match CONTACT_EMAIL / DEFAULT_FROM_EMAIL in .env */
-const CONTACT_TO = 'harshitgoyal101@gmail.com'
-
 export function ContactPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
   const [subject, setSubject] = useState('')
@@ -113,34 +110,6 @@ export function ContactPage() {
         </div>
       ) : (
         <form className="space-y-4" onSubmit={onSubmit} noValidate>
-          <label className={labelClass}>
-            <span className="text-muted">To</span>
-            <input
-              type="email"
-              value={CONTACT_TO}
-              readOnly
-              className={`${inputClass} cursor-default py-2.5 text-muted outline-none`}
-              tabIndex={-1}
-            />
-          </label>
-
-          <label className={labelClass}>
-            <span className="text-muted">From</span>
-            <input
-              type="text"
-              value={
-                fromEmail
-                  ? fromName
-                    ? `${fromName} <${fromEmail}>`
-                    : fromEmail
-                  : fromName
-              }
-              readOnly
-              className={`${inputClass} cursor-default py-2.5 text-muted outline-none`}
-              tabIndex={-1}
-            />
-          </label>
-
           <label className={labelClass}>
             <span className="text-muted">Subject (optional)</span>
             <input
