@@ -5,8 +5,11 @@ import { Pause, Play, RotateCcw } from 'lucide-react'
 import { ApiError } from '@/api/client'
 import {
   createPreview,
+  deleteSketchMedia,
   getManagedSketch,
+  renameSketchMedia,
   saveSketchSource,
+  uploadSketchMedia,
 } from '@/api/sketches'
 import { useAuth } from '@/auth/AuthProvider'
 import {
@@ -26,7 +29,7 @@ import {
   type PreviewRuntimeError,
 } from '@/lib/previewErrors'
 import { cn } from '@/lib/utils'
-import type { SourceFile } from '@/types/sketch'
+import type { SketchMediaFile, SourceFile } from '@/types/sketch'
 
 function filesFromSketch(sketch: {
   files?: SourceFile[]
@@ -59,12 +62,14 @@ export function EditSketchPage() {
 
   const [title, setTitle] = useState('')
   const [files, setFiles] = useState<SourceFile[]>([])
+  const [media, setMedia] = useState<SketchMediaFile[]>([])
   const [activeFilename, setActiveFilename] = useState('')
   const [deletedAssetIds, setDeletedAssetIds] = useState<number[]>([])
   const [dirty, setDirty] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [uploadingMedia, setUploadingMedia] = useState(false)
   const [running, setRunning] = useState(false)
   const [previewPaused, setPreviewPaused] = useState(false)
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
@@ -86,6 +91,7 @@ export function EditSketchPage() {
     setTitle(sketch.title)
     const nextFiles = filesFromSketch(sketch)
     setFiles(nextFiles)
+    setMedia(sketch.media ? sketch.media.map((item) => ({ ...item })) : [])
     setActiveFilename(
       nextFiles.find((f) => f.is_main)?.filename ?? nextFiles[0]?.filename ?? '',
     )
@@ -102,6 +108,11 @@ export function EditSketchPage() {
   const activeFile = useMemo(
     () => files.find((file) => file.filename === activeFilename) ?? null,
     [files, activeFilename],
+  )
+
+  const activeMedia = useMemo(
+    () => media.find((item) => item.filename === activeFilename) ?? null,
+    [media, activeFilename],
   )
 
   const mainFile = useMemo(
@@ -167,7 +178,10 @@ export function EditSketchPage() {
     (from: string, to: string) => {
       const target = files.find((f) => f.filename === from)
       if (!target || target.is_main) return false
-      if (files.some((f) => f.filename === to)) {
+      if (
+        files.some((f) => f.filename === to) ||
+        media.some((m) => m.filename === to)
+      ) {
         setError('A file with that name already exists.')
         return false
       }
@@ -188,7 +202,81 @@ export function EditSketchPage() {
       setError(null)
       return true
     },
-    [activeFilename, files],
+    [activeFilename, files, media],
+  )
+
+  const uploadMedia = useCallback(
+    async (fileList: FileList) => {
+      if (!slug) return
+      setUploadingMedia(true)
+      setError(null)
+      try {
+        const result = await uploadSketchMedia(slug, Array.from(fileList))
+        setMedia(result.sketch.media ? result.sketch.media.map((m) => ({ ...m })) : [])
+        if (result.media[0]) {
+          setActiveFilename(result.media[0].filename)
+        }
+        setStatus('Uploaded')
+        await sketchQuery.refetch()
+        if (!previewPaused) {
+          queueMicrotask(() => {
+            void runPreviewRef.current?.()
+          })
+        }
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Upload failed')
+      } finally {
+        setUploadingMedia(false)
+      }
+    },
+    [previewPaused, sketchQuery, slug],
+  )
+
+  const deleteMediaFile = useCallback(
+    async (filename: string) => {
+      if (!slug) return
+      setError(null)
+      try {
+        const sketch = await deleteSketchMedia(slug, filename)
+        setMedia(sketch.media ? sketch.media.map((m) => ({ ...m })) : [])
+        if (activeFilename === filename) {
+          setActiveFilename(
+            files.find((f) => f.is_main)?.filename ?? files[0]?.filename ?? '',
+          )
+        }
+        setStatus('Media deleted')
+        await sketchQuery.refetch()
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Could not delete media')
+      }
+    },
+    [activeFilename, files, sketchQuery, slug],
+  )
+
+  const renameMediaFile = useCallback(
+    async (from: string, to: string) => {
+      if (!slug) return false
+      if (
+        files.some((f) => f.filename === to) ||
+        media.some((m) => m.filename === to)
+      ) {
+        setError('A file with that name already exists.')
+        return false
+      }
+      try {
+        const result = await renameSketchMedia(slug, from, to)
+        setMedia(result.sketch.media ? result.sketch.media.map((m) => ({ ...m })) : [])
+        if (activeFilename === from) setActiveFilename(to)
+        setError(null)
+        setStatus('Renamed')
+        await sketchQuery.refetch()
+        return true
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Could not rename media')
+        return false
+      }
+    },
+    [activeFilename, files, media, sketchQuery, slug],
   )
 
   const runPreview = useCallback(async () => {
@@ -221,6 +309,8 @@ export function EditSketchPage() {
           })),
         mode: 'live',
         run_id: thisRun,
+        slug: sketchQuery.data.slug,
+        media_base_url: sketchQuery.data.media_base_url,
       })
       if (runIdRef.current !== thisRun) return
       setPreviewHtml(preview.html)
@@ -233,6 +323,9 @@ export function EditSketchPage() {
       if (runIdRef.current === thisRun) setRunning(false)
     }
   }, [files, mainFile, sketchQuery.data])
+
+  const runPreviewRef = useRef(runPreview)
+  runPreviewRef.current = runPreview
 
   useEffect(() => {
     if (!mainFile || !sketchQuery.data || previewPaused) return
@@ -316,6 +409,7 @@ export function EditSketchPage() {
       })
       initializedSlug.current = slug
       setFiles(filesFromSketch(sketch))
+      setMedia(sketch.media ? sketch.media.map((m) => ({ ...m })) : [])
       setDeletedAssetIds([])
       setDirty(false)
       setStatus('Saved')
@@ -437,15 +531,21 @@ export function EditSketchPage() {
         </>
       }
       files={files}
+      media={media}
       activeFilename={activeFilename}
       filesOpen={filesOpen}
       onFilesOpenChange={setFilesOpen}
       onSelectFile={setActiveFilename}
       onAddFile={addFile}
+      onUploadMedia={(list) => void uploadMedia(list)}
+      uploadingMedia={uploadingMedia}
       onRenameFile={renameFile}
       onDeleteFile={deleteFile}
+      onRenameMedia={renameMediaFile}
+      onDeleteMedia={(filename) => void deleteMediaFile(filename)}
       onRenameError={(message) => setError(message)}
-      activeFile={activeFile}
+      activeFile={activeMedia ? null : activeFile}
+      activeMedia={activeMedia}
       onChangeContent={updateActiveContent}
       previewHtml={previewHtml}
       previewNonce={previewNonce}

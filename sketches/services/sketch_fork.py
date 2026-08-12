@@ -1,4 +1,5 @@
 from ..models import Sketch, SketchAsset
+from ..services.sketch_media import copy_media_to_sketch
 
 
 def build_fork_attribution(source):
@@ -60,5 +61,8 @@ def fork_sketch_from_source(
             asset_type=asset_type,
             order=order,
         )
+
+    if assets is None:
+        copy_media_to_sketch(source, fork)
 
     return fork

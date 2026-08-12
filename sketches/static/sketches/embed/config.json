@@ -1,5 +1,6 @@
 {
   "p5js_cdn": "https://cdn.jsdelivr.net/npm/p5@1.11.0/lib/p5.min.js",
+  "p5sound_cdn": "https://cdn.jsdelivr.net/npm/p5@1.11.0/lib/addons/p5.sound.min.js",
   "processingjs_cdn": "/static/sketches/embed/processing.min.js",
   "page_styles": {
     "fullscreen": "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n  background: transparent;\n  touch-action: none;\n  overscroll-behavior: none;\n}\ncanvas {\n  display: block;\n  touch-action: none;\n}",

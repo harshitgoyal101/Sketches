@@ -17,6 +17,11 @@ def embed_content_fingerprint(sketch):
         hasher.update(asset.filename.encode())
         hasher.update(asset.asset_type.encode())
         hasher.update(asset.content.encode())
+    for media in sketch.media_files.all():
+        hasher.update(media.filename.encode())
+        hasher.update(media.kind.encode())
+        hasher.update(str(media.size).encode())
+        hasher.update(str(media.pk).encode())
     return hasher.hexdigest()[:32]
 
 

@@ -357,6 +357,8 @@ export type PreviewPayload = {
   assets: { asset_type: string; content: string }[]
   mode?: string
   run_id?: number
+  slug?: string
+  media_base_url?: string
 }
 
 export type PreviewResult = {
@@ -404,6 +406,64 @@ export async function saveSketchSource(
     },
   )
   return data.sketch
+}
+
+export async function uploadSketchMedia(
+  slug: string,
+  files: File[],
+): Promise<{ media: import('@/types/sketch').SketchMediaFile[]; sketch: SketchDetail }> {
+  const formData = new FormData()
+  for (const file of files) {
+    formData.append('files', file)
+  }
+  const data = await fetchMultipart<{
+    ok: boolean
+    media: import('@/types/sketch').SketchMediaFile[]
+    sketch: SketchDetail
+  }>(`/api/account/sketches/${slug}/media/`, formData, {
+    fallbackMessage: 'Could not upload media',
+  })
+  return { media: data.media, sketch: data.sketch }
+}
+
+export async function deleteSketchMedia(
+  slug: string,
+  filename: string,
+): Promise<SketchDetail> {
+  const data = await fetchJson<{ ok: boolean; sketch: SketchDetail }>(
+    `/api/account/sketches/${encodeURIComponent(slug)}/media/${filename
+      .split('/')
+      .map(encodeURIComponent)
+      .join('/')}`,
+    {
+      method: 'DELETE',
+      fallbackMessage: 'Could not delete media',
+    },
+  )
+  return data.sketch
+}
+
+export async function renameSketchMedia(
+  slug: string,
+  filename: string,
+  newFilename: string,
+): Promise<{ media: import('@/types/sketch').SketchMediaFile[]; sketch: SketchDetail }> {
+  const data = await fetchJson<{
+    ok: boolean
+    media: import('@/types/sketch').SketchMediaFile[]
+    sketch: SketchDetail
+  }>(
+    `/api/account/sketches/${encodeURIComponent(slug)}/media/${filename
+      .split('/')
+      .map(encodeURIComponent)
+      .join('/')}`,
+    {
+      method: 'PATCH',
+      body: { filename: newFilename },
+      fallbackMessage: 'Could not rename media',
+    },
+  )
+  return { media: data.media, sketch: data.sketch }
 }
 
 export async function forkSketch(slug: string): Promise<SketchDetail> {

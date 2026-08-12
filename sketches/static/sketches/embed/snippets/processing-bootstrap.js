@@ -112,7 +112,24 @@
     host.appendChild(canvas);
 
     try {
-      window.__processingInstance = new Processing(canvas, getCombinedSource());
+      var source = getCombinedSource();
+      var sketchOpts = null;
+      if (typeof Processing.compile === "function") {
+        sketchOpts = Processing.compile(source);
+        sketchOpts.onLoad = function (p) {
+          if (typeof window.loadAudio === "function") {
+            p.loadAudio = window.loadAudio;
+          } else {
+            p.loadAudio = function (path) {
+              return new Audio(path);
+            };
+          }
+        };
+      }
+      window.__processingInstance = new Processing(
+        canvas,
+        sketchOpts || source
+      );
       patchProcessingPointer(window.__processingInstance, canvas);
       bindScoreBridge(window.__processingInstance);
       resizeInstance(window.__processingInstance);

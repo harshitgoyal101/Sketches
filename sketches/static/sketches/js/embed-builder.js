@@ -5,6 +5,7 @@ window.SketchEmbed = (function () {
   let processingShell = null;
   const snippets = {};
   let processingBootstrap = null;
+  let processingMediaHelpers = null;
   let preloadPromise = null;
 
   function escapeScript(code) {
@@ -47,6 +48,7 @@ window.SketchEmbed = (function () {
         names.forEach((name) => snippetNames.add(name));
       });
       (config.processing_snippets || []).forEach((name) => snippetNames.add(name));
+      snippetNames.add("processing-media-helpers.js");
 
       await Promise.all(
         [...snippetNames].map(async (name) => {
@@ -54,6 +56,7 @@ window.SketchEmbed = (function () {
         })
       );
       processingBootstrap = snippets["processing-bootstrap.js"] || null;
+      processingMediaHelpers = snippets["processing-media-helpers.js"] || "";
     })();
 
     return preloadPromise;
@@ -66,11 +69,20 @@ window.SketchEmbed = (function () {
     }));
   }
 
-  function buildHeadExtra(assets) {
-    return assets
+  function baseTag(mediaBaseUrl) {
+    if (!mediaBaseUrl) return "";
+    const href = mediaBaseUrl.endsWith("/") ? mediaBaseUrl : `${mediaBaseUrl}/`;
+    return `<base href="${href.replace(/"/g, "%22")}">`;
+  }
+
+  function buildHeadExtra(assets, mediaBaseUrl) {
+    const parts = [];
+    const base = baseTag(mediaBaseUrl);
+    if (base) parts.push(base);
+    assets
       .filter((asset) => asset.asset_type === "css")
-      .map((asset) => styleTag(asset.content))
-      .join("\n  ");
+      .forEach((asset) => parts.push(styleTag(asset.content)));
+    return parts.join("\n  ");
   }
 
   function buildBodyExtra(mainCode, assets) {
@@ -101,6 +113,12 @@ window.SketchEmbed = (function () {
       .join("\n  ");
   }
 
+  function p5SoundScript() {
+    const url = (config.p5sound_cdn || "").trim();
+    if (!url) return "";
+    return `<script src="${url}"></script>`;
+  }
+
   function buildProcessingBootstrap(sources, runId) {
     if (!processingBootstrap) {
       throw new Error("Processing bootstrap snippet not loaded.");
@@ -116,12 +134,13 @@ window.SketchEmbed = (function () {
     return fullscreen ? "fullscreen" : "preview";
   }
 
-  function buildP5({ mainCode, assets, resolvedMode, effectiveRunId }) {
+  function buildP5({ mainCode, assets, resolvedMode, effectiveRunId, mediaBaseUrl }) {
     const replacements = {
       __PAGE_STYLE__: config.page_styles[resolvedMode],
-      __HEAD_EXTRA__: buildHeadExtra(assets),
+      __HEAD_EXTRA__: buildHeadExtra(assets, mediaBaseUrl),
       __HEAD_SCRIPTS__: buildHeadScripts(resolvedMode, effectiveRunId),
       __P5JS_CDN__: config.p5js_cdn,
+      __P5SOUND_SCRIPT__: p5SoundScript(),
       __BODY_EXTRA__: buildBodyExtra(mainCode, assets),
     };
 
@@ -132,15 +151,16 @@ window.SketchEmbed = (function () {
     return html;
   }
 
-  function buildProcessing({ mainCode, assets, resolvedMode, effectiveRunId }) {
+  function buildProcessing({ mainCode, assets, resolvedMode, effectiveRunId, mediaBaseUrl }) {
     const cssAssets = assets.filter((asset) => asset.asset_type === "css");
-    const tabAssets = assets.filter((asset) => asset.asset_type !== "css");
+    const tabAssets = assets.filter((asset) => asset.asset_type === "js");
     const sources = tabAssets.map((asset) => asset.content).concat([mainCode]);
     const replacements = {
       __PAGE_STYLE__: config.page_styles[resolvedMode],
-      __HEAD_EXTRA__: buildHeadExtra(cssAssets),
+      __HEAD_EXTRA__: buildHeadExtra(cssAssets, mediaBaseUrl),
       __HEAD_SCRIPTS__: buildHeadScripts(resolvedMode, effectiveRunId),
       __PROCESSINGJS_CDN__: resolveCdnUrl(config.processingjs_cdn),
+      __PROCESSING_MEDIA_HELPERS__: `<script>\n${processingMediaHelpers || ""}\n</script>`,
       __PROCESSING_BOOTSTRAP__: buildProcessingBootstrap(
         sources,
         resolvedMode === "live" ? effectiveRunId : null,
@@ -161,6 +181,7 @@ window.SketchEmbed = (function () {
     fullscreen = false,
     mode = null,
     runId = null,
+    mediaBaseUrl = null,
   }) {
     if (!config || !p5Shell || !processingShell) {
       throw new Error("SketchEmbed assets not loaded. Call SketchEmbed.preload() first.");
@@ -177,6 +198,7 @@ window.SketchEmbed = (function () {
         assets: normalizedAssets,
         resolvedMode,
         effectiveRunId,
+        mediaBaseUrl,
       });
     }
 
@@ -185,6 +207,7 @@ window.SketchEmbed = (function () {
       assets: normalizedAssets,
       resolvedMode,
       effectiveRunId,
+      mediaBaseUrl,
     });
   }
 

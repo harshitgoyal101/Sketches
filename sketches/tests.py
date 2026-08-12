@@ -69,6 +69,18 @@ class EmbedBuilderTests(SimpleTestCase):
         self.assertTrue((EMBED_ROOT / "processing-shell.html").exists())
         self.assertTrue((EMBED_ROOT / "snippets" / "error-reporter.js").exists())
         self.assertTrue((EMBED_ROOT / "snippets" / "processing-bootstrap.js").exists())
+        self.assertTrue(
+            (EMBED_ROOT / "snippets" / "processing-media-helpers.js").exists()
+        )
+
+    def test_p5_embed_includes_p5sound_and_media_base(self):
+        html = build_p5_embed_html(
+            "function setup() {}",
+            mode="live",
+            media_base_url="https://example.com/sketches/demo/media/",
+        )
+        self.assertIn("p5.sound.min.js", html)
+        self.assertIn('<base href="https://example.com/sketches/demo/media/">', html)
 
     def test_build_processing_preview_includes_processingjs(self):
         html = build_processing_embed_html(
@@ -77,10 +89,11 @@ class EmbedBuilderTests(SimpleTestCase):
         )
         self.assertIn("/static/sketches/embed/processing.min.js", html)
         self.assertIn('id="sketch-canvas-host"', html)
-        self.assertIn("new Processing(canvas", html)
+        self.assertIn("new Processing(", html)
         self.assertIn("void setup()", html)
         self.assertNotIn("p5.min.js", html)
         self.assertNotIn('type="application/processing"', html)
+        self.assertIn("loadAudio", html)
 
     def test_build_processing_includes_extra_pde_tabs(self):
         html = build_processing_embed_html(
@@ -90,6 +103,22 @@ class EmbedBuilderTests(SimpleTestCase):
         )
         self.assertIn("void helper()", html)
         self.assertIn("void setup()", html)
+
+    def test_processing_excludes_non_js_assets_from_sources(self):
+        html = build_processing_embed_html(
+            "void setup() {}",
+            assets=[
+                {"asset_type": "other", "content": "NOT_SOURCE_BINARY"},
+                {"asset_type": "json", "content": '{"nope": true}'},
+                {"asset_type": "js", "content": "void helper() {}"},
+            ],
+            mode="preview",
+            media_base_url="https://example.com/sketches/x/media/",
+        )
+        self.assertNotIn("NOT_SOURCE_BINARY", html)
+        self.assertNotIn('{"nope": true}', html)
+        self.assertIn("void helper()", html)
+        self.assertIn('<base href="https://example.com/sketches/x/media/">', html)
 
 
 class SketchStarterTests(SimpleTestCase):
@@ -2467,3 +2496,146 @@ class ContactApiTests(TestCase):
         )
         self.assertEqual(response.status_code, 502)
         self.assertFalse(response.json()["ok"])
+
+
+class SketchMediaApiTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.owner = user_model.objects.create_user(
+            username="media-owner", password="secret"
+        )
+        self.owner.is_active = True
+        self.owner.save(update_fields=["is_active"])
+        self.stranger = user_model.objects.create_user(
+            username="media-stranger", password="secret"
+        )
+        self.stranger.is_active = True
+        self.stranger.save(update_fields=["is_active"])
+        self.sketch = Sketch.objects.create(
+            title="Media Demo",
+            slug="media-owner-media-demo",
+            sketch_type=Sketch.SketchType.P5JS,
+            status=Sketch.Status.DRAFT,
+            author=self.owner,
+            code="function setup() {}",
+            entry_filename="sketch.js",
+        )
+        self.client = Client()
+        self.client.force_login(self.owner)
+
+    def _png_upload(self, name="cat.png"):
+        buffer = BytesIO()
+        Image.new("RGB", (8, 8), color=(20, 40, 60)).save(buffer, format="PNG")
+        return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/png")
+
+    def test_upload_and_serve_media_for_owner(self):
+        response = self.client.post(
+            f"/api/account/sketches/{self.sketch.slug}/media/",
+            {"files": self._png_upload()},
+        )
+        self.assertEqual(response.status_code, 201, response.content)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["media"][0]["filename"], "cat.png")
+        self.assertEqual(payload["media"][0]["kind"], "image")
+        self.assertEqual(len(payload["sketch"]["media"]), 1)
+
+        served = self.client.get(
+            reverse(
+                "sketch_media_file",
+                kwargs={"slug": self.sketch.slug, "filename": "cat.png"},
+            )
+        )
+        self.assertEqual(served.status_code, 200)
+        self.assertEqual(served["Content-Type"], "image/png")
+
+    def test_draft_media_denied_for_anonymous(self):
+        self.client.post(
+            f"/api/account/sketches/{self.sketch.slug}/media/",
+            {"files": self._png_upload()},
+        )
+        anon = Client()
+        denied = anon.get(
+            reverse(
+                "sketch_media_file",
+                kwargs={"slug": self.sketch.slug, "filename": "cat.png"},
+            )
+        )
+        self.assertEqual(denied.status_code, 404)
+
+    def test_published_media_public(self):
+        self.client.post(
+            f"/api/account/sketches/{self.sketch.slug}/media/",
+            {"files": self._png_upload()},
+        )
+        self.sketch.status = Sketch.Status.PUBLISHED
+        self.sketch.save(update_fields=["status", "published_at"])
+        anon = Client()
+        ok = anon.get(
+            reverse(
+                "sketch_media_file",
+                kwargs={"slug": self.sketch.slug, "filename": "cat.png"},
+            )
+        )
+        self.assertEqual(ok.status_code, 200)
+
+    def test_reject_unsupported_type(self):
+        bad = SimpleUploadedFile(
+            "notes.txt", b"hello", content_type="text/plain"
+        )
+        response = self.client.post(
+            f"/api/account/sketches/{self.sketch.slug}/media/",
+            {"files": bad},
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_delete_and_rename_media(self):
+        self.client.post(
+            f"/api/account/sketches/{self.sketch.slug}/media/",
+            {"files": self._png_upload()},
+        )
+        renamed = self.client.patch(
+            f"/api/account/sketches/{self.sketch.slug}/media/cat.png",
+            data=json.dumps({"filename": "kitty.png"}),
+            content_type="application/json",
+        )
+        self.assertEqual(renamed.status_code, 200, renamed.content)
+        self.assertEqual(renamed.json()["media"]["filename"], "kitty.png")
+
+        deleted = self.client.delete(
+            f"/api/account/sketches/{self.sketch.slug}/media/kitty.png"
+        )
+        self.assertEqual(deleted.status_code, 200)
+        self.assertEqual(deleted.json()["sketch"]["media"], [])
+
+    def test_stranger_cannot_upload(self):
+        other = Client()
+        other.force_login(self.stranger)
+        response = other.post(
+            f"/api/account/sketches/{self.sketch.slug}/media/",
+            {"files": self._png_upload()},
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_embed_includes_media_base_for_owner_preview(self):
+        self.client.post(
+            f"/api/account/sketches/{self.sketch.slug}/media/",
+            {"files": self._png_upload()},
+        )
+        preview = self.client.post(
+            "/api/preview/",
+            data=json.dumps(
+                {
+                    "sketch_type": "p5js",
+                    "main_code": "function setup() {}",
+                    "assets": [],
+                    "mode": "live",
+                    "slug": self.sketch.slug,
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(preview.status_code, 200)
+        html = preview.json()["html"]
+        self.assertIn("/sketches/media-owner-media-demo/media/", html)
+        self.assertIn('<base href="/sketches/media-owner-media-demo/media/">', html)

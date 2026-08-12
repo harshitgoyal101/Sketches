@@ -14,6 +14,13 @@ from sketches.permissions import can_edit_sketch, can_fork_sketch
 from sketches.services.embed_builder import build_p5_embed_html, build_processing_embed_html
 from sketches.services.game_scores import ensure_scoreboard_for_sketch
 from sketches.services.sketch_fork import fork_sketch_from_source
+from sketches.services.sketch_media import (
+    delete_media,
+    media_base_url,
+    rename_media,
+    save_uploaded_media,
+    serialize_media,
+)
 from sketches.services.sketch_publish import publish_sketch
 from sketches.services.sketch_starters import (
     get_default_filename,
@@ -43,7 +50,7 @@ from .serializers import (
 def _editable_sketch(request, slug):
     sketch = get_object_or_404(
         Sketch.objects.select_related("author", "forked_from", "forked_from__author")
-        .prefetch_related("tags", "assets")
+        .prefetch_related("tags", "assets", "media_files")
         .annotate(fork_count=Count("forks")),
         slug=slug,
     )
@@ -183,7 +190,7 @@ def api_account_sketches_collection(request):
 
 
 def _delete_sketch_media(sketch):
-    """Best-effort cleanup of thumbnail / app-icon files before sketch delete."""
+    """Best-effort cleanup of thumbnail / app-icon / sketch media before sketch delete."""
     from sketches.services.thumbnail_generator import _delete_card_thumbnail
 
     if sketch.thumbnail:
@@ -198,6 +205,11 @@ def _delete_sketch_media(sketch):
     if sketch.app_icon:
         try:
             sketch.app_icon.delete(save=False)
+        except Exception:
+            pass
+    for media in list(sketch.media_files.all()):
+        try:
+            delete_media(media)
         except Exception:
             pass
 
@@ -575,7 +587,7 @@ def _infer_asset_type(filename):
 def _reload_sketch(pk):
     return (
         Sketch.objects.select_related("author", "forked_from", "forked_from__author")
-        .prefetch_related("tags", "assets")
+        .prefetch_related("tags", "assets", "media_files")
         .annotate(fork_count=Count("forks"))
         .get(pk=pk)
     )
@@ -590,9 +602,18 @@ def api_preview(request):
     assets = data.get("assets") or []
     mode = data.get("mode") or "live"
     run_id = data.get("run_id")
+    slug = (data.get("slug") or "").strip()
 
     if not isinstance(assets, list):
         return json_response({"ok": False, "error": "assets must be a list"}, status=400)
+
+    base = None
+    if slug:
+        sketch = Sketch.objects.filter(slug=slug).first()
+        if sketch and can_edit_sketch(request.user, sketch):
+            base = media_base_url(request, sketch.slug)
+    if not base and data.get("media_base_url"):
+        base = str(data.get("media_base_url")).strip() or None
 
     if sketch_type == Sketch.SketchType.PROCESSING:
         html = build_processing_embed_html(
@@ -600,6 +621,7 @@ def api_preview(request):
             assets=assets,
             mode=mode,
             run_id=run_id,
+            media_base_url=base,
         )
     else:
         html = build_p5_embed_html(
@@ -607,6 +629,7 @@ def api_preview(request):
             assets=assets,
             mode=mode,
             run_id=run_id,
+            media_base_url=base,
         )
 
     preview_id = uuid.uuid4().hex
@@ -620,6 +643,127 @@ def api_preview(request):
             "ok": True,
             "url": reverse("sketch_preview_embed", kwargs={"preview_id": preview_id}),
             "html": html,
+        }
+    )
+
+
+@require_http_methods(["POST"])
+def api_account_sketch_media_upload(request, slug):
+    """Upload one or more image/audio files for a sketch."""
+    denied = require_login(request)
+    if denied:
+        return denied
+
+    sketch, error = _editable_sketch(request, slug)
+    if error:
+        return error
+
+    uploads = list(request.FILES.getlist("files")) or list(request.FILES.getlist("file"))
+    if not uploads and request.FILES.get("file"):
+        uploads = [request.FILES["file"]]
+    if not uploads:
+        # Accept any file field name.
+        uploads = list(request.FILES.values())
+    if not uploads:
+        return json_response({"ok": False, "error": "No files uploaded."}, status=400)
+
+    created = []
+    errors = []
+    for upload in uploads:
+        try:
+            media = save_uploaded_media(sketch, upload)
+            created.append(serialize_media(media, slug=sketch.slug))
+        except ValidationError as exc:
+            errors.append(
+                {
+                    "filename": getattr(upload, "name", ""),
+                    "error": "; ".join(exc.messages)
+                    if hasattr(exc, "messages")
+                    else str(exc),
+                }
+            )
+
+    if not created and errors:
+        return json_response(
+            {"ok": False, "error": errors[0]["error"], "errors": errors},
+            status=400,
+        )
+
+    sketch = _reload_sketch(sketch.pk)
+    return json_response(
+        {
+            "ok": True,
+            "media": created,
+            "sketch": serialize_sketch_detail(
+                sketch,
+                request,
+                can_edit=True,
+                can_fork=can_fork_sketch(request.user, sketch),
+            ),
+            "errors": errors or None,
+        },
+        status=201,
+    )
+
+
+@require_http_methods(["PATCH", "DELETE"])
+def api_account_sketch_media_item(request, slug, filename):
+    """Rename (PATCH) or delete (DELETE) a sketch media file."""
+    denied = require_login(request)
+    if denied:
+        return denied
+
+    sketch, error = _editable_sketch(request, slug)
+    if error:
+        return error
+
+    media = sketch.media_files.filter(filename=filename).first()
+    if not media:
+        return json_response({"ok": False, "error": "Media file not found."}, status=404)
+
+    if request.method == "DELETE":
+        delete_media(media)
+        sketch = _reload_sketch(sketch.pk)
+        return json_response(
+            {
+                "ok": True,
+                "sketch": serialize_sketch_detail(
+                    sketch,
+                    request,
+                    can_edit=True,
+                    can_fork=can_fork_sketch(request.user, sketch),
+                ),
+            }
+        )
+
+    data = parse_json_body(request)
+    new_name = (data.get("filename") or "").strip()
+    if not new_name:
+        return json_response({"ok": False, "error": "filename is required."}, status=400)
+    try:
+        media = rename_media(media, new_name)
+    except ValidationError as exc:
+        return json_response(
+            {
+                "ok": False,
+                "error": "; ".join(exc.messages)
+                if hasattr(exc, "messages")
+                else str(exc),
+            },
+            status=400,
+        )
+
+    sketch = _reload_sketch(sketch.pk)
+    return json_response(
+        {
+            "ok": True,
+            "media": serialize_media(media, slug=sketch.slug),
+            "sketch": serialize_sketch_detail(
+                sketch,
+                request,
+                can_edit=True,
+                can_fork=can_fork_sketch(request.user, sketch),
+            ),
         }
     )
 

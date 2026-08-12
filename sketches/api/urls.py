@@ -101,6 +101,16 @@ urlpatterns = [
         name="api_account_sketch_source",
     ),
     path(
+        "account/sketches/<slug:slug>/media/",
+        manage_views.api_account_sketch_media_upload,
+        name="api_account_sketch_media_upload",
+    ),
+    path(
+        "account/sketches/<slug:slug>/media/<path:filename>",
+        manage_views.api_account_sketch_media_item,
+        name="api_account_sketch_media_item",
+    ),
+    path(
         "sketches/<slug:slug>/fork/",
         manage_views.api_fork_sketch,
         name="api_fork_sketch",

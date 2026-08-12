@@ -55,6 +55,18 @@ export type SketchDetail = SketchCard & {
     order?: number
   }[]
   files?: SourceFile[]
+  media?: SketchMediaFile[]
+  media_base_url?: string
+}
+
+export type SketchMediaFile = {
+  id: number
+  filename: string
+  kind: 'image' | 'audio' | string
+  content_type: string
+  size: number
+  url: string
+  order?: number
 }
 
 export type SourceFile = {

@@ -4,6 +4,7 @@ import { IdeWorkspace } from '@/components/ide/IdeWorkspace'
 import type { IdeFile } from '@/components/ide/ideFiles'
 import { SketchDetailAtmosphere } from '@/components/sketch/SketchDetailAtmosphere'
 import type { PreviewRuntimeError } from '@/lib/previewErrors'
+import type { SketchMediaFile } from '@/types/sketch'
 import { cn } from '@/lib/utils'
 
 type SketchIdeShellProps = {
@@ -19,15 +20,21 @@ type SketchIdeShellProps = {
   toolbar: ReactNode
   footer?: ReactNode
   files: IdeFile[]
+  media?: SketchMediaFile[]
   activeFilename: string
   filesOpen: boolean
   onFilesOpenChange: (open: boolean) => void
   onSelectFile: (filename: string) => void
   onAddFile: () => void
+  onUploadMedia?: (files: FileList) => void
+  uploadingMedia?: boolean
   onRenameFile: (from: string, to: string) => boolean | void
   onDeleteFile: (filename: string) => void
+  onRenameMedia?: (from: string, to: string) => boolean | void | Promise<boolean | void>
+  onDeleteMedia?: (filename: string) => void
   onRenameError?: (message: string | null) => void
   activeFile: IdeFile | null
+  activeMedia?: SketchMediaFile | null
   onChangeContent: (content: string) => void
   previewHtml: string | null
   previewNonce: number
@@ -55,15 +62,21 @@ export function SketchIdeShell({
   toolbar,
   footer,
   files,
+  media = [],
   activeFilename,
   filesOpen,
   onFilesOpenChange,
   onSelectFile,
   onAddFile,
+  onUploadMedia,
+  uploadingMedia = false,
   onRenameFile,
   onDeleteFile,
+  onRenameMedia,
+  onDeleteMedia,
   onRenameError,
   activeFile,
+  activeMedia = null,
   onChangeContent,
   previewHtml,
   previewNonce,
@@ -150,17 +163,23 @@ export function SketchIdeShell({
         <div className="relative z-10 flex min-h-0 w-full flex-1 overflow-hidden">
           <IdeFilesPanel
             files={files}
+            media={media}
             activeFilename={activeFilename}
             filesOpen={filesOpen}
             onToggle={onFilesOpenChange}
             onSelect={onSelectFile}
             onAdd={onAddFile}
+            onUpload={onUploadMedia}
+            uploading={uploadingMedia}
             onRename={onRenameFile}
             onDelete={onDeleteFile}
+            onRenameMedia={onRenameMedia}
+            onDeleteMedia={onDeleteMedia}
             onRenameError={onRenameError}
           />
           <IdeWorkspace
             activeFile={activeFile}
+            activeMedia={activeMedia}
             onChangeContent={onChangeContent}
             previewHtml={previewHtml}
             previewNonce={previewNonce}

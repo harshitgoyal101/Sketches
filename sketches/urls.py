@@ -12,6 +12,11 @@ urlpatterns = [
     path("sketches/<slug:slug>/", views.sketch_detail, name="sketch_detail"),
     path("sketches/<slug:slug>/embed/", views.sketch_embed, name="sketch_embed"),
     path(
+        "sketches/<slug:slug>/media/<path:filename>",
+        views.sketch_media_file,
+        name="sketch_media_file",
+    ),
+    path(
         "sketches/<slug:slug>/source/",
         views_manage.sketch_save_source,
         name="sketch_save_source",

@@ -482,6 +482,45 @@ class SketchAsset(models.Model):
         }.get(ext, "javascript")
 
 
+def sketch_media_upload_to(instance, filename):
+    """Store binaries under sketch_media/<sketch_id>/<basename>."""
+    from pathlib import PurePosixPath
+
+    safe_name = PurePosixPath(filename or "file").name or "file"
+    sketch_id = instance.sketch_id or "tmp"
+    return f"sketch_media/{sketch_id}/{safe_name}"
+
+
+class SketchMedia(models.Model):
+    """Binary image/audio asset for a sketch (loadImage / loadSound by filename)."""
+
+    class Kind(models.TextChoices):
+        IMAGE = "image", "Image"
+        AUDIO = "audio", "Audio"
+
+    sketch = models.ForeignKey(
+        Sketch,
+        on_delete=models.CASCADE,
+        related_name="media_files",
+    )
+    filename = models.CharField(max_length=200, help_text="e.g. cat.png")
+    file = models.FileField(upload_to=sketch_media_upload_to, max_length=500)
+    content_type = models.CharField(max_length=100, blank=True)
+    size = models.PositiveIntegerField(default=0)
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["order", "filename"]
+        unique_together = [["sketch", "filename"]]
+        verbose_name = "Sketch media"
+        verbose_name_plural = "Sketch media"
+
+    def __str__(self):
+        return self.filename
+
+
 class WeeklyChallenge(models.Model):
     """Lightweight weekly prompt — strip links into gallery via tag."""
 

@@ -7,6 +7,7 @@ from .models import (
     Sketch,
     SketchAsset,
     SketchFormat,
+    SketchMedia,
     Tag,
     TagCategory,
     UserProfile,
@@ -18,6 +19,14 @@ class SketchAssetInline(admin.TabularInline):
     model = SketchAsset
     extra = 1
     fields = ["order", "filename", "asset_type", "content"]
+    ordering = ["order"]
+
+
+class SketchMediaInline(admin.TabularInline):
+    model = SketchMedia
+    extra = 0
+    fields = ["order", "filename", "kind", "file", "content_type", "size"]
+    readonly_fields = ["content_type", "size"]
     ordering = ["order"]
 
 
@@ -107,7 +116,7 @@ class SketchAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("title",)}
     filter_horizontal = ["tags"]
     readonly_fields = ["created_at", "updated_at", "forked_from", "fork_by"]
-    inlines = [SketchAssetInline]
+    inlines = [SketchAssetInline, SketchMediaInline]
     fieldsets = (
         (
             None,

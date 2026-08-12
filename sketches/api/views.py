@@ -113,7 +113,7 @@ def api_sketch_detail(request, slug):
         Sketch.objects.select_related(
             "author", "forked_from", "forked_from__author"
         )
-        .prefetch_related("tags", "assets")
+        .prefetch_related("tags", "assets", "media_files")
         .annotate(fork_count=Count("forks")),
         slug=slug,
     )

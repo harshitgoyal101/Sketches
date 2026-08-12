@@ -39,8 +39,20 @@ def _normalize_assets(assets):
     return normalized
 
 
-def _build_head_extra(assets):
+def _base_tag(media_base_url):
+    if not media_base_url:
+        return ""
+    href = media_base_url if media_base_url.endswith("/") else f"{media_base_url}/"
+    # Escape quotes in URL for attribute safety.
+    safe = href.replace('"', "%22")
+    return f'<base href="{safe}">'
+
+
+def _build_head_extra(assets, media_base_url=None):
     includes = []
+    base = _base_tag(media_base_url)
+    if base:
+        includes.append(base)
     for asset in assets:
         if asset["asset_type"] == "css":
             includes.append(_style_tag(asset["content"]))
@@ -67,13 +79,27 @@ def _build_head_scripts(config, mode, run_id=None):
     return "\n  ".join(tags)
 
 
+def _p5sound_script(config):
+    url = (config.get("p5sound_cdn") or "").strip()
+    if not url:
+        return ""
+    return f'<script src="{url}"></script>'
+
+
 def _resolve_mode(fullscreen=False, mode=None):
     if mode:
         return mode
     return "fullscreen" if fullscreen else "preview"
 
 
-def build_p5_embed_html(main_code, assets=None, fullscreen=False, mode=None, run_id=None):
+def build_p5_embed_html(
+    main_code,
+    assets=None,
+    fullscreen=False,
+    mode=None,
+    run_id=None,
+    media_base_url=None,
+):
     """Build minimal HTML page for sandboxed p5.js sketch iframe."""
     config = _load_config()
     shell = _load_shell("p5-shell.html")
@@ -85,9 +111,12 @@ def build_p5_embed_html(main_code, assets=None, fullscreen=False, mode=None, run
 
     replacements = {
         "__PAGE_STYLE__": config["page_styles"][resolved_mode],
-        "__HEAD_EXTRA__": _build_head_extra(normalized_assets),
+        "__HEAD_EXTRA__": _build_head_extra(
+            normalized_assets, media_base_url=media_base_url
+        ),
         "__HEAD_SCRIPTS__": _build_head_scripts(config, resolved_mode, run_id=run_id),
         "__P5JS_CDN__": config["p5js_cdn"],
+        "__P5SOUND_SCRIPT__": _p5sound_script(config),
         "__BODY_EXTRA__": _build_body_extra(main_code, normalized_assets),
     }
 
@@ -111,25 +140,40 @@ def _resolve_processingjs_cdn(config):
     return f"/static/sketches/embed/{url}"
 
 
-def build_processing_embed_html(main_code, assets=None, fullscreen=False, mode=None, run_id=None):
+def _processing_media_helper_script():
+    return f"<script>\n{_load_snippet('processing-media-helpers.js')}\n</script>"
+
+
+def build_processing_embed_html(
+    main_code,
+    assets=None,
+    fullscreen=False,
+    mode=None,
+    run_id=None,
+    media_base_url=None,
+):
     """Build minimal HTML page for Processing.js (.pde) sketch iframe."""
     config = _load_config()
     shell = _load_shell("processing-shell.html")
     resolved_mode = _resolve_mode(fullscreen=fullscreen, mode=mode)
     normalized_assets = _normalize_assets(assets)
     css_assets = [asset for asset in normalized_assets if asset["asset_type"] == "css"]
-    tab_assets = [asset for asset in normalized_assets if asset["asset_type"] != "css"]
+    # Only JS/PDE text tabs become Processing sources — never media/other binaries.
+    tab_assets = [asset for asset in normalized_assets if asset["asset_type"] == "js"]
 
     if resolved_mode == "live" and run_id is None:
         run_id = 0
 
     sources = [asset["content"] for asset in tab_assets] + [main_code]
 
+    head_extra_parts = [_build_head_extra(css_assets, media_base_url=media_base_url)]
+
     replacements = {
         "__PAGE_STYLE__": config["page_styles"][resolved_mode],
-        "__HEAD_EXTRA__": _build_head_extra(css_assets),
+        "__HEAD_EXTRA__": "\n  ".join(part for part in head_extra_parts if part),
         "__HEAD_SCRIPTS__": _build_head_scripts(config, resolved_mode, run_id=run_id),
         "__PROCESSINGJS_CDN__": _resolve_processingjs_cdn(config),
+        "__PROCESSING_MEDIA_HELPERS__": _processing_media_helper_script(),
         "__PROCESSING_BOOTSTRAP__": _build_processing_bootstrap(
             sources,
             run_id=run_id if resolved_mode == "live" else None,
@@ -142,7 +186,15 @@ def build_processing_embed_html(main_code, assets=None, fullscreen=False, mode=N
     return html
 
 
-def build_embed_html(sketch, fullscreen=False, mode=None, run_id=None, main_code=None, assets=None):
+def build_embed_html(
+    sketch,
+    fullscreen=False,
+    mode=None,
+    run_id=None,
+    main_code=None,
+    assets=None,
+    media_base_url=None,
+):
     """Build embed HTML for a sketch based on its type."""
     code = main_code if main_code is not None else sketch.code
     sketch_assets = assets if assets is not None else list(sketch.assets.all())
@@ -153,6 +205,7 @@ def build_embed_html(sketch, fullscreen=False, mode=None, run_id=None, main_code
             fullscreen=fullscreen,
             mode=mode,
             run_id=run_id,
+            media_base_url=media_base_url,
         )
     return build_p5_embed_html(
         code,
@@ -160,4 +213,5 @@ def build_embed_html(sketch, fullscreen=False, mode=None, run_id=None, main_code
         fullscreen=fullscreen,
         mode=mode,
         run_id=run_id,
+        media_base_url=media_base_url,
     )

@@ -1,11 +1,11 @@
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
-from django.http import Http404, HttpResponse
+from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.clickjacking import xframe_options_sameorigin
-from django.views.decorators.http import condition
+from django.views.decorators.http import condition, require_GET
 
-from .models import Sketch, Tag
+from .models import Sketch, SketchMedia, Tag
 from .permissions import can_edit_sketch, can_fork_sketch
 from .services.embed_builder import build_embed_html
 from .services.embed_cache import (
@@ -25,6 +25,7 @@ from .services.gallery_filters import (
 )
 from .services.home_background import get_home_background_sketches
 from .services.sketch_context import build_sketch_detail_context
+from .services.sketch_media import media_base_url
 
 PUBLISHED = Sketch.Status.PUBLISHED
 THEME_COOKIE = "sketches101-theme"
@@ -244,7 +245,7 @@ def sketch_embed_last_modified(request, slug):
 @condition(etag_func=sketch_embed_etag, last_modified_func=sketch_embed_last_modified)
 def sketch_embed(request, slug):
     sketch = get_object_or_404(
-        Sketch.objects.prefetch_related("assets"),
+        Sketch.objects.prefetch_related("assets", "media_files"),
         slug=slug,
     )
     if sketch.status != PUBLISHED and not can_edit_sketch(request.user, sketch):
@@ -252,7 +253,35 @@ def sketch_embed(request, slug):
     if not sketch.is_interactive:
         raise Http404("This sketch has no interactive preview.")
     fullscreen = sketch.is_home_background or request.GET.get("fullscreen") in ("1", "true", "yes")
-    html = build_embed_html(sketch, fullscreen=fullscreen)
+    html = build_embed_html(
+        sketch,
+        fullscreen=fullscreen,
+        media_base_url=media_base_url(request, sketch.slug),
+    )
     response = HttpResponse(html, content_type="text/html; charset=utf-8")
     return apply_embed_cache_headers(response, sketch)
+
+
+@require_GET
+def sketch_media_file(request, slug, filename):
+    """Serve a sketch image/audio file for loadImage / loadSound / loadAudio."""
+    sketch = get_object_or_404(Sketch.objects.select_related("author"), slug=slug)
+    if sketch.status != PUBLISHED and not can_edit_sketch(request.user, sketch):
+        raise Http404
+    media = get_object_or_404(SketchMedia, sketch=sketch, filename=filename)
+    if not media.file:
+        raise Http404
+    try:
+        handle = media.file.open("rb")
+    except Exception as exc:
+        raise Http404 from exc
+    content_type = media.content_type or "application/octet-stream"
+    response = FileResponse(handle, content_type=content_type)
+    if sketch.status == PUBLISHED:
+        response["Cache-Control"] = "public, max-age=3600"
+    else:
+        response["Cache-Control"] = "private, no-cache"
+    basename = media.filename.split("/")[-1]
+    response["Content-Disposition"] = f'inline; filename="{basename}"'
+    return response
 

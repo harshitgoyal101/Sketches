@@ -8,6 +8,7 @@ import {
 } from 'react'
 import { Code2, PanelLeftClose, PanelLeftOpen, Play } from 'lucide-react'
 import { SketchCodeEditor } from '@/components/ide/SketchCodeEditor'
+import { IdeMediaPreview } from '@/components/ide/IdeMediaPreview'
 import { IdePreviewStage } from '@/components/ide/IdePreviewStage'
 import { IdeRuntimeErrorBanner } from '@/components/ide/IdeRuntimeErrorBanner'
 import {
@@ -18,12 +19,14 @@ import {
   type IdeFile,
 } from '@/components/ide/ideFiles'
 import type { PreviewRuntimeError } from '@/lib/previewErrors'
+import type { SketchMediaFile } from '@/types/sketch'
 import { cn } from '@/lib/utils'
 
 type MobileTab = 'code' | 'preview'
 
 type IdeWorkspaceProps = {
   activeFile: IdeFile | null
+  activeMedia?: SketchMediaFile | null
   onChangeContent: (content: string) => void
   previewHtml: string | null
   previewNonce: number
@@ -41,6 +44,7 @@ type IdeWorkspaceProps = {
 
 export function IdeWorkspace({
   activeFile,
+  activeMedia = null,
   onChangeContent,
   previewHtml,
   previewNonce,
@@ -285,7 +289,9 @@ export function IdeWorkspace({
                   <PanelLeftOpen size={14} aria-hidden />
                 )}
               </button>
-              <span className="truncate">{activeFile?.filename ?? '—'}</span>
+              <span className="truncate">
+                {activeMedia?.filename ?? activeFile?.filename ?? '—'}
+              </span>
               {runtimeError ? (
                 <span className="shrink-0 rounded-btn border border-rose-400/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-rose-600 dark:text-rose-300">
                   Error
@@ -293,11 +299,13 @@ export function IdeWorkspace({
               ) : null}
             </div>
             <span className="hidden shrink-0 text-[10px] uppercase tracking-wide lg:inline">
-              Editor
+              {activeMedia ? 'Media' : 'Editor'}
             </span>
           </div>
           <div className="min-h-0 flex-1 overflow-hidden [&_.cm-editor]:h-full [&_.cm-scroller]:min-h-full">
-            {activeFile ? (
+            {activeMedia ? (
+              <IdeMediaPreview media={activeMedia} />
+            ) : activeFile ? (
               <SketchCodeEditor
                 key={activeFile.filename}
                 filename={activeFile.filename}

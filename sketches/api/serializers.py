@@ -2,6 +2,7 @@ from django.urls import reverse
 
 from sketches.services.embed_cache import embed_cache_version
 from sketches.services.markdown import render_markdown
+from sketches.services.sketch_media import serialize_sketch_media
 
 
 def _same_origin_url(path):
@@ -170,10 +171,19 @@ def serialize_sketch_detail(
         data["files"] = [
             serialize_source_file(item) for item in sketch.get_source_files()
         ]
+        data["media"] = serialize_sketch_media(sketch)
+        data["media_base_url"] = _same_origin_url(
+            reverse("sketch_media_file", kwargs={"slug": sketch.slug, "filename": "x"}).rsplit(
+                "/", 1
+            )[0]
+            + "/"
+        )
     else:
         data["code"] = ""
         data["assets"] = []
         data["files"] = []
+        data["media"] = []
+        data["media_base_url"] = ""
     return data
 
 
