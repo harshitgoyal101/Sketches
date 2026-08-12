@@ -120,6 +120,27 @@ class EmbedBuilderTests(SimpleTestCase):
         self.assertIn("void helper()", html)
         self.assertIn('<base href="https://example.com/sketches/x/media/">', html)
 
+    def test_embed_injects_font_face_for_font_files(self):
+        html = build_p5_embed_html(
+            "function setup() {}",
+            mode="live",
+            media_base_url="/sketches/demo/media/",
+            font_files=["MyFont.ttf"],
+        )
+        self.assertIn("@font-face", html)
+        self.assertIn('font-family: "MyFont"', html)
+        self.assertIn('url("MyFont.ttf")', html)
+        self.assertIn('format("truetype")', html)
+
+        proc = build_processing_embed_html(
+            "void setup() {}",
+            mode="preview",
+            media_base_url="/sketches/demo/media/",
+            font_files=["Display.otf"],
+        )
+        self.assertIn('font-family: "Display"', proc)
+        self.assertIn('format("opentype")', proc)
+
 
 class SketchStarterTests(SimpleTestCase):
     def test_normalize_sketch_type_defaults_to_p5js(self):
@@ -2639,3 +2660,49 @@ class SketchMediaApiTests(TestCase):
         html = preview.json()["html"]
         self.assertIn("/sketches/media-owner-media-demo/media/", html)
         self.assertIn('<base href="/sketches/media-owner-media-demo/media/">', html)
+
+    def test_upload_font_ttf(self):
+        # Minimal valid-enough payload; upload only checks extension/size.
+        font = SimpleUploadedFile(
+            "MyFont.ttf",
+            b"\x00\x01\x00\x00" + b"\x00" * 64,
+            content_type="font/ttf",
+        )
+        response = self.client.post(
+            f"/api/account/sketches/{self.sketch.slug}/media/",
+            {"files": font},
+        )
+        self.assertEqual(response.status_code, 201, response.content)
+        payload = response.json()
+        self.assertEqual(payload["media"][0]["filename"], "MyFont.ttf")
+        self.assertEqual(payload["media"][0]["kind"], "font")
+        self.assertEqual(payload["media"][0]["content_type"], "font/ttf")
+
+        preview = self.client.post(
+            "/api/preview/",
+            data=json.dumps(
+                {
+                    "sketch_type": "p5js",
+                    "main_code": "function setup() {}",
+                    "assets": [],
+                    "mode": "live",
+                    "slug": self.sketch.slug,
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(preview.status_code, 200)
+        html = preview.json()["html"]
+        self.assertIn("@font-face", html)
+        self.assertIn('font-family: "MyFont"', html)
+        self.assertIn('url("MyFont.ttf")', html)
+
+    def test_reject_exe(self):
+        bad = SimpleUploadedFile(
+            "malware.exe", b"MZ", content_type="application/octet-stream"
+        )
+        response = self.client.post(
+            f"/api/account/sketches/{self.sketch.slug}/media/",
+            {"files": bad},
+        )
+        self.assertEqual(response.status_code, 400)

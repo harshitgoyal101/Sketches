@@ -62,7 +62,7 @@ export type SketchDetail = SketchCard & {
 export type SketchMediaFile = {
   id: number
   filename: string
-  kind: 'image' | 'audio' | string
+  kind: 'image' | 'audio' | 'font' | string
   content_type: string
   size: number
   url: string

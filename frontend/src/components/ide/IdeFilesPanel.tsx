@@ -7,6 +7,7 @@ import {
   Pencil,
   Plus,
   Trash2,
+  Type,
   Upload,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -14,7 +15,7 @@ import type { IdeFile } from './ideFiles'
 import type { SketchMediaFile } from '@/types/sketch'
 
 const MEDIA_ACCEPT =
-  'image/png,image/jpeg,image/gif,image/webp,image/svg+xml,audio/mpeg,audio/wav,audio/ogg,audio/mp4,.png,.jpg,.jpeg,.gif,.webp,.svg,.mp3,.wav,.ogg,.m4a'
+  'image/png,image/jpeg,image/gif,image/webp,image/svg+xml,audio/mpeg,audio/wav,audio/ogg,audio/mp4,font/ttf,font/otf,font/woff,font/woff2,.png,.jpg,.jpeg,.gif,.webp,.svg,.mp3,.wav,.ogg,.m4a,.ttf,.otf,.woff,.woff2'
 
 type IdeFilesPanelProps = {
   files: IdeFile[]
@@ -202,7 +203,7 @@ export function IdeFilesPanel({
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
                   className="inline-flex h-6 cursor-pointer items-center gap-0.5 rounded-btn px-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
-                  title="Upload images or audio"
+                  title="Upload images, audio, or fonts"
                 >
                   <Upload size={12} aria-hidden />
                   <span>{uploading ? '…' : 'Upload'}</span>
@@ -326,7 +327,12 @@ export function IdeFilesPanel({
             {media.map((item) => {
               const active = item.filename === activeFilename
               const renaming = renamingFilename === item.filename && renamingMedia
-              const Icon = item.kind === 'audio' ? Music : ImageIcon
+              const Icon =
+                item.kind === 'audio'
+                  ? Music
+                  : item.kind === 'font'
+                    ? Type
+                    : ImageIcon
               return (
                 <li key={`media:${item.filename}`} className="group/file">
                   <div

@@ -1,4 +1,4 @@
-"""Upload, validate, and serialize sketch image/audio media."""
+"""Upload, validate, and serialize sketch image/audio/font media."""
 
 from __future__ import annotations
 
@@ -14,10 +14,12 @@ from sketches.models import SketchMedia
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a"}
-ALLOWED_EXTENSIONS = IMAGE_EXTENSIONS | AUDIO_EXTENSIONS
+FONT_EXTENSIONS = {".ttf", ".otf", ".woff", ".woff2"}
+ALLOWED_EXTENSIONS = IMAGE_EXTENSIONS | AUDIO_EXTENSIONS | FONT_EXTENSIONS
 
 IMAGE_MAX_BYTES = 5 * 1024 * 1024
 AUDIO_MAX_BYTES = 10 * 1024 * 1024
+FONT_MAX_BYTES = 5 * 1024 * 1024
 
 _CONTENT_TYPES = {
     ".png": "image/png",
@@ -30,6 +32,17 @@ _CONTENT_TYPES = {
     ".wav": "audio/wav",
     ".ogg": "audio/ogg",
     ".m4a": "audio/mp4",
+    ".ttf": "font/ttf",
+    ".otf": "font/otf",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2",
+}
+
+_FONT_FORMATS = {
+    ".ttf": "truetype",
+    ".otf": "opentype",
+    ".woff": "woff",
+    ".woff2": "woff2",
 }
 
 
@@ -39,7 +52,11 @@ def kind_for_extension(ext: str) -> str:
         return SketchMedia.Kind.IMAGE
     if ext in AUDIO_EXTENSIONS:
         return SketchMedia.Kind.AUDIO
-    raise ValidationError("Unsupported file type. Upload an image or audio file.")
+    if ext in FONT_EXTENSIONS:
+        return SketchMedia.Kind.FONT
+    raise ValidationError(
+        "Unsupported file type. Upload an image, audio, or font file."
+    )
 
 
 def content_type_for_filename(filename: str, uploaded_type: str = "") -> str:
@@ -57,7 +74,27 @@ def content_type_for_filename(filename: str, uploaded_type: str = "") -> str:
 def max_bytes_for_kind(kind: str) -> int:
     if kind == SketchMedia.Kind.AUDIO:
         return AUDIO_MAX_BYTES
+    if kind == SketchMedia.Kind.FONT:
+        return FONT_MAX_BYTES
     return IMAGE_MAX_BYTES
+
+
+def font_family_name(filename: str) -> str:
+    """CSS font-family for @font-face / createFont (filename stem)."""
+    return PurePosixPath(filename).stem
+
+
+def font_face_format(filename: str) -> str:
+    ext = PurePosixPath(filename).suffix.lower()
+    return _FONT_FORMATS.get(ext, "truetype")
+
+
+def sketch_font_filenames(sketch) -> list[str]:
+    return list(
+        sketch.media_files.filter(kind=SketchMedia.Kind.FONT).values_list(
+            "filename", flat=True
+        )
+    )
 
 
 def clean_media_filename(value: str) -> str:

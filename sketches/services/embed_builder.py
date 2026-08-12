@@ -1,5 +1,7 @@
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+
+from sketches.services.sketch_media import font_face_format, font_family_name
 
 EMBED_ROOT = Path(__file__).resolve().parent.parent / "static" / "sketches" / "embed"
 SNIPPETS_DIR = EMBED_ROOT / "snippets"
@@ -48,11 +50,51 @@ def _base_tag(media_base_url):
     return f'<base href="{safe}">'
 
 
-def _build_head_extra(assets, media_base_url=None):
+def _normalize_font_files(font_files):
+    """Accept filenames or dicts with filename; return unique basename list."""
+    names = []
+    seen = set()
+    for item in font_files or []:
+        if isinstance(item, str):
+            filename = item
+        else:
+            filename = getattr(item, "filename", None) or item.get("filename")
+        if not filename:
+            continue
+        name = PurePosixPath(filename).name
+        if name in seen:
+            continue
+        seen.add(name)
+        names.append(filename)
+    return names
+
+
+def _font_face_css(font_files):
+    rules = []
+    for filename in _normalize_font_files(font_files):
+        family = font_family_name(filename).replace('"', "")
+        src_name = PurePosixPath(filename).name.replace('"', "%22").replace(")", "%29")
+        fmt = font_face_format(filename)
+        rules.append(
+            f'@font-face {{\n'
+            f'  font-family: "{family}";\n'
+            f'  src: url("{src_name}") format("{fmt}");\n'
+            f'  font-display: swap;\n'
+            f'}}'
+        )
+    if not rules:
+        return ""
+    return _style_tag("\n".join(rules))
+
+
+def _build_head_extra(assets, media_base_url=None, font_files=None):
     includes = []
     base = _base_tag(media_base_url)
     if base:
         includes.append(base)
+    font_css = _font_face_css(font_files)
+    if font_css:
+        includes.append(font_css)
     for asset in assets:
         if asset["asset_type"] == "css":
             includes.append(_style_tag(asset["content"]))
@@ -99,6 +141,7 @@ def build_p5_embed_html(
     mode=None,
     run_id=None,
     media_base_url=None,
+    font_files=None,
 ):
     """Build minimal HTML page for sandboxed p5.js sketch iframe."""
     config = _load_config()
@@ -112,7 +155,9 @@ def build_p5_embed_html(
     replacements = {
         "__PAGE_STYLE__": config["page_styles"][resolved_mode],
         "__HEAD_EXTRA__": _build_head_extra(
-            normalized_assets, media_base_url=media_base_url
+            normalized_assets,
+            media_base_url=media_base_url,
+            font_files=font_files,
         ),
         "__HEAD_SCRIPTS__": _build_head_scripts(config, resolved_mode, run_id=run_id),
         "__P5JS_CDN__": config["p5js_cdn"],
@@ -151,6 +196,7 @@ def build_processing_embed_html(
     mode=None,
     run_id=None,
     media_base_url=None,
+    font_files=None,
 ):
     """Build minimal HTML page for Processing.js (.pde) sketch iframe."""
     config = _load_config()
@@ -166,7 +212,13 @@ def build_processing_embed_html(
 
     sources = [asset["content"] for asset in tab_assets] + [main_code]
 
-    head_extra_parts = [_build_head_extra(css_assets, media_base_url=media_base_url)]
+    head_extra_parts = [
+        _build_head_extra(
+            css_assets,
+            media_base_url=media_base_url,
+            font_files=font_files,
+        )
+    ]
 
     replacements = {
         "__PAGE_STYLE__": config["page_styles"][resolved_mode],
@@ -194,10 +246,18 @@ def build_embed_html(
     main_code=None,
     assets=None,
     media_base_url=None,
+    font_files=None,
 ):
     """Build embed HTML for a sketch based on its type."""
+    from sketches.services.sketch_media import sketch_font_filenames
+
     code = main_code if main_code is not None else sketch.code
     sketch_assets = assets if assets is not None else list(sketch.assets.all())
+    fonts = (
+        font_files
+        if font_files is not None
+        else sketch_font_filenames(sketch)
+    )
     if sketch.sketch_type == "processing":
         return build_processing_embed_html(
             code,
@@ -206,6 +266,7 @@ def build_embed_html(
             mode=mode,
             run_id=run_id,
             media_base_url=media_base_url,
+            font_files=fonts,
         )
     return build_p5_embed_html(
         code,
@@ -214,4 +275,5 @@ def build_embed_html(
         mode=mode,
         run_id=run_id,
         media_base_url=media_base_url,
+        font_files=fonts,
     )

@@ -492,11 +492,12 @@ def sketch_media_upload_to(instance, filename):
 
 
 class SketchMedia(models.Model):
-    """Binary image/audio asset for a sketch (loadImage / loadSound by filename)."""
+    """Binary image/audio/font asset for a sketch (loadImage / loadSound / loadFont)."""
 
     class Kind(models.TextChoices):
         IMAGE = "image", "Image"
         AUDIO = "audio", "Audio"
+        FONT = "font", "Font"
 
     sketch = models.ForeignKey(
         Sketch,

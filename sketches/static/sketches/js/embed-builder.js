@@ -75,10 +75,57 @@ window.SketchEmbed = (function () {
     return `<base href="${href.replace(/"/g, "%22")}">`;
   }
 
-  function buildHeadExtra(assets, mediaBaseUrl) {
+  function fontFamilyName(filename) {
+    const base = String(filename || "").split("/").pop() || "";
+    const dot = base.lastIndexOf(".");
+    return dot > 0 ? base.slice(0, dot) : base;
+  }
+
+  function fontFaceFormat(filename) {
+    const lower = String(filename || "").toLowerCase();
+    if (lower.endsWith(".otf")) return "opentype";
+    if (lower.endsWith(".woff2")) return "woff2";
+    if (lower.endsWith(".woff")) return "woff";
+    return "truetype";
+  }
+
+  function normalizeFontFiles(fontFiles) {
+    const names = [];
+    const seen = new Set();
+    (fontFiles || []).forEach((item) => {
+      const filename = typeof item === "string" ? item : item && item.filename;
+      if (!filename) return;
+      const key = String(filename).split("/").pop();
+      if (seen.has(key)) return;
+      seen.add(key);
+      names.push(filename);
+    });
+    return names;
+  }
+
+  function fontFaceCss(fontFiles) {
+    const rules = normalizeFontFiles(fontFiles).map((filename) => {
+      const family = fontFamilyName(filename).replace(/"/g, "");
+      const srcName = String(filename).split("/").pop().replace(/"/g, "%22").replace(/\)/g, "%29");
+      const fmt = fontFaceFormat(filename);
+      return (
+        `@font-face {\n` +
+        `  font-family: "${family}";\n` +
+        `  src: url("${srcName}") format("${fmt}");\n` +
+        `  font-display: swap;\n` +
+        `}`
+      );
+    });
+    if (!rules.length) return "";
+    return styleTag(rules.join("\n"));
+  }
+
+  function buildHeadExtra(assets, mediaBaseUrl, fontFiles) {
     const parts = [];
     const base = baseTag(mediaBaseUrl);
     if (base) parts.push(base);
+    const fonts = fontFaceCss(fontFiles);
+    if (fonts) parts.push(fonts);
     assets
       .filter((asset) => asset.asset_type === "css")
       .forEach((asset) => parts.push(styleTag(asset.content)));
@@ -134,10 +181,10 @@ window.SketchEmbed = (function () {
     return fullscreen ? "fullscreen" : "preview";
   }
 
-  function buildP5({ mainCode, assets, resolvedMode, effectiveRunId, mediaBaseUrl }) {
+  function buildP5({ mainCode, assets, resolvedMode, effectiveRunId, mediaBaseUrl, fontFiles }) {
     const replacements = {
       __PAGE_STYLE__: config.page_styles[resolvedMode],
-      __HEAD_EXTRA__: buildHeadExtra(assets, mediaBaseUrl),
+      __HEAD_EXTRA__: buildHeadExtra(assets, mediaBaseUrl, fontFiles),
       __HEAD_SCRIPTS__: buildHeadScripts(resolvedMode, effectiveRunId),
       __P5JS_CDN__: config.p5js_cdn,
       __P5SOUND_SCRIPT__: p5SoundScript(),
@@ -151,13 +198,13 @@ window.SketchEmbed = (function () {
     return html;
   }
 
-  function buildProcessing({ mainCode, assets, resolvedMode, effectiveRunId, mediaBaseUrl }) {
+  function buildProcessing({ mainCode, assets, resolvedMode, effectiveRunId, mediaBaseUrl, fontFiles }) {
     const cssAssets = assets.filter((asset) => asset.asset_type === "css");
     const tabAssets = assets.filter((asset) => asset.asset_type === "js");
     const sources = tabAssets.map((asset) => asset.content).concat([mainCode]);
     const replacements = {
       __PAGE_STYLE__: config.page_styles[resolvedMode],
-      __HEAD_EXTRA__: buildHeadExtra(cssAssets, mediaBaseUrl),
+      __HEAD_EXTRA__: buildHeadExtra(cssAssets, mediaBaseUrl, fontFiles),
       __HEAD_SCRIPTS__: buildHeadScripts(resolvedMode, effectiveRunId),
       __PROCESSINGJS_CDN__: resolveCdnUrl(config.processingjs_cdn),
       __PROCESSING_MEDIA_HELPERS__: `<script>\n${processingMediaHelpers || ""}\n</script>`,
@@ -182,6 +229,7 @@ window.SketchEmbed = (function () {
     mode = null,
     runId = null,
     mediaBaseUrl = null,
+    fontFiles = null,
   }) {
     if (!config || !p5Shell || !processingShell) {
       throw new Error("SketchEmbed assets not loaded. Call SketchEmbed.preload() first.");
@@ -199,6 +247,7 @@ window.SketchEmbed = (function () {
         resolvedMode,
         effectiveRunId,
         mediaBaseUrl,
+        fontFiles,
       });
     }
 
@@ -208,6 +257,7 @@ window.SketchEmbed = (function () {
       resolvedMode,
       effectiveRunId,
       mediaBaseUrl,
+      fontFiles,
     });
   }
 

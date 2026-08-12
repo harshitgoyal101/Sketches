@@ -20,6 +20,7 @@ from sketches.services.sketch_media import (
     rename_media,
     save_uploaded_media,
     serialize_media,
+    sketch_font_filenames,
 )
 from sketches.services.sketch_publish import publish_sketch
 from sketches.services.sketch_starters import (
@@ -608,12 +609,18 @@ def api_preview(request):
         return json_response({"ok": False, "error": "assets must be a list"}, status=400)
 
     base = None
+    fonts = None
     if slug:
         sketch = Sketch.objects.filter(slug=slug).first()
         if sketch and can_edit_sketch(request.user, sketch):
             base = media_base_url(request, sketch.slug)
+            fonts = sketch_font_filenames(sketch)
     if not base and data.get("media_base_url"):
         base = str(data.get("media_base_url")).strip() or None
+    if fonts is None and data.get("font_files"):
+        raw_fonts = data.get("font_files")
+        if isinstance(raw_fonts, list):
+            fonts = raw_fonts
 
     if sketch_type == Sketch.SketchType.PROCESSING:
         html = build_processing_embed_html(
@@ -622,6 +629,7 @@ def api_preview(request):
             mode=mode,
             run_id=run_id,
             media_base_url=base,
+            font_files=fonts,
         )
     else:
         html = build_p5_embed_html(
@@ -630,6 +638,7 @@ def api_preview(request):
             mode=mode,
             run_id=run_id,
             media_base_url=base,
+            font_files=fonts,
         )
 
     preview_id = uuid.uuid4().hex
@@ -649,7 +658,7 @@ def api_preview(request):
 
 @require_http_methods(["POST"])
 def api_account_sketch_media_upload(request, slug):
-    """Upload one or more image/audio files for a sketch."""
+    """Upload one or more image/audio/font files for a sketch."""
     denied = require_login(request)
     if denied:
         return denied
