@@ -2706,3 +2706,29 @@ class SketchMediaApiTests(TestCase):
             {"files": bad},
         )
         self.assertEqual(response.status_code, 400)
+
+
+class SketchMediaMysqlFkGuardTests(SimpleTestCase):
+    def _migration_mod(self):
+        import importlib
+
+        return importlib.import_module("sketches.migrations.0017_sketchmedia")
+
+    def test_on_delete_clause_mapping(self):
+        mod = self._migration_mod()
+        self.assertEqual(mod._mysql_on_delete_clause("CASCADE"), "ON DELETE CASCADE")
+        self.assertEqual(mod._mysql_on_delete_clause("SET NULL"), "ON DELETE SET NULL")
+        self.assertEqual(mod._mysql_on_delete_clause("RESTRICT"), "ON DELETE RESTRICT")
+
+    def test_widen_helper_noops_on_non_mysql(self):
+        from django.db import connection
+
+        mod = self._migration_mod()
+
+        class _SchemaEditor:
+            pass
+
+        editor = _SchemaEditor()
+        editor.connection = connection
+        # Must not raise on SQLite / non-MySQL.
+        mod.widen_sketch_pk_for_mysql(None, editor)
