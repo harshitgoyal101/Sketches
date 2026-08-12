@@ -34,6 +34,34 @@
     instance.mouseY = window._parentMouseY;
   }
 
+  function bindScoreBridge(instance) {
+    if (!instance || typeof instance.setScoreBridge !== "function") {
+      return;
+    }
+    instance.setScoreBridge({
+      submit: function (game, score) {
+        if (typeof parent === "undefined" || parent === window) return;
+        parent.postMessage(
+          {
+            type: "sketches101-score",
+            game: String(game || ""),
+            score: Math.floor(Number(score) || 0),
+          },
+          "*"
+        );
+      },
+    });
+  }
+
+  function resizeInstance(instance) {
+    if (!instance || typeof instance.size !== "function") return;
+    try {
+      instance.size(window.innerWidth, window.innerHeight);
+    } catch (error) {
+      // ignore resize failures on older sketches
+    }
+  }
+
   function patchProcessingPointer(instance, canvas) {
     if (!instance || instance.__sketchPointerFallback) {
       return;
@@ -52,6 +80,8 @@
 
     if (canvas) {
       canvas.style.touchAction = "none";
+      canvas.style.webkitUserSelect = "none";
+      canvas.style.userSelect = "none";
     }
 
     function syncParentPointer() {
@@ -77,12 +107,15 @@
 
     destroyInstance();
     host.textContent = "";
+    host.style.touchAction = "none";
     var canvas = document.createElement("canvas");
     host.appendChild(canvas);
 
     try {
       window.__processingInstance = new Processing(canvas, getCombinedSource());
       patchProcessingPointer(window.__processingInstance, canvas);
+      bindScoreBridge(window.__processingInstance);
+      resizeInstance(window.__processingInstance);
     } catch (error) {
       report({
         message: error && error.message ? error.message : String(error),
@@ -94,6 +127,10 @@
   window.onSketchRestart = function () {
     start();
   };
+
+  window.addEventListener("resize", function () {
+    resizeInstance(window.__processingInstance);
+  });
 
   if (document.readyState === "complete") {
     start();

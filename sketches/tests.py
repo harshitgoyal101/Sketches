@@ -101,9 +101,20 @@ class SketchStarterTests(SimpleTestCase):
         self.assertEqual(get_default_filename(Sketch.SketchType.PROCESSING), "sketch.pde")
         code = get_starter_code(Sketch.SketchType.PROCESSING)
         self.assertIn("void setup()", code)
+        self.assertIn("size(screenWidth, screenHeight)", code)
+        self.assertIn("mousePressed", code)
+        self.assertIn("submitScore", code)
+        self.assertIn("ScoreBridge", code)
+        self.assertIn("your-scoreboard-slug", code)
+
+    def test_p5js_starter_includes_fullscreen_and_score_hooks(self):
+        code = get_starter_code(Sketch.SketchType.P5JS)
         self.assertIn("pointerX()", code)
         self.assertIn("pointerY()", code)
-        self.assertIn("size(screenWidth, screenHeight)", code)
+        self.assertIn("windowWidth", code)
+        self.assertIn("sketches101-score", code)
+        self.assertIn("submitScore", code)
+        self.assertIn("your-scoreboard-slug", code)
 
     def test_create_form_prefills_processing_defaults(self):
         form = SketchEditForm(

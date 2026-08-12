@@ -24,6 +24,7 @@ from .forms import (
     StyledSetPasswordForm,
 )
 from .models import Sketch
+from .services.email_branding import email_brand_context
 from .services.email_verification import send_verification_email
 
 User = get_user_model()
@@ -96,7 +97,7 @@ class UserPasswordResetView(PasswordResetView):
     subject_template_name = "registration/email/password_reset_subject.txt"
     form_class = StyledPasswordResetForm
     success_url = reverse_lazy("password_reset_done")
-    extra_email_context = {"site_name": settings.SITE_NAME}
+    extra_email_context = email_brand_context()
 
 
 class UserPasswordResetDoneView(PasswordResetDoneView):

@@ -20,6 +20,7 @@ from sketches.forms import (
     StyledSetPasswordForm,
 )
 from sketches.models import Game, GuestMigrationLog, Sketch, SketchAsset, UserProfile
+from sketches.services.email_branding import email_brand_context
 from sketches.services.email_verification import send_verification_email
 from sketches.services.game_scores import create_score_for_user, parse_played_at
 from sketches.services.google_auth import GoogleAuthError, verify_google_id_token
@@ -250,7 +251,7 @@ def api_password_reset(request):
             email_template_name="registration/email/password_reset_email.txt",
             html_email_template_name="registration/email/password_reset_email.html",
             subject_template_name="registration/email/password_reset_subject.txt",
-            extra_email_context={"site_name": settings.SITE_NAME},
+            extra_email_context=email_brand_context(),
         )
     # Always OK — avoid account enumeration
     return json_response({"ok": True})

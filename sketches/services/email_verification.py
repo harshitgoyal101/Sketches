@@ -6,12 +6,13 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
+from .email_branding import email_brand_context, site_base_url
+
 
 def _build_absolute_link(request, path):
     if request:
         return request.build_absolute_uri(path)
-    base = getattr(settings, "SITE_URL", "http://127.0.0.1:8000").rstrip("/")
-    return f"{base}{path}"
+    return f"{site_base_url()}{path}"
 
 
 def _verification_url(request, user):
@@ -22,11 +23,10 @@ def _verification_url(request, user):
 
 
 def send_verification_email(request, user):
-    site_name = getattr(settings, "SITE_NAME", "sketches101")
     verify_url = _verification_url(request, user)
     context = {
+        **email_brand_context(),
         "user": user,
-        "site_name": site_name,
         "verify_url": verify_url,
     }
     subject = render_to_string(
